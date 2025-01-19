@@ -37,3 +37,9 @@ runIde {
     // 设置插件开发模式
     systemProperty 'idea.plugins.developer.mode', 'true'
 }
+
+tasks.register('printVersion') {
+    doLast {
+        println project.version
+    }
+}

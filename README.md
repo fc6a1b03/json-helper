@@ -47,15 +47,9 @@ JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
 
 2. **打包插件**:
    ```bash
-   ./gradlew buildPlugin
+   ./gradlew clean build
    ```
-   这将生成一个 `.zip` 文件，包含插件的所有资源和代码，可以发布到插件市场或本地安装。
-
-3. **清理构建**:
-   ```bash
-   ./gradlew clean
-   ```
-   这将清理构建目录，删除所有生成的文件。
+   这将生成一个 `.jar` 文件，包含插件的所有资源和代码，可以发布到插件市场或本地安装。
 
 ## 版本迭代
 

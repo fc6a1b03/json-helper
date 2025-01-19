@@ -43,7 +43,7 @@ public class SearchPanel {
         // 撤销按钮
         final JButton undoButton = new JButton();
         undoButton.setEnabled(Boolean.FALSE);
-        undoButton.setIcon(AllIcons.Actions.SearchNewLine);
+        undoButton.setIcon(AllIcons.Javaee.UpdateRunningApplication);
         // 搜索框快捷事件
         new AnAction() {
             @Override

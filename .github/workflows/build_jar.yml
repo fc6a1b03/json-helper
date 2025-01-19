@@ -1,4 +1,4 @@
-name: Build Jar Based
+name: Build and Release
 
 on:
   workflow_dispatch:
@@ -32,9 +32,13 @@ jobs:
       - name: Extract Version from build.gradle
         id: extract_version
         run: |
-          VERSION=$(grep -oP "(?<=version ')[^']+" build.gradle)
-          echo "##[set-output name=version;]v$VERSION"
-      
+          VERSION=$(gradle -q printVersion)
+          if [ -z "$VERSION" ]; then
+            echo "Version not found."
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Upload JAR as artifact
         uses: actions/upload-artifact@v4
         with:

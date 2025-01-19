@@ -41,15 +41,15 @@ JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
 
 1. **运行插件**:
    ```bash
-   ./gradlew runIde
+   ./gradle runIde
    ```
    这将启动一个带有插件的 IntelliJ IDEA 实例，供你测试和调试。
 
 2. **打包插件**:
    ```bash
-   ./gradlew clean build
+   ./gradle clean build
    ```
-   这将生成一个 `.jar` 文件，包含插件的所有资源和代码，可以发布到插件市场或本地安装。
+   这将生成一个 `.zip` 文件，包含插件的所有资源和代码，可以发布到插件市场或本地安装。
 
 ## 版本迭代
 

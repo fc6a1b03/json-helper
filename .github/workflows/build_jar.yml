@@ -39,27 +39,11 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Upload JAR as artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v1
         with:
-          name: build-artifacts
-          path: build/distributions/*.zip
-          retention-days: 2
-          compression-level: 9
-          if-no-files-found: error
-
-      - name: Create Git Tag
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git tag -a "${{ steps.extract_version.outputs.version }}" -m "Release ${{ steps.extract_version.outputs.version }}"
-          git push --tags
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
+          files: build/distributions/*.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.extract_version.outputs.version }}
           release_name: Release ${{ steps.extract_version.outputs.version }}
           draft: false

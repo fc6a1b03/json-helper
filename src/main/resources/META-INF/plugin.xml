@@ -1,0 +1,17 @@
+<idea-plugin>
+    <id>com.acme.json.helper</id>
+    <name>Json Helper</name>
+    <vendor>拒绝者</vendor>
+    <description>这个工具允许用户自由编辑 JSON 数据，支持强大的查询语言 JsonPath 和 JMESPath，帮助用户高效检索和处理
+        JSON信息，提升开发和调试的便捷性
+    </description>
+    <depends>com.intellij.modules.platform</depends>
+    <resource-bundle>messages.JsonHelperBundle</resource-bundle>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Json Helper"
+                    anchor="right"
+                    secondary="true"
+                    icon="/icons/json-helper.svg"
+                    factoryClass="com.acme.json.helper.ui.ToolWindow"/>
+    </extensions>
+</idea-plugin>

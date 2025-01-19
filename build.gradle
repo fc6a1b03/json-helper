@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij' version '1.17.4'
+}
+
+group 'com.acme'
+version '0.1.5'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'io.burt:jmespath-jackson:0.6.0'
+    implementation 'com.jayway.jsonpath:json-path:2.9.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+}
+
+intellij {
+    type = 'IC'
+    version = '2024.3.2'
+    plugins = ['java', 'gradle', 'com.intellij.java']
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+runIde {
+    // 设置IDEA实例的JVM参数
+    jvmArgs = ['-Xmx1024m']
+    // 设置日志级别
+    systemProperty 'idea.log.level', 'DEBUG'
+    // 设置IDEA实例的系统属性
+    systemProperty 'idea.is.internal', 'true'
+    // 设置插件开发模式
+    systemProperty 'idea.plugins.developer.mode', 'true'
+}

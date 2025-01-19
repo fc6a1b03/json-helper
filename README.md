@@ -9,6 +9,10 @@ JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
 - **Gradle**: 8.12 或更高版本
 - **IntelliJ IDEA**: 2023.1 或更高版本
 
+## 预览
+
+![home.png](doc/home.png)
+
 ## 项目结构
 
 ```plaintext

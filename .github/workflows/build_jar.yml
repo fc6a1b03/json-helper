@@ -6,7 +6,6 @@ on:
 permissions:
   contents: write
   packages: write
-  # Ensure the workflow has permission to create releases and write to the repository
 
 jobs:
   build:

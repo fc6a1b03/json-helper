@@ -28,7 +28,7 @@ public class SearchPanel {
 
     /**
      * 创建搜索面板
-     * @param currentEditor 现任编辑
+     * @param currentEditor 当前编辑
      * @return {@link JPanel }
      */
     public JPanel create(final EditorTextField currentEditor) {
@@ -44,6 +44,9 @@ public class SearchPanel {
         final JButton undoButton = new JButton();
         undoButton.setEnabled(Boolean.FALSE);
         undoButton.setIcon(AllIcons.Javaee.UpdateRunningApplication);
+        // 清空按钮
+        final JButton clearButton = new JButton();
+        clearButton.setIcon(AllIcons.Actions.ClearCash);
         // 搜索框快捷事件
         new AnAction() {
             @Override
@@ -54,8 +57,11 @@ public class SearchPanel {
         // 添加按钮面板
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         buttonPanel.add(undoButton);
+        buttonPanel.add(clearButton);
         searchPanel.add(buttonPanel, BorderLayout.EAST);
         searchPanel.add(searchField, BorderLayout.CENTER);
+        // 清空按钮点击事件
+        clearButton.addActionListener(e -> clearContent(undoButton, historyStack, currentEditor));
         // 撤销按钮点击事件
         undoButton.addActionListener(e -> undoLastSearch(undoButton, historyStack, currentEditor));
         return searchPanel;
@@ -64,7 +70,8 @@ public class SearchPanel {
     /**
      * 撤消上次搜索
      * @param undoButton    撤消按钮
-     * @param currentEditor 现任编辑
+     * @param historyStack  历史堆栈
+     * @param currentEditor 当前编辑
      */
     private void undoLastSearch(final JButton undoButton, final Stack<String> historyStack, final EditorTextField currentEditor) {
         if (Objects.isNull(currentEditor) || historyStack.isEmpty()) return;
@@ -77,9 +84,25 @@ public class SearchPanel {
     }
 
     /**
+     * 清空内容
+     * @param historyStack  历史堆栈
+     * @param currentEditor 当前编辑
+     */
+    private void clearContent(final JButton undoButton, final Stack<String> historyStack, final EditorTextField currentEditor) {
+        if (Objects.isNull(currentEditor)) return;
+        // 储存历史
+        historyStack.push(currentEditor.getDocument().getText());
+        // 清空内容
+        currentEditor.setText("");
+        // 启用撤销按钮
+        undoButton.setEnabled(Boolean.TRUE);
+    }
+
+
+    /**
      * 执行搜索
      * @param searchField   搜索字段
-     * @param currentEditor 现任编辑
+     * @param currentEditor 当前编辑
      */
     private void performSearch(final JTextField searchField, final JButton undoButton, final Stack<String> historyStack, final EditorTextField currentEditor) {
         if (Objects.isNull(currentEditor)) return;

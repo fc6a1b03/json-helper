@@ -27,7 +27,7 @@ jobs:
           gradle-version: "8.12"
 
       - name: Build with Gradle
-        run: gradle clean build
+        run: gradle clean buildPlugin
 
       - name: Extract Version from build.gradle
         id: extract_version
@@ -43,7 +43,7 @@ jobs:
         id: commit_message
         run: |
           # 获取最后一次提交的完整信息（包括标题和正文）
-          echo "message=$(git log -2 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
+          echo "message=$(git log -3 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v1

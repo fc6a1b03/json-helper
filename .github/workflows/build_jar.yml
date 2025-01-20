@@ -39,6 +39,12 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: 获取最新提交信息
+        id: commit_message
+        run: |
+          # 获取最后一次提交的完整信息（包括标题和正文）
+          echo "message=$(git log -2 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
+
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v1
         with:
@@ -46,5 +52,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.extract_version.outputs.version }}
           release_name: Release ${{ steps.extract_version.outputs.version }}
+          body: ${{ steps.commit_message.outputs.message }}
           draft: false
           prerelease: false

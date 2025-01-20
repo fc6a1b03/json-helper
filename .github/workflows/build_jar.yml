@@ -39,10 +39,9 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: 获取最新提交信息
+      - name: Latest Commit Info
         id: commit_message
         run: |
-          # 获取最后一次提交的完整信息（包括标题和正文）
           echo "message=$(git log -3 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Asset

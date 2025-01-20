@@ -1,19 +1,12 @@
 package com.acme.json.helper.ui;
 
 import com.acme.json.helper.core.*;
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.folding.CodeFoldingManager;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.editor.EditorSettings;
+import com.intellij.openapi.editor.*;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
-import com.intellij.openapi.editor.event.DocumentEvent;
-import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.ex.EditorSettingsExternalizable;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
@@ -23,13 +16,9 @@ import com.intellij.openapi.keymap.KeymapManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiFileFactory;
 import com.intellij.ui.EditorTextField;
-import com.intellij.util.LocalTimeCounter;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Objects;
@@ -42,10 +31,6 @@ import java.util.ResourceBundle;
  */
 public class JsonEditor {
     /**
-     * 编辑器窗口大小
-     */
-    private static final Dimension DIMENSION = new Dimension(600, 500);
-    /**
      * 加载语言资源文件
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
@@ -56,67 +41,8 @@ public class JsonEditor {
      * @return {@link EditorTextField}
      */
     public EditorTextField create(final Project project) {
-        // 创建文档
-        final Document document = EditorFactory.getInstance().createDocument("");
-        // 获取JSON 语言和文件类型
-        final FileType jsonFileType = FileTypeManager.getInstance().getFileTypeByExtension("json");
         // 创建带有完整 JSON 支持的编辑器
-        final EditorTextField editor = new EditorTextField(document, project, jsonFileType, Boolean.FALSE, Boolean.FALSE) {
-            private PsiFile psiFile;
-
-            @Override
-            protected @NotNull EditorEx createEditor() {
-                final EditorEx editor = super.createEditor();
-                // 基础编辑器设置
-                editor.setCaretVisible(Boolean.TRUE);
-                editor.setVerticalScrollbarVisible(Boolean.TRUE);
-                editor.setHorizontalScrollbarVisible(Boolean.TRUE);
-                editor.getFoldingModel().setFoldingEnabled(Boolean.TRUE);
-                editor.setContextMenuGroupId(IdeActions.GROUP_EDITOR_POPUP);
-                // 设置配色方案
-                editor.setColorsScheme(EditorColorsManager.getInstance().getGlobalScheme());
-                editor.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(project, jsonFileType));
-                // 设置字体
-                editor.getColorsScheme().setEditorFontName(EditorColorsManager.getInstance().getGlobalScheme().getEditorFontName());
-                editor.getColorsScheme().setEditorFontSize(EditorColorsManager.getInstance().getGlobalScheme().getEditorFontSize());
-                // 编辑器高级设置
-                editorSettings(editor);
-                // 创建初始的PsiFile
-                updatePsiFile(editor, project, editor.getDocument().getText());
-                // 添加文档监听器，在内容变化时更新 PsiFile
-                editor.getDocument().addDocumentListener(new DocumentListener() {
-                    @Override
-                    public void documentChanged(@NotNull final DocumentEvent e) {
-                        ApplicationManager.getApplication().invokeLater(() -> updatePsiFile(editor, project, editor.getDocument().getText()));
-                    }
-                });
-                // 添加JSON格式化支持
-                jsonFormatAction(editor);
-                return editor;
-            }
-
-            /**
-             * 更新psi文件
-             * @param content 内容
-             */
-            private void updatePsiFile(final EditorEx editor, final Project project, final String content) {
-                ApplicationManager.getApplication().runWriteAction(() -> {
-                    psiFile = PsiFileFactory.getInstance(project).createFileFromText(
-                            "tmp.json",
-                            jsonFileType,
-                            content,
-                            LocalTimeCounter.currentTime(),
-                            Boolean.TRUE,
-                            Boolean.FALSE
-                    );
-                    PsiDocumentManager.getInstance(project).commitDocument(document);
-                    DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(psiFile, Boolean.TRUE);
-                    CodeFoldingManager.getInstance(project).updateFoldRegions(editor);
-                });
-            }
-        };
-        // 设置首选大小
-        editor.setPreferredSize(DIMENSION);
+        final EditorTextField editor = getEditorTextField(project, EditorFactory.getInstance().createDocument(""));
         // 添加上下文菜单支持
         editor.addMouseListener(new MouseAdapter() {
             @Override
@@ -130,14 +56,52 @@ public class JsonEditor {
     }
 
     /**
-     * 编辑器设置
-     * @param editor 编辑
+     * 获取编辑器文本字段
+     * @param project  项目
+     * @param document 文件
+     * @return {@link EditorTextField }
      */
-    private void editorSettings(final EditorEx editor) {
+    private @NotNull EditorTextField getEditorTextField(final Project project, final Document document) {
+        final FileType jsonFileType = FileTypeManager.getInstance().getFileTypeByExtension("json");
+        return new EditorTextField(document, project, jsonFileType, Boolean.FALSE, Boolean.FALSE) {
+            @Override
+            protected @NotNull EditorEx createEditor() {
+                final EditorEx editor = super.createEditor();
+                // 编辑器高级设置
+                editorSettings(project, editor, jsonFileType);
+                // 添加JSON格式化支持
+                jsonFormatAction(editor);
+                return editor;
+            }
+        };
+    }
+
+    /**
+     * 编辑器设置
+     * @param project      项目
+     * @param editor       编辑
+     * @param jsonFileType json文件类型
+     */
+    private void editorSettings(final Project project, final EditorEx editor, final FileType jsonFileType) {
+        // 编辑器设置
+        editor.setCaretVisible(Boolean.TRUE);
+        editor.setVerticalScrollbarVisible(Boolean.TRUE);
+        editor.setHorizontalScrollbarVisible(Boolean.TRUE);
+        editor.getFoldingModel().setFoldingEnabled(Boolean.TRUE);
+        editor.setContextMenuGroupId(IdeActions.GROUP_EDITOR_POPUP);
+        editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
+        // 设置配色方案
+        editor.setColorsScheme(EditorColorsManager.getInstance().getGlobalScheme());
+        editor.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(project, jsonFileType));
+        // 设置字体
+        editor.getColorsScheme().setEditorFontName(EditorColorsManager.getInstance().getGlobalScheme().getEditorFontName());
+        editor.getColorsScheme().setEditorFontSize(EditorColorsManager.getInstance().getGlobalScheme().getEditorFontSize());
+        // 编辑器详细设置
         final EditorSettings settings = editor.getSettings();
         // 启用文本编辑器基础功能
         settings.setBlockCursor(Boolean.TRUE);
         settings.setUseSoftWraps(Boolean.TRUE);
+        settings.setVirtualSpace(Boolean.TRUE);
         settings.setLineNumbersShown(Boolean.TRUE);
         settings.setShowIntentionBulb(Boolean.TRUE);
         settings.setIndentGuidesShown(Boolean.TRUE);
@@ -240,6 +204,7 @@ public class JsonEditor {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Project project = editor.getProject();
         final Document document = editor.getDocument();
+        if (StringUtil.isEmpty(document.getText())) return;
         WriteCommandAction.runWriteCommandAction(project, () -> {
             // 更新编辑器内容
             document.setText(StringUtil.convertLineSeparators(operation.process(document.getText())));

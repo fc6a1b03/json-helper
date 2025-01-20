@@ -47,7 +47,7 @@ JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
 
 2. **打包插件**:
    ```bash
-   ./gradle clean build
+   ./gradle clean buildPlugin
    ```
    这将生成一个 `.zip` 文件，包含插件的所有资源和代码，直接选择本地安装即可。
 

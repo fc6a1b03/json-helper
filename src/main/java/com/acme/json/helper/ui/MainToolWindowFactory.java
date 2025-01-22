@@ -5,11 +5,11 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
@@ -17,8 +17,11 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * JSON助手工具窗口
@@ -27,10 +30,13 @@ import java.util.ResourceBundle;
  */
 public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     /**
+     * 标签计数器
+     */
+    private static final AtomicInteger tabCounter = new AtomicInteger(0);
+    /**
      * 加载资源文件
      */
     private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    private static int tabCounter = 1;
 
     /**
      * 创建工具窗口内容
@@ -39,15 +45,11 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     @Override
     public void createToolWindowContent(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                // 创建初始页签
-                createNewTab(project, toolWindow);
-                // 创建活动分组
-                final List<DefaultActionGroup> actionGroup = List.of(createActionGroup(project, toolWindow));
-                // 将按钮添加到工具窗口的工具栏
-                toolWindow.setTitleActions(actionGroup);
-            });
+        ApplicationManager.getApplication().invokeLater(() -> {
+            // 创建初始页签
+            createNewTab(project, toolWindow);
+            // 绑定活动分组到窗口
+            toolWindow.setTitleActions(List.of(createActionGroup(project, toolWindow)));
         });
     }
 
@@ -57,14 +59,23 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      * @param toolWindow 工具窗口
      */
     private void createNewTab(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
-        final Content content = ContentFactory.getInstance()
-                .createContent(
-                        createWindowContent(project), String.valueOf(tabCounter++), Boolean.FALSE
-                );
+        // 增加页签号数
+        final int number = tabCounter.incrementAndGet();
+        // 创建页签内容面板
+        final JPanel contentPanel = createWindowContent(project, number);
+        // 创建页签内容
+        final Content content = ContentFactory.getInstance().createContent(contentPanel, String.valueOf(number), Boolean.FALSE);
         content.setCloseable(Boolean.TRUE);
-        toolWindow.setShowStripeButton(Boolean.TRUE);
+        // 页签关闭时释放资源
+        content.setDisposer(() ->
+                Arrays.stream(contentPanel.getComponents())
+                        .filter(Objects::nonNull)
+                        .filter(EditorTextField.class::isInstance)
+                        .map(comp -> ((EditorTextField) comp).getEditor()).filter(Objects::nonNull)
+                        .forEach(editor -> EditorFactory.getInstance().releaseEditor(editor))
+        );
+        // 将页签内容添加到工具窗口
         toolWindow.getContentManager().addContent(content);
-        toolWindow.getContentManager().setSelectedContent(content);
     }
 
     /**
@@ -78,6 +89,9 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         actionGroup.add(new AnAction(bundle.getString("json.new.tab"), bundle.getString("json.new.tab.desc"), AllIcons.General.Add) {
             @Override
             public void actionPerformed(@NotNull final AnActionEvent e) {
+                // 检查项目和窗口是否有效
+                if (project.isDisposed() || toolWindow.isDisposed()) return;
+                // 创建新页签
                 createNewTab(project, toolWindow);
             }
         });
@@ -86,19 +100,19 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     /**
      * 创建窗口内容
+     * @param project 项目
+     * @param number  页签号数
      * @return {@link JPanel }
      */
-    private JPanel createWindowContent(@NotNull final Project project) {
+    private JPanel createWindowContent(@NotNull final Project project, final int number) {
         // 窗口工具
         final JPanel toolWindowContent = new JPanel(new BorderLayout());
         // JSON编辑器
-        final EditorTextField currentEditor = new JsonEditor().create(project);
+        final EditorTextField currentEditor = new JsonEditor().create(project, number);
         // 将JSON编辑框添加到主面板
         toolWindowContent.add(currentEditor, BorderLayout.CENTER);
         // 将搜索面板添加到主面板
         toolWindowContent.add(new SearchPanel().create(currentEditor), BorderLayout.NORTH);
-        // 激活编辑器组件
-        ToolWindowManager.getInstance(project).activateEditorComponent();
         return toolWindowContent;
     }
 }

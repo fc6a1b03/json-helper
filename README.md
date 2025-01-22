@@ -1,7 +1,7 @@
 # Json Helper Plugin
 
 Json Helper 是一个 IntelliJ IDEA 插件，旨在提供 JSON 数据的格式化、压缩、转义、去转义、校验、生成等功能。通过右键菜单和工具窗口，用户可以方便地处理
-JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
+JSON 数据，并支持 `JsonPath` 的搜索功能。
 
 ## 运行环境
 
@@ -12,6 +12,7 @@ JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
 ## 预览
 
 ![home.png](doc/home.png)
+![menu.png](doc/menu.png)
 
 ## 项目结构
 
@@ -50,21 +51,6 @@ JSON 数据，并支持 `JsonPath` 和 `JMESPath` 的搜索功能。
    ./gradle clean buildPlugin
    ```
    这将生成一个 `.zip` 文件，包含插件的所有资源和代码，直接选择本地安装即可。
-
-## 版本迭代
-
-### 0.1.0
-
-- 🔨️创建项目，✨️实现 JSON 的格式化、压缩、转义、去转义等基础核心功能。
-
-### 0.1.5
-
-- ✨️增加工具窗口，将核心功能以右键菜单的形式呈现。
-- ✨️支持 `JsonPath` 及 `JMESPath` 的搜索功能。
-
-### 0.1.6
-
-- ✨️增加 清空内容按钮。
 
 ## 贡献
 

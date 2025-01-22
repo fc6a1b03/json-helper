@@ -108,11 +108,16 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         // 窗口工具
         final JPanel toolWindowContent = new JPanel(new BorderLayout());
         // JSON编辑器
-        final EditorTextField currentEditor = new JsonEditor().create(project, number);
+        final EditorTextField editor = new JsonEditor().create(project, number);
         // 将JSON编辑框添加到主面板
-        toolWindowContent.add(currentEditor, BorderLayout.CENTER);
-        // 将搜索面板添加到主面板
-        toolWindowContent.add(new SearchPanel().create(currentEditor), BorderLayout.NORTH);
+        toolWindowContent.add(editor, BorderLayout.CENTER);
+        // 等待编辑器初始化后，挂载面板功能
+        SwingUtilities.invokeLater(() -> {
+            // 将面板功能添加到主面板
+            toolWindowContent.add(new PanelFunction().create(editor), BorderLayout.NORTH);
+            toolWindowContent.revalidate();
+            toolWindowContent.repaint();
+        });
         return toolWindowContent;
     }
 }

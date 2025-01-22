@@ -1,6 +1,5 @@
 package com.acme.json.helper.core;
 
-import com.acme.json.helper.core.wrapper.JsonWrapper;
 import com.alibaba.fastjson2.JSON;
 
 /**
@@ -12,7 +11,7 @@ public final class JsonEscaper implements JsonOperation {
     @Override
     public String process(final String json) {
         try {
-            return JSON.toJSONString(new JsonWrapper(json)).trim();
+            return JSON.toJSONString(json).trim();
         } catch (Exception e) {
             return json;
         }

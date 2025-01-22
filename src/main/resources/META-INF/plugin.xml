@@ -1,9 +1,12 @@
-<idea-plugin>
+<idea-plugin package="com.acme.json.helper">
     <id>com.acme.json.helper</id>
     <name>Json Helper</name>
     <vendor>拒绝者</vendor>
     <description><![CDATA[
-        这个工具允许用户自由编辑 JSON 数据，支持强大的查询语言 JsonPath 和 JMESPath，帮助用户高效检索和处理JSON信息，提升开发和调试的便捷性
+        <a href="https://github.com/fc6a1b03/json-helper">Github</a>
+        <p>这个工具允许用户自由编辑 JSON 数据，支持强大的查询语言 JsonPath ，帮助用户高效检索和处理JSON信息，提升开发和调试的便捷性</p>
+        <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/home.png" alt="home" border=0/>
+        <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/menu.png" alt="menu" border=0/>
     ]]></description>
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.json</depends>
@@ -13,7 +16,8 @@
         <toolWindow id="Json Helper"
                     anchor="right"
                     secondary="true"
-                    icon="/icons/json-helper.svg"
+                    canCloseContents="true"
+                    icon="/icons/pluginIcon.svg"
                     factoryClass="com.acme.json.helper.ui.MainToolWindowFactory"/>
     </extensions>
 </idea-plugin>

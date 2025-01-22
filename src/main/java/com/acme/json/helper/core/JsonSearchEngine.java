@@ -1,8 +1,10 @@
 package com.acme.json.helper.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.JsonPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONPath;
+import com.alibaba.fastjson2.JSONWriter;
+
+import java.util.Optional;
 
 /**
  * JSON搜索引擎
@@ -10,12 +12,6 @@ import io.burt.jmespath.jackson.JacksonRuntime;
  * @date 2025-01-18
  */
 public final class JsonSearchEngine implements JsonOperation {
-    private final JacksonRuntime jmespath;
-
-    public JsonSearchEngine() {
-        this.jmespath = new JacksonRuntime();
-    }
-
     /**
      * 搜索
      * @param json       json
@@ -25,14 +21,9 @@ public final class JsonSearchEngine implements JsonOperation {
     @Override
     public String process(final String json, final String expression) {
         try {
-            // JsonPath
-            if (expression.startsWith("$")) {
-                return JsonPath.read(json, expression);
-            }
-            // JMESPath
-            else {
-                return jmespath.compile(expression).search(new ObjectMapper().valueToTree(json)).asText();
-            }
+            return Optional.ofNullable(JSON.toJSONString(JSONPath.eval(json, expression), JSONWriter.Feature.PrettyFormat))
+                    .filter(item -> Boolean.FALSE.equals("null".equals(item)))
+                    .orElse("").trim();
         } catch (Exception e) {
             return "";
         }

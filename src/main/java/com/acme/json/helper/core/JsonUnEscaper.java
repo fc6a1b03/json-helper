@@ -1,8 +1,7 @@
 package com.acme.json.helper.core;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.acme.json.helper.core.wrapper.JsonWrapper;
+import com.alibaba.fastjson2.JSON;
 
 /**
  * JSON去转义
@@ -10,28 +9,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * @date 2025-01-19
  */
 public final class JsonUnEscaper implements JsonOperation {
-    private final ObjectMapper mapper;
-
-    public JsonUnEscaper() {
-        this.mapper = new ObjectMapper()
-                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, Boolean.FALSE);
-    }
-
     @Override
     public String process(final String json) {
         try {
-            return mapper.readValue(json, JsonWrapper.class).json();
+            return new JsonFormatter().process(JSON.parseObject(json, JsonWrapper.class).json()).trim();
         } catch (Exception e) {
             return json;
         }
-    }
-
-    /**
-     * JSON辅助包装器
-     * @author 拒绝者
-     * @date 2025-01-19
-     */
-    private record JsonWrapper(String json) {
     }
 }

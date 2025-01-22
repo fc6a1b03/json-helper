@@ -24,23 +24,4 @@ public sealed interface JsonOperation permits JsonCompressor, JsonEscaper, JsonF
     default String process(final String input, final String expression) {
         return process(input);
     }
-
-    class JsonOperationException extends RuntimeException {
-        /**
-         * JSON操作异常
-         * @param message 消息
-         */
-        public JsonOperationException(final String message) {
-            super(message);
-        }
-
-        /**
-         * JSON操作异常
-         * @param message 消息
-         * @param cause   原因
-         */
-        public JsonOperationException(final String message, final Throwable cause) {
-            super(message, cause);
-        }
-    }
 }

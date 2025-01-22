@@ -42,7 +42,7 @@ jobs:
       - name: Latest Commit Info
         id: commit_message
         run: |
-          echo "message=$(git log -3 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
+          echo "message=$(git log -1 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v1

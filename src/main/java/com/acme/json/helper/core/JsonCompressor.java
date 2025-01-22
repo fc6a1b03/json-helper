@@ -1,8 +1,6 @@
 package com.acme.json.helper.core;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.alibaba.fastjson2.JSON;
 
 /**
  * JSON压缩器
@@ -10,18 +8,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * @date 2025-01-18
  */
 public final class JsonCompressor implements JsonOperation {
-    private final ObjectMapper mapper;
-
-    public JsonCompressor() {
-        this.mapper = new ObjectMapper()
-                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, Boolean.FALSE);
-    }
-
     @Override
     public String process(final String json) {
         try {
-            return mapper.writeValueAsString(mapper.readTree(json));
+            return JSON.toJSONString(JSON.parse(json)).trim();
         } catch (Exception e) {
             return json;
         }

@@ -5,6 +5,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CustomShortcutSet;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,6 +15,7 @@ import java.awt.event.KeyEvent;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 搜索面板
@@ -25,6 +27,10 @@ public class SearchPanel {
      * 加载语言资源文件
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    /**
+     * 原始记录`用于JSON搜索`
+     */
+    private final AtomicReference<String> originalJson = new AtomicReference<>("");
 
     /**
      * 创建搜索面板
@@ -74,7 +80,11 @@ public class SearchPanel {
      * @param currentEditor 当前编辑
      */
     private void undoLastSearch(final JButton undoButton, final Stack<String> historyStack, final EditorTextField currentEditor) {
-        if (Objects.isNull(currentEditor) || historyStack.isEmpty()) return;
+        if (Objects.isNull(currentEditor) || historyStack.isEmpty()) {
+            // 清空原始
+            originalJson.set("");
+            return;
+        }
         // 恢复上一个版本的内容
         currentEditor.setText(historyStack.pop());
         // 如果历史栈为空，禁用撤销按钮
@@ -92,6 +102,8 @@ public class SearchPanel {
         if (Objects.isNull(currentEditor)) return;
         // 储存历史
         historyStack.push(currentEditor.getDocument().getText());
+        // 清空原始
+        originalJson.set("");
         // 清空内容
         currentEditor.setText("");
         // 启用撤销按钮
@@ -108,12 +120,16 @@ public class SearchPanel {
         if (Objects.isNull(currentEditor)) return;
         final String searchExpression = searchField.getText();
         if (searchExpression.isEmpty()) return;
+        // 储存原始
+        if (StringUtil.isEmpty(originalJson.get())) {
+            originalJson.set(currentEditor.getDocument().getText());
+        }
         // 储存历史
         historyStack.push(currentEditor.getDocument().getText());
         // 格式化并重新写入
         currentEditor.setText(
                 new JsonSearchEngine().process(
-                        currentEditor.getDocument().getText(),
+                        originalJson.get(),
                         searchExpression
                 )
         );

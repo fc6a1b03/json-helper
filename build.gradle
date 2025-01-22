@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.1.7'
+version '0.1.8'
 
 repositories {
     mavenCentral()
@@ -23,9 +23,7 @@ dependencies {
         intellijIdeaCommunity '2024.3.2'
         bundledPlugin 'com.intellij.java'
     }
-    implementation 'io.burt:jmespath-jackson:0.6.0'
-    implementation 'com.jayway.jsonpath:json-path:2.9.0'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
 }
 
 runIde {

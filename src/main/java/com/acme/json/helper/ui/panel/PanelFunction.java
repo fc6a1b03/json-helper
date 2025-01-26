@@ -1,9 +1,11 @@
-package com.acme.json.helper.ui;
+package com.acme.json.helper.ui.panel;
 
-import cn.hutool.core.util.StrUtil;
-import com.acme.json.helper.core.*;
+import com.acme.json.helper.core.json.*;
+import com.acme.json.helper.ui.dialog.ConvertJavaDialog;
+import com.alibaba.fastjson2.JSON;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -198,6 +200,8 @@ public class PanelFunction {
         // 去转义菜单
         addJsonAction(group, "json.un.escaping.json", "json.un.escaping.json.desc",
                 AllIcons.Actions.SearchNewLine, new JsonUnEscaper(), redoButton, undoButton, editor);
+        // 转为Java类
+        addJsonToJavaAction(group, editor);
         // 分隔符
         group.addSeparator();
         // 其他可适配的菜单
@@ -224,6 +228,27 @@ public class PanelFunction {
             @Override
             public void actionPerformed(final @NotNull AnActionEvent e) {
                 optJson(redoButton, undoButton, editor.getEditor(), operation);
+            }
+        });
+    }
+
+    /**
+     * 添加JSONToJAVA操作
+     * @param group Action组
+     */
+    private void addJsonToJavaAction(final DefaultActionGroup group, final EditorTextField editor) {
+        group.add(new AnAction(
+                BUNDLE.getString("json.to.java"),
+                BUNDLE.getString("json.to.java.desc"),
+                AllIcons.Debugger.Db_muted_dep_line_breakpoint
+        ) {
+            @Override
+            public void actionPerformed(final @NotNull AnActionEvent e) {
+                if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
+                final Document document = editor.getDocument();
+                if (Boolean.FALSE.equals(JSON.isValid(document.getText()))) return;
+                // 激活弹窗
+                ApplicationManager.getApplication().invokeLater(() -> new ConvertJavaDialog(editor.getProject(), document.getText()).show());
             }
         });
     }
@@ -296,7 +321,7 @@ public class PanelFunction {
                          final Editor editor, final JsonOperation operation) {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Document document = editor.getDocument();
-        if (StrUtil.isEmpty(document.getText())) return;
+        if (Boolean.FALSE.equals(JSON.isValid(document.getText()))) return;
         WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
             // 储存撤销历史
             undoStack.push(document.getText());

@@ -1,4 +1,4 @@
-package com.acme.json.helper.core;
+package com.acme.json.helper.core.json;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;

@@ -1,4 +1,4 @@
-package com.acme.json.helper.core;
+package com.acme.json.helper.core.json;
 
 /**
  * JSON操作

@@ -1,10 +1,10 @@
-package com.acme.json.helper.action;
+package com.acme.json.helper.ui.action;
 
 import cn.hutool.core.lang.Opt;
-import com.acme.json.helper.core.JsonFormatter;
-import com.acme.json.helper.parser.ClassParser;
+import com.acme.json.helper.common.Clipboard;
+import com.acme.json.helper.core.json.JsonFormatter;
+import com.acme.json.helper.core.parser.ClassParser;
 import com.acme.json.helper.ui.notice.Notifier;
-import com.acme.json.helper.util.Clipboard;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

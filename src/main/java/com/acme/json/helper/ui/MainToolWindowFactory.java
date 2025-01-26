@@ -1,5 +1,7 @@
 package com.acme.json.helper.ui;
 
+import com.acme.json.helper.ui.editor.JsonEditor;
+import com.acme.json.helper.ui.panel.PanelFunction;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -24,7 +26,7 @@ import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * JSON助手工具窗口
+ * json-helper工具窗口
  * @author 拒绝者
  * @date 2025-01-18
  */

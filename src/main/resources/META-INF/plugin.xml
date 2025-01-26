@@ -1,17 +1,27 @@
 <idea-plugin package="com.acme.json.helper">
     <id>com.acme.json.helper</id>
     <name>Json Helper</name>
-    <vendor>拒绝者</vendor>
+    <vendor email="asd1161575755@outlook.com" url="https://github.com/fc6a1b03/json-helper">拒绝者</vendor>
     <description><![CDATA[
         <a href="https://github.com/fc6a1b03/json-helper">Github</a>
-        <p>这个工具允许用户自由编辑 JSON 数据，支持强大的查询语言 JsonPath ，帮助用户高效检索和处理JSON信息，提升开发和调试的便捷性</p>
+        <p>这个工具允许用户自由编辑 JSON 数据以及从Java类中复制 JSON 数据，支持强大的查询语言 JsonPath ，帮助用户高效检索和处理JSON信息，提升开发和调试的便捷性</p>
         <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/home.png" alt="home" border=0/>
         <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/menu.png" alt="menu" border=0/>
+        <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/copy.png" alt="menu" border=0/>
     ]]></description>
+    <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.json</depends>
-    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
     <resource-bundle>messages.JsonHelperBundle</resource-bundle>
+    <actions>
+        <action id="CopyJsonAction"
+                text="Copy JSON" icon="AllIcons.General.Copy"
+                class="com.acme.json.helper.action.CopyJsonAction"
+                description="Generate JSON structure from class fields">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
+    </actions>
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Json Helper"
                     anchor="right"
@@ -19,5 +29,6 @@
                     canCloseContents="true"
                     icon="/icons/pluginIcon.svg"
                     factoryClass="com.acme.json.helper.ui.MainToolWindowFactory"/>
+        <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON"/>
     </extensions>
 </idea-plugin>

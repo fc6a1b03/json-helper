@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui;
 
+import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.core.*;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
@@ -295,7 +296,7 @@ public class PanelFunction {
                          final Editor editor, final JsonOperation operation) {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Document document = editor.getDocument();
-        if (StringUtil.isEmpty(document.getText())) return;
+        if (StrUtil.isEmpty(document.getText())) return;
         WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
             // 储存撤销历史
             undoStack.push(document.getText());

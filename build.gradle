@@ -1,10 +1,11 @@
 plugins {
     id 'java'
+    // https://github.com/JetBrains/intellij-platform-gradle-plugin
     id 'org.jetbrains.intellij.platform' version '2.2.1'
 }
 
 group 'com.acme'
-version '0.2.3'
+version '0.3.2'
 
 repositories {
     mavenCentral()
@@ -20,9 +21,12 @@ java {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity '2024.3.2'
+        intellijIdeaCommunity '2024.3.2.1'
         bundledPlugin 'com.intellij.java'
+        bundledPlugin 'com.intellij.gradle'
+        bundledPlugin 'com.intellij.modules.json'
     }
+    implementation 'cn.hutool:hutool-core:5.8.35'
     implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
 }
 

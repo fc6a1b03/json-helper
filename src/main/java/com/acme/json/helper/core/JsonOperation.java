@@ -11,6 +11,15 @@ public sealed interface JsonOperation permits JsonCompressor, JsonEscaper, JsonF
      * @param input 输入
      * @return {@link String }
      */
+    default String process(final Object input) {
+        return String.valueOf(input);
+    }
+
+    /**
+     * JSON操作
+     * @param input 输入
+     * @return {@link String }
+     */
     default String process(final String input) {
         return input;
     }

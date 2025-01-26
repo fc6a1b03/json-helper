@@ -1,10 +1,7 @@
 package com.acme.json.helper.core;
 
-import com.alibaba.fastjson2.JSON;
+import cn.hutool.core.lang.Opt;
 import com.alibaba.fastjson2.JSONPath;
-import com.alibaba.fastjson2.JSONWriter;
-
-import java.util.Optional;
 
 /**
  * JSON搜索引擎
@@ -21,7 +18,7 @@ public final class JsonSearchEngine implements JsonOperation {
     @Override
     public String process(final String json, final String expression) {
         try {
-            return Optional.ofNullable(JSON.toJSONString(JSONPath.eval(json, expression), JSONWriter.Feature.PrettyFormat))
+            return Opt.ofBlankAble(new JsonFormatter().process(JSONPath.eval(json, expression).toString()))
                     .filter(item -> Boolean.FALSE.equals("null".equals(item)))
                     .orElse("").trim();
         } catch (Exception e) {

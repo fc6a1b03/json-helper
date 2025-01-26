@@ -1,4 +1,4 @@
-package com.acme.json.helper.util;
+package com.acme.json.helper.common;
 
 import com.intellij.openapi.ide.CopyPasteManager;
 

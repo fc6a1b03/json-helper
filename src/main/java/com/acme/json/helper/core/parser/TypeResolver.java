@@ -1,10 +1,10 @@
-package com.acme.json.helper.parser;
+package com.acme.json.helper.core.parser;
 
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.RandomUtil;
-import com.acme.json.helper.util.CollectionTypeHandler;
-import com.acme.json.helper.util.TemporalTypeHandler;
+import com.acme.json.helper.common.CollectionTypeHandler;
+import com.acme.json.helper.common.TemporalTypeHandler;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.*;
 

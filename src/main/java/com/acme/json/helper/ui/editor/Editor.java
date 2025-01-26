@@ -1,6 +1,5 @@
-package com.acme.json.helper.ui;
+package com.acme.json.helper.ui.editor;
 
-import com.intellij.json.JsonFileType;
 import com.intellij.openapi.actionSystem.IdeActions;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorSettings;
@@ -10,41 +9,50 @@ import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.ex.EditorSettingsExternalizable;
 import com.intellij.openapi.editor.ex.FoldingModelEx;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
+import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFileFactory;
 import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * JSON编辑器
+ * 编辑器
  * @author 拒绝者
- * @date 2025-01-19
+ * @date 2025-01-26
  */
-public class JsonEditor {
+public sealed interface Editor permits JsonEditor, JavaEditor {
     /**
-     * 创建JSON编辑器
+     * 创建编辑器<br/>
+     * 单页签编辑器使用
      * @param project 项目
-     * @param number  页签号数
-     * @return {@link EditorTextField}
+     * @return {@link EditorTextField }
      */
-    public EditorTextField create(final Project project, final int number) {
-        return getEditorTextField(project, PsiDocumentManager.getInstance(project).getDocument(
-                PsiFileFactory.getInstance(project).createFileFromText("dummy_%d.json".formatted(number), JsonFileType.INSTANCE, "")
-        ));
+    default EditorTextField create(final Project project) {
+        return new EditorTextField();
+    }
+
+    /**
+     * 创建编辑器<br/>
+     * 多页签编辑器使用
+     * @param project 项目
+     * @param number  数
+     * @return {@link EditorTextField }
+     */
+    default EditorTextField create(final Project project, final int number) {
+        return new EditorTextField();
     }
 
     /**
      * 获取编辑器文本字段
-     * @param project  项目
-     * @param document 文件
+     * @param languageType 语言类型
+     * @param project      项目
+     * @param document     文件
      * @return {@link EditorTextField }
      */
-    private EditorTextField getEditorTextField(final Project project, final Document document) {
-        return new EditorTextField(document, project, JsonFileType.INSTANCE, Boolean.FALSE, Boolean.FALSE) {
+    default EditorTextField getEditorTextField(final LanguageFileType languageType, final Project project, final Document document) {
+        return new EditorTextField(document, project, languageType, Boolean.FALSE, Boolean.FALSE) {
             @Override
             protected @NotNull EditorEx createEditor() {
-                return configureEditor(project, super.createEditor());
+                return configureEditor(project, super.createEditor(), languageType);
             }
         };
     }
@@ -54,7 +62,7 @@ public class JsonEditor {
      * @param project 项目
      * @param editor  编辑
      */
-    private EditorEx configureEditor(final Project project, final EditorEx editor) {
+    default EditorEx configureEditor(final Project project, final EditorEx editor, final LanguageFileType languageType) {
         // 基础编辑器配置
         editor.setCaretVisible(Boolean.TRUE);
         editor.setVerticalScrollbarVisible(Boolean.TRUE);
@@ -82,8 +90,7 @@ public class JsonEditor {
         // 高亮和配色方案
         editor.setColorsScheme(EditorColorsManager.getInstance().getGlobalScheme());
         editor.setHighlighter(
-                EditorHighlighterFactory.getInstance()
-                        .createEditorHighlighter(project, JsonFileType.INSTANCE)
+                EditorHighlighterFactory.getInstance().createEditorHighlighter(project, languageType)
         );
         return editor;
     }

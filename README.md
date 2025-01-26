@@ -1,7 +1,7 @@
 # Json Helper Plugin
 
-Json Helper 用户自由编辑 JSON 数据以及从Java类中复制 JSON 数据，支持强大的查询语言 JsonPath
-，帮助用户高效检索和处理JSON信息，提升开发和调试的便捷性。
+Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON
+数据，还支持通过 JsonPath 进行高效查询和处理。
 
 ## 运行环境
 
@@ -14,30 +14,7 @@ Json Helper 用户自由编辑 JSON 数据以及从Java类中复制 JSON 数据�
 ![home.png](doc/home.png)
 ![menu.png](doc/menu.png)
 ![copy.png](doc/copy.png)
-
-## 项目结构
-
-```plaintext
-├── src
-│   └── main
-│       ├── java
-│       │   └── com
-│       │       └── acme
-│       │           └── json
-│       │               └── helper
-│       │                   ├── core
-│       │                   └── ui
-│       └── resources
-│           ├── icons
-│           ├── messages
-│           └── META-INF
-```
-
-- **core**: 包含插件的核心功能实现，如 JSON 格式化、压缩、转义、去转义、搜索等。
-- **ui**: 包含插件的用户界面实现，如工具窗口和菜单。
-- **icons**: 存放插件的图标资源。
-- **messages**: 存放插件的多语言资源文件。
-- **META-INF**: 存放插件的元数据文件。
+![export.png](doc/export.png)
 
 ## 调试步骤
 

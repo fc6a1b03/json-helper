@@ -1,7 +1,7 @@
-package com.acme.json.helper.util;
+package com.acme.json.helper.common;
 
 import cn.hutool.core.lang.Opt;
-import com.acme.json.helper.parser.TypeResolver;
+import com.acme.json.helper.core.parser.TypeResolver;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.util.ArrayUtil;

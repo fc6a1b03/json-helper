@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.3.2'
+version '0.4.1'
 
 repositories {
     mavenCentral()
@@ -28,17 +28,42 @@ dependencies {
     }
     implementation 'cn.hutool:hutool-core:5.8.35'
     implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
+    implementation 'org.eclipse.jdt:org.eclipse.jdt.core:3.40.0'
 }
 
 runIde {
-    // 设置IDEA实例的JVM参数
-    jvmArgs = ['-Xmx1024m']
+    // jvm参数
+    jvmArgs += [
+            "-Xshare:off",
+            "-Djava.security.manager=allow",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+    ]
     // 设置日志级别
     systemProperty 'idea.log.level', 'DEBUG'
     // 设置IDEA实例的系统属性
     systemProperty 'idea.is.internal', 'true'
+    // 设置主题
+    systemProperty 'idea.ui.themes', 'Darcula'
     // 设置插件开发模式
     systemProperty 'idea.plugins.developer.mode', 'true'
+    systemProperty 'idea.plugins.developer.mode.debug', 'true'
+    // 增加JVM内存分配
+    systemProperty 'idea.vmoptions', '-Xmx1g'
+    // 启用硬件加速
+    systemProperty 'idea.ui.accelerator', 'true'
+    // 禁用代码检查
+    systemProperty 'idea.inspections.enabled', 'false'
+    // 启用低内存模式
+    systemProperty 'idea.low.memory.mode', 'true'
+    // 调整垃圾回收器
+    systemProperty 'idea.gc.options', '-XX:+UseG1GC'
+    // 禁用自动更新
+    systemProperty 'idea.auto.update', 'false'
+    // 设置文件编码
+    systemProperty 'file.encoding', 'UTF-8'
 }
 
 tasks.register('printVersion') {

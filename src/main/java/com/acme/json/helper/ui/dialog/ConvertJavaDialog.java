@@ -45,7 +45,7 @@ public class ConvertJavaDialog extends DialogWrapper {
         setSize(800, 600);
         setTitle(BUNDLE.getString("dialog.convert.java.title"));
         // 初始化编辑器内容
-        SwingUtilities.invokeLater(() -> updateEditorContent(Boolean.FALSE));
+        SwingUtilities.invokeLater(() -> updateEditorContent(Boolean.TRUE));
     }
 
     @Override

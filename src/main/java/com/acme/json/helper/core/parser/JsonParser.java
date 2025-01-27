@@ -11,7 +11,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * JSON解析器（支持嵌套结构）
+ * JSON解析器（支持嵌套结构）<br/>
+ * JSON转JAVA
  * @author 拒绝者
  * @date 2025-01-26
  */

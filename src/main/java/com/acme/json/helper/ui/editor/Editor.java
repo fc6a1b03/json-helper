@@ -20,6 +20,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.dnd.DropTarget;
 import java.util.Objects;
 
 /**
@@ -63,6 +64,14 @@ public sealed interface Editor permits JsonEditor, JavaEditor {
                 return configureEditor(project, super.createEditor(), languageType);
             }
         };
+    }
+
+    /**
+     * 绑定拖放监听
+     * @param editor 编辑器对象
+     */
+    static void bindDragAndDropListening(final EditorTextField editor) {
+        editor.setDropTarget(new DropTarget(editor, new FileDropHandler(editor)));
     }
 
     /**

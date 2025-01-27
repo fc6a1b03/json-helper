@@ -11,10 +11,7 @@ Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 J
 
 ## 预览
 
-![home.png](doc/home.png)
-![menu.png](doc/menu.png)
-![copy.png](doc/copy.png)
-![export.png](doc/export.png)
+[功能视频](doc/function.webm)
 
 ## 调试步骤
 

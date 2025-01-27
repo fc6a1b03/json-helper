@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui;
 
+import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.JsonEditor;
 import com.acme.json.helper.ui.panel.PanelFunction;
 import com.intellij.icons.AllIcons;
@@ -115,6 +116,8 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         toolWindowContent.add(editor, BorderLayout.CENTER);
         // 等待编辑器初始化后，挂载面板功能
         SwingUtilities.invokeLater(() -> {
+            // 绑定拖放监听
+            Editor.bindDragAndDropListening(editor);
             // 将面板功能添加到主面板
             toolWindowContent.add(new PanelFunction().create(editor), BorderLayout.NORTH);
             toolWindowContent.revalidate();

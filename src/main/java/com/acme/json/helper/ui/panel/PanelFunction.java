@@ -1,7 +1,10 @@
 package com.acme.json.helper.ui.panel;
 
+import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.core.json.*;
+import com.acme.json.helper.core.parser.PathParser;
 import com.acme.json.helper.ui.dialog.ConvertJavaDialog;
+import com.acme.json.helper.ui.notice.Notifier;
 import com.alibaba.fastjson2.JSON;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
@@ -25,6 +28,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -247,6 +251,10 @@ public class PanelFunction {
                 if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
                 final Document document = editor.getDocument();
                 if (Boolean.FALSE.equals(JSON.isValid(document.getText()))) return;
+                if (Boolean.FALSE.equals(JSON.isValidObject(document.getText()))) {
+                    Notifier.notifyWarn(BUNDLE.getString("json.to.bean.warn"), editor.getProject());
+                    return;
+                }
                 // 激活弹窗
                 ApplicationManager.getApplication().invokeLater(() -> new ConvertJavaDialog(editor.getProject(), document.getText()).show());
             }
@@ -269,7 +277,12 @@ public class PanelFunction {
         editor.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void documentChanged(final @NotNull DocumentEvent e) {
-                clearButton.setEnabled(Boolean.FALSE.equals(e.getDocument().getText().isEmpty()));
+                // 文档内容
+                final String text = e.getDocument().getText().trim();
+                // 根据文档内容调整清空按钮的状态
+                clearButton.setEnabled(Boolean.FALSE.equals(StrUtil.isEmpty(text)));
+                // 自动识别`web路径`或`本地文件路径`转为JSON，写回编辑器
+                OptPath(text, editor, e, this);
             }
         });
         // 上下文菜单
@@ -308,6 +321,52 @@ public class PanelFunction {
                 new CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)),
                 searchField
         );
+    }
+
+    /**
+     * 自动识别路径类型（Web或本地路径）并将其转换为格式化JSON，回写到编辑器<br/>
+     * 处理过程采用异步方式以避免阻塞UI线程，包含完整的异常处理和用户反馈
+     *
+     * @param text    当前编辑器中的原始文本内容
+     * @param editor  目标编辑器组件，用于回写处理结果
+     * @param e       文档变更事件对象，用于操作关联的文档
+     * @param listener 文档监听器，处理过程中需要临时解除绑定避免循环触发
+     */
+    private void OptPath(final String text,
+                         final EditorTextField editor,
+                         final @NotNull DocumentEvent e,
+                         final @NotNull DocumentListener listener) {
+        // 异步执行路径转换任务
+        final CompletableFuture<String> convertPathToJson = PathParser.convertPathToJson(text);
+        if (Objects.nonNull(convertPathToJson)) {
+            convertPathToJson
+                    // 异步处理完成后的回调（UI线程执行）
+                    .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
+                        // 验证JSON格式有效性
+                        if (JSON.isValid(processedText)) {
+                            // 临时移除文档监听器，避免文本变更的循环触发
+                            e.getDocument().removeDocumentListener(listener);
+                            try {
+                                // 清空原始记录
+                                originalJson.set("");
+                                // 使用JSON格式化工具美化输出，并更新编辑器内容
+                                editor.setText(new JsonFormatter().process(processedText));
+                            } finally {
+                                // 确保无论成功与否都重新注册监听器
+                                e.getDocument().addDocumentListener(listener);
+                            }
+                        } else {
+                            Notifier.notifyError(BUNDLE.getString("path.to.json.warn"), editor.getProject());
+                        }
+                    }))
+                    // 异常处理流程
+                    .exceptionally(ex -> {
+                        ApplicationManager.getApplication().invokeLater(() ->
+                                Notifier.notifyError(BUNDLE.getString("path.to.json.warn"), editor.getProject())
+                        );
+                        return null;
+                    });
+        }
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.acme.json.helper.ui.editor;
 
 import com.intellij.openapi.actionSystem.IdeActions;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorSettings;
@@ -64,7 +66,34 @@ public sealed interface Editor permits JsonEditor, JavaEditor {
     }
 
     /**
-     * 编辑器设置
+     * 重新格式化编辑器内容
+     *
+     * @param editor 编辑器对象
+     */
+    static void reformat(final EditorTextField editor) {
+        final Project project = editor.getProject();
+        if (Objects.isNull(project)) return;
+        // 确保在EDT线程执行
+        ApplicationManager.getApplication().invokeLater(() -> {
+            final Document document = editor.getDocument();
+            final PsiDocumentManager psiMgr = PsiDocumentManager.getInstance(project);
+            // 异步提交文档变更
+            psiMgr.performLaterWhenAllCommitted(() ->
+                    WriteCommandAction.runWriteCommandAction(project, () -> {
+                        // 同步提交文档
+                        psiMgr.commitDocument(document);
+                        final PsiFile psiFile = psiMgr.getPsiFile(document);
+                        if (Objects.nonNull(psiFile)) {
+                            // 执行格式化
+                            CodeStyleManager.getInstance(project).reformat(psiFile);
+                        }
+                    })
+            );
+        }, ModalityState.defaultModalityState());
+    }
+
+    /**
+     * 通用编辑器设置
      * @param project 项目
      * @param editor  编辑
      */
@@ -99,25 +128,5 @@ public sealed interface Editor permits JsonEditor, JavaEditor {
                 EditorHighlighterFactory.getInstance().createEditorHighlighter(project, languageType)
         );
         return editor;
-    }
-
-    /**
-     * 重新格式化编辑器内容
-     *
-     * @param editor 编辑器对象
-     */
-    static void reformat(final EditorTextField editor) {
-        final Project project = editor.getProject();
-        if (Objects.isNull(project)) return;
-        final Document document = editor.getDocument();
-        // 提交文档内容到PsiFile
-        PsiDocumentManager.getInstance(project).commitDocument(document);
-        // 获取该文档内容的PsiFile
-        final PsiFile psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document);
-        if (Objects.isNull(psiFile)) return;
-        // 执行内容格式化
-        WriteCommandAction.runWriteCommandAction(project, () -> {
-            CodeStyleManager.getInstance(project).reformat(psiFile);
-        });
     }
 }

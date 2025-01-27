@@ -3,6 +3,7 @@ package com.acme.json.helper.ui.dialog;
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.ObjectUtil;
 import com.acme.json.helper.core.parser.JsonParser;
+import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.JavaEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -118,6 +119,7 @@ public class ConvertJavaDialog extends DialogWrapper {
                         .map(item -> new JsonParser().convertToJsonClass(jsonText))
                         .orElseGet(() -> new JsonParser().convertToJsonRecord(jsonText))
         );
+        Editor.reformat(javaEditor);
         javaEditor.setCaretPosition(0);
     }
 }

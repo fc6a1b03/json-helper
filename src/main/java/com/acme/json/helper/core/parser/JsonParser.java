@@ -1,7 +1,6 @@
 package com.acme.json.helper.core.parser;
 
 import cn.hutool.core.util.StrUtil;
-import com.acme.json.helper.common.JavaCodeFormatter;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -30,7 +29,7 @@ public class JsonParser {
      * @return {@link String }
      */
     public String convertToJsonRecord(final String jsonText) {
-        return JavaCodeFormatter.exec(generateRecordCode(processObject(JSON.parseObject(jsonText), DEFAULT_CLASS_NAME, Boolean.TRUE)));
+        return generateRecordCode(processObject(JSON.parseObject(jsonText), DEFAULT_CLASS_NAME, Boolean.TRUE));
     }
 
     /**
@@ -39,7 +38,7 @@ public class JsonParser {
      * @return {@link String }
      */
     public String convertToJsonClass(final String jsonText) {
-        return JavaCodeFormatter.exec(generateClassCode(processObject(JSON.parseObject(jsonText), DEFAULT_CLASS_NAME, Boolean.FALSE)));
+        return generateClassCode(processObject(JSON.parseObject(jsonText), DEFAULT_CLASS_NAME, Boolean.FALSE));
     }
 
     /**

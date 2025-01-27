@@ -1,6 +1,7 @@
 package com.acme.json.helper.ui.editor;
 
 import com.intellij.openapi.actionSystem.IdeActions;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ScrollType;
@@ -11,8 +12,13 @@ import com.intellij.openapi.editor.ex.FoldingModelEx;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 
 /**
  * 编辑器
@@ -93,5 +99,25 @@ public sealed interface Editor permits JsonEditor, JavaEditor {
                 EditorHighlighterFactory.getInstance().createEditorHighlighter(project, languageType)
         );
         return editor;
+    }
+
+    /**
+     * 重新格式化编辑器内容
+     *
+     * @param editor 编辑器对象
+     */
+    static void reformat(final EditorTextField editor) {
+        final Project project = editor.getProject();
+        if (Objects.isNull(project)) return;
+        final Document document = editor.getDocument();
+        // 提交文档内容到PsiFile
+        PsiDocumentManager.getInstance(project).commitDocument(document);
+        // 获取该文档内容的PsiFile
+        final PsiFile psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document);
+        if (Objects.isNull(psiFile)) return;
+        // 执行内容格式化
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            CodeStyleManager.getInstance(project).reformat(psiFile);
+        });
     }
 }

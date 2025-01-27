@@ -116,8 +116,8 @@ public class ConvertJavaDialog extends DialogWrapper {
         javaEditor.setText(
                 Opt.of(isClass)
                         .filter(i -> i)
-                        .map(item -> new JsonParser().convertToJsonClass(jsonText))
-                        .orElseGet(() -> new JsonParser().convertToJsonRecord(jsonText))
+                        .map(item -> JsonParser.convertToJsonClass(jsonText))
+                        .orElseGet(() -> JsonParser.convertToJsonRecord(jsonText))
         );
         Editor.reformat(javaEditor);
         javaEditor.setCaretPosition(0);

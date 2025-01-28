@@ -24,7 +24,12 @@ public class JsonNodeParser {
      * @return {@link JsonNode }
      */
     public static JsonNode parse(final String key, final String json) {
-        return parseNode(key, JSON.parse(json));
+        return parseNode(key,
+                Opt.of(JSON.isValid(json))
+                        .filter(i -> i)
+                        .map(item -> JSON.parse(json))
+                        .orElse(json)
+        );
     }
 
     /**

@@ -22,6 +22,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -339,18 +340,22 @@ public class JsonHelperAction extends AnAction {
     private void createNewEditorTab(@NotNull final EditorConfig config, @NotNull final String text) {
         // 创建新的工具窗口标签页（该操作会触发UI更新）
         new MainToolWindowFactory().createNewTab(config.project(), config.toolWindow());
-        // 定位并处理最新创建的标签页内容
-        Arrays.stream(config.toolWindow().getContentManager().getContents())
-                // 保持内容列表的原始顺序
-                .sequential()
-                // 获取最后一个元素（最新创建的标签页）
-                .reduce((first, second) -> second)
-                // 转换为UI组件
-                .map(Content::getComponent)
-                // 递归查找编辑器组件，可能返回Optional.empty()
-                .flatMap(component -> Optional.ofNullable(deepFindEditor(component)))
+        SwingUtilities.invokeLater(() -> {
+            // 获取窗口所有内容管理
+            final ContentManager contentManager = config.toolWindow().getContentManager();
+            final Content[] contents = contentManager.getContents();
+            if (contents.length == 0) return;
+            // 获取最新创建的标签页
+            final Content newContent = contents[contents.length - 1];
+            // 更新编辑器内容
+            final EditorTextField editor = deepFindEditor(newContent.getComponent());
+            if (Objects.nonNull(editor)) {
                 // 在找到的编辑器中更新内容
-                .ifPresent(editor -> updateEditorContent(editor, text));
+                updateEditorContent(editor, text);
+                // 切换焦点到新页签
+                contentManager.setSelectedContent(newContent, Boolean.TRUE);
+            }
+        });
     }
 
     /**

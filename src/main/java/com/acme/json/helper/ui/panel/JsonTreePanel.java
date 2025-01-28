@@ -27,7 +27,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.IntStream;
+import java.util.ResourceBundle;
 
 /**
  * JSON树面板
@@ -37,6 +37,10 @@ import java.util.stream.IntStream;
  */
 public class JsonTreePanel extends JPanel {
     private final Tree jsonTree;
+    /**
+     * 加载语言资源文件
+     */
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     public JsonTreePanel() {
         super(new BorderLayout());
@@ -53,7 +57,6 @@ public class JsonTreePanel extends JPanel {
         jsonTree.setModel(new DefaultTreeModel(buildTreeModel(
                 JsonNodeParser.parse("root", txt)
         )));
-        IntStream.range(0, jsonTree.getRowCount()).forEach(jsonTree::expandRow);
     }
 
     /**
@@ -150,7 +153,7 @@ public class JsonTreePanel extends JPanel {
     private void addRightClickMenuToTree(final Tree tree) {
         // 创建右键菜单
         final JPopupMenu popupMenu = new JPopupMenu();
-        final JMenuItem copyItem = new JMenuItem("Copy");
+        final JMenuItem copyItem = new JMenuItem(BUNDLE.getString("json.tree.copy"));
         // 复制动作实现
         copyItem.addActionListener(e -> {
             final TreePath path = tree.getSelectionPath();

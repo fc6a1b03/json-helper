@@ -32,11 +32,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 面板功能
+ * 主面板
  * @author 拒绝者
  * @date 2025-01-19
  */
-public class PanelFunction {
+public class MainPanel {
     /**
      * 加载语言资源文件
      */
@@ -55,12 +55,12 @@ public class PanelFunction {
     private final AtomicReference<String> originalJson = new AtomicReference<>("");
 
     /**
-     * 创建面板功能
+     * 创建主面板
      * @param editor 当前编辑
      * @return {@link JPanel }
      */
     public JPanel create(final EditorTextField editor) {
-        // 创建面板功能
+        // 创建主面板
         final JPanel searchPanel = new JPanel(new BorderLayout());
         // 搜索框
         final JTextField searchBox = new JTextField();

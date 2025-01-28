@@ -3,7 +3,8 @@ package com.acme.json.helper.ui;
 import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.JsonEditor;
-import com.acme.json.helper.ui.panel.PanelFunction;
+import com.acme.json.helper.ui.panel.JsonTreePanel;
+import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -118,19 +119,61 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     private JPanel createWindowContent(@NotNull final Project project, final int number) {
         // 窗口工具
         final JPanel toolWindowContent = new JPanel(new BorderLayout());
-        // JSON编辑器
+        // 创建JSON编辑器
         final EditorTextField editor = new JsonEditor().create(project, number);
-        // 将JSON编辑框添加到主面板
-        toolWindowContent.add(editor, BorderLayout.CENTER);
         // 等待编辑器初始化后，挂载面板功能
         SwingUtilities.invokeLater(() -> {
-            // 绑定拖放监听
+            // JSON编辑框绑定拖放监听
             Editor.bindDragAndDropListening(editor);
-            // 将面板功能添加到主面板
-            toolWindowContent.add(new PanelFunction().create(editor), BorderLayout.NORTH);
+            // 组合布局
+            toolWindowContent.add(createSynthesisPanel(editor), BorderLayout.CENTER);
+            // 重新绘制窗口
             toolWindowContent.revalidate();
             toolWindowContent.repaint();
         });
         return toolWindowContent;
+    }
+
+    /**
+     * 创建合成面板
+     *
+     * @param editor 编辑器
+     * @return {@link JPanel }
+     */
+    private JPanel createSynthesisPanel(final EditorTextField editor) {
+        // 创建合成面板
+        final JPanel panel = new JPanel(new BorderLayout());
+        // MainPanel 固定高度（放在 NORTH）
+        panel.add(new MainPanel().create(editor), BorderLayout.NORTH);
+        // 创建滑动分区区块
+        final JSplitPane editorTreeSplit = new JSplitPane(
+                JSplitPane.VERTICAL_SPLIT,
+                editor,
+                new JsonTreePanel().create(editor)
+        );
+        // 初始比例
+        editorTreeSplit.setDividerSize(8);
+        editorTreeSplit.setResizeWeight(1);
+        // 拖动时实时更新
+        editorTreeSplit.setContinuousLayout(Boolean.TRUE);
+        // 初始化分割窗格布局
+        initSplitPaneLayout(editorTreeSplit);
+        panel.add(editorTreeSplit, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * 初始化分割窗格布局
+     *
+     * @param splitPane 拆分窗格
+     */
+    private void initSplitPaneLayout(final JSplitPane splitPane) {
+        // 延迟计算布局（确保父容器尺寸已确定）
+        SwingUtilities.invokeLater(() -> {
+            // 设置分隔条初始位置（底部组件显示最小高度）
+            splitPane.setDividerLocation(
+                    splitPane.getHeight() - splitPane.getDividerSize() - splitPane.getBottomComponent().getMinimumSize().height
+            );
+        });
     }
 }

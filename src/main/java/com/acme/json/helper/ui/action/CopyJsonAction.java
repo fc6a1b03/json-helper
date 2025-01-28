@@ -1,7 +1,7 @@
 package com.acme.json.helper.ui.action;
 
-import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.common.Clipboard;
+import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.parser.ClassParser;
 import com.acme.json.helper.ui.notice.Notifier;
@@ -15,7 +15,6 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.uast.UastLanguagePlugin;
 
 import java.util.Objects;
 import java.util.ResourceBundle;
@@ -38,7 +37,7 @@ public class CopyJsonAction extends AnAction {
 
     @Override
     public void update(@NotNull AnActionEvent e) {
-        e.getPresentation().setEnabledAndVisible(uastSupported(e.getData(CommonDataKeys.PSI_FILE)));
+        e.getPresentation().setEnabledAndVisible(UastSupported.of(e.getData(CommonDataKeys.PSI_FILE)));
     }
 
     @Override
@@ -49,7 +48,7 @@ public class CopyJsonAction extends AnAction {
         if (Objects.isNull(project) || Objects.isNull(editor) || Objects.isNull(psiFile)) {
             return;
         }
-        if (Boolean.FALSE.equals(uastSupported(psiFile))) {
+        if (Boolean.FALSE.equals(UastSupported.of(psiFile))) {
             Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), project);
             return;
         }
@@ -62,18 +61,5 @@ public class CopyJsonAction extends AnAction {
         Clipboard.copy(new JsonFormatter().process(ClassParser.classToMap(psiClass)));
         // 提示用户
         Notifier.notifyInfo(BUNDLE.getString("bean.copy.json.success"), project);
-    }
-
-    /**
-     * 是否受支持
-     * @param psiFile PSI文件
-     * @return boolean
-     */
-    private boolean uastSupported(final PsiFile psiFile) {
-        return Opt.ofNullable(psiFile)
-                .map(item -> UastLanguagePlugin.Companion.getInstances()
-                        .stream().filter(Objects::nonNull)
-                        .anyMatch(l -> l.isFileSupported(psiFile.getName())))
-                .orElse(Boolean.FALSE);
     }
 }

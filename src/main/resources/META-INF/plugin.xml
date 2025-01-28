@@ -20,6 +20,13 @@
                 description="Generate JSON structure from class fields">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
+        <action
+                id="JsonHelperAction"
+                class="com.acme.json.helper.ui.action.JsonHelperAction"
+                text="Json Helper" icon="AllIcons.Duplicates.SendToTheRight"
+                description="Send JSON to json helper editor toolwindow">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Json Helper"

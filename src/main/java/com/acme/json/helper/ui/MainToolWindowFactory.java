@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui;
 
+import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.JsonEditor;
 import com.acme.json.helper.ui.panel.PanelFunction;
@@ -61,7 +62,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      * @param project    项目
      * @param toolWindow 工具窗口
      */
-    private void createNewTab(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
+    public void createNewTab(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
         // 增加页签号数
         final int number = tabCounter.incrementAndGet();
         // 创建页签内容面板
@@ -70,13 +71,20 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         final Content content = ContentFactory.getInstance().createContent(contentPanel, String.valueOf(number), Boolean.FALSE);
         content.setCloseable(Boolean.TRUE);
         // 页签关闭时释放资源
-        content.setDisposer(() ->
-                Arrays.stream(contentPanel.getComponents())
-                        .filter(Objects::nonNull)
-                        .filter(EditorTextField.class::isInstance)
-                        .map(comp -> ((EditorTextField) comp).getEditor()).filter(Objects::nonNull)
-                        .forEach(editor -> EditorFactory.getInstance().releaseEditor(editor))
-        );
+        content.setDisposer(() -> {
+            // 销毁所有窗口组件
+            Arrays.stream(contentPanel.getComponents())
+                    .filter(Objects::nonNull)
+                    .filter(EditorTextField.class::isInstance)
+                    .map(comp -> ((EditorTextField) comp).getEditor()).filter(Objects::nonNull)
+                    .forEach(editor -> EditorFactory.getInstance().releaseEditor(editor));
+            // 所有页签关闭后重置计数器
+            SwingUtilities.invokeLater(() ->
+                    Opt.of(toolWindow.getContentManager().getContentCount() == 0)
+                            .filter(i -> i)
+                            .ifPresent(item -> tabCounter.set(0))
+            );
+        });
         // 将页签内容添加到工具窗口
         toolWindow.getContentManager().addContent(content);
     }

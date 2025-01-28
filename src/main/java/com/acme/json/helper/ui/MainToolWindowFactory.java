@@ -169,11 +169,11 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     private void initSplitPaneLayout(final JSplitPane splitPane) {
         // 延迟计算布局（确保父容器尺寸已确定）
-        SwingUtilities.invokeLater(() -> {
-            // 设置分隔条初始位置（底部组件显示最小高度）
-            splitPane.setDividerLocation(
-                    splitPane.getHeight() - splitPane.getDividerSize() - splitPane.getBottomComponent().getMinimumSize().height
-            );
-        });
+        SwingUtilities.invokeLater(() ->
+                // 设置分隔条初始位置（底部组件显示最小高度）
+                splitPane.setDividerLocation(
+                        splitPane.getHeight() - splitPane.getDividerSize() - splitPane.getBottomComponent().getMinimumSize().height
+                )
+        );
     }
 }

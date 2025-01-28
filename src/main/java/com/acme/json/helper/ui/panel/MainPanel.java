@@ -14,6 +14,8 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.keymap.KeymapManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
@@ -24,6 +26,7 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
@@ -204,8 +207,12 @@ public class MainPanel {
         // 去转义菜单
         addJsonAction(group, "json.un.escaping.json", "json.un.escaping.json.desc",
                 AllIcons.Actions.SearchNewLine, new JsonUnEscaper(), redoButton, undoButton, editor);
+        // 分隔符
+        group.addSeparator();
         // 转为Java类
         addJsonToJavaAction(group, editor);
+        // 打开本地JSON文件
+        addOpenFileAction(group, editor);
         // 分隔符
         group.addSeparator();
         // 其他可适配的菜单
@@ -389,5 +396,65 @@ public class MainPanel {
             // 更新按钮可用状态
             updateButtons(undoButton, redoButton);
         });
+    }
+
+    /**
+     * 添加打开JSON文件操作
+     *
+     * @param group 默认操作组
+     * @param editor 编辑器
+     */
+    private void addOpenFileAction(final DefaultActionGroup group, final EditorTextField editor) {
+        group.add(new AnAction(
+                BUNDLE.getString("menu.open.json.file"),
+                BUNDLE.getString("menu.open.json.file.desc"),
+                AllIcons.Actions.MenuOpen
+        ) {
+            @Override
+            public void actionPerformed(@NotNull final AnActionEvent e) {
+                handleFileOpen(editor);
+            }
+        });
+    }
+
+    /**
+     * 处理文件打开操作
+     *
+     * @param editor 编辑器
+     */
+    private void handleFileOpen(final EditorTextField editor) {
+        FileChooser.chooseFile(
+                FileChooserDescriptorFactory
+                        .createSingleFileDescriptor()
+                        .withFileFilter(virtualFile -> "json".equalsIgnoreCase(virtualFile.getExtension())),
+                editor.getProject(), null, virtualFile -> {
+                    if (Objects.isNull(virtualFile)) return;
+                    try {
+                        final String content = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
+                        if (JSON.isValid(content)) {
+                            ApplicationManager.getApplication().invokeLater(() -> {
+                                WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
+                                    final String text = new JsonFormatter().process(content);
+                                    // 将文本写入编辑器
+                                    editor.getDocument().setText(text);
+                                    // 储存原始记录
+                                    originalJson.set(text);
+                                    // 清空撤销、重做记录
+                                    undoStack.clear();
+                                    redoStack.clear();
+                                });
+                                Notifier.notifyInfo("%s%s".formatted(BUNDLE.getString("file.load.success"), virtualFile.getPath()), editor.getProject());
+                            });
+                        } else {
+                            ApplicationManager.getApplication().invokeLater(() ->
+                                    Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
+                            );
+                        }
+                    } catch (Exception ex) {
+                        ApplicationManager.getApplication().invokeLater(() ->
+                                Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
+                        );
+                    }
+                });
     }
 }

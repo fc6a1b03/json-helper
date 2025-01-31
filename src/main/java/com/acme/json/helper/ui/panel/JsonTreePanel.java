@@ -45,6 +45,8 @@ public class JsonTreePanel extends JPanel {
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
     /** JSON树 */
     private final Tree jsonTree;
+    /** 搜索输入展示框 */
+    private JTextField searchField;
     /** 匹配集合 */
     private final List<TreePath> matches = new ArrayList<>();
     /** 搜索计时器 */
@@ -95,7 +97,32 @@ public class JsonTreePanel extends JPanel {
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
         ), BorderLayout.CENTER);
+        // 添加搜索框内容
+        panel.add(createSearchField(), BorderLayout.NORTH);
         return panel;
+    }
+
+    /**
+     * 创建搜索框
+     *
+     * @return {@link JTextField }
+     */
+    private JTextField createSearchField() {
+        searchField = new JTextField();
+        // 搜索框只读
+        searchField.setEditable(Boolean.FALSE);
+        // 搜索框样式
+        searchField.setForeground(JBColor.GRAY);
+        searchField.setBackground(UIUtil.getPanelBackground());
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+                // 底部边框
+                BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
+                // 内边距
+                BorderFactory.createEmptyBorder(2, 8, 2, 8)
+        ));
+        searchField.setFont(UIUtil.getLabelFont().deriveFont(Font.PLAIN));
+        searchField.setPreferredSize(new Dimension(Short.MAX_VALUE, 20));
+        return searchField;
     }
 
     /**
@@ -287,6 +314,7 @@ public class JsonTreePanel extends JPanel {
                         searchText += Character.toLowerCase(keyChar);
                         restartSearchTimer();
                     }
+                    updateSearchField();
                 });
             }
 
@@ -311,6 +339,18 @@ public class JsonTreePanel extends JPanel {
                 } else {
                     searchTimer.start();
                 }
+            }
+
+            /**
+             * 更新搜索字段
+             */
+            private void updateSearchField() {
+                if (StrUtil.isNotEmpty(searchText)) {
+                    searchField.setText(searchText);
+                } else {
+                    searchField.setText("");
+                }
+                searchField.setForeground(UIUtil.getTreeForeground());
             }
         });
     }

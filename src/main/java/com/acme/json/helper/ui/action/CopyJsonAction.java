@@ -25,9 +25,7 @@ import java.util.ResourceBundle;
  * @date 2025-01-25
  */
 public class CopyJsonAction extends AnAction {
-    /**
-     * 加载语言资源文件
-     */
+    /** 加载语言资源文件 */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     @Override

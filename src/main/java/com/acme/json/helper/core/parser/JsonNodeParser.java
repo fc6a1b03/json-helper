@@ -67,7 +67,7 @@ public class JsonNodeParser {
     /**
      * JSON节点
      *
-     * @author xuhaifeng
+     * @author 拒绝者
      * @date 2025-01-28
      */
     public record JsonNode(String key, Object value, List<JsonNode> children) {

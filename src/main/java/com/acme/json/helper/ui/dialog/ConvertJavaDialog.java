@@ -23,11 +23,11 @@ import java.util.ResourceBundle;
  * @date 2025-01-26
  */
 public class ConvertJavaDialog extends DialogWrapper {
-    /**
-     * 语言类型
-     */
+    /** 加载语言资源文件 */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    /** JSON文本 */
     private final String jsonText;
+    /** JAVA编辑器 */
     private final EditorTextField javaEditor;
 
     public ConvertJavaDialog(final Project project, final String jsonText) {

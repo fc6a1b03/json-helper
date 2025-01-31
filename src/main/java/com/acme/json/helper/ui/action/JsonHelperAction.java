@@ -44,6 +44,7 @@ import java.util.ResourceBundle;
  * @since 2025-01-28
  */
 public class JsonHelperAction extends AnAction {
+    /** 加载语言资源文件 */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     @Override

@@ -12,9 +12,7 @@ import com.intellij.ui.EditorTextField;
  * @date 2025-01-19
  */
 public final class JsonEditor implements Editor {
-    /**
-     * 语言类型
-     */
+    /** 语言类型 */
     private static final JsonFileType TYPE = JsonFileType.INSTANCE;
 
     /**

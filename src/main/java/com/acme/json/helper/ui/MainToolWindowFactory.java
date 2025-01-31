@@ -34,13 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025-01-18
  */
 public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
-    /**
-     * 标签计数器
-     */
+    /** 标签计数器 */
     private static final AtomicInteger tabCounter = new AtomicInteger(0);
-    /**
-     * 加载资源文件
-     */
+    /** 加载资源文件 */
     private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     /**

@@ -12,9 +12,7 @@ import com.intellij.ui.EditorTextField;
  * @date 2025-01-19
  */
 public final class JavaEditor implements Editor {
-    /**
-     * 语言类型
-     */
+    /** 语言类型 */
     private static final JavaFileType TYPE = JavaFileType.INSTANCE;
 
     /**

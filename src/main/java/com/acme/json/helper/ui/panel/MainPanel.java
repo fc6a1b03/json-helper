@@ -40,21 +40,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * @date 2025-01-19
  */
 public class MainPanel {
-    /**
-     * 加载语言资源文件
-     */
+    /** 加载语言资源文件 */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    /**
-     * 撤销历史堆栈
-     */
+    /** 撤销历史堆栈 */
     private final Deque<String> undoStack = new ArrayDeque<>();
-    /**
-     * 重做历史堆栈
-     */
+    /** 重做历史堆栈 */
     private final Deque<String> redoStack = new ArrayDeque<>();
-    /**
-     * 原始记录`用于JSON搜索`
-     */
+    /** 原始记录`用于JSON搜索` */
     private final AtomicReference<String> originalJson = new AtomicReference<>("");
 
     /**

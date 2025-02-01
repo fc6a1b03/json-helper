@@ -37,6 +37,10 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * JSON树面板
@@ -61,6 +65,8 @@ public class JsonTreePanel extends JPanel {
     private int currentMatchIndex = -1;
     /** 正在搜索 */
     private volatile boolean isSearching = Boolean.FALSE;
+    /** 数组索引模式 */
+    private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("^\\[(\\d+)]$");
 
     public JsonTreePanel() {
         super(new BorderLayout());
@@ -224,6 +230,12 @@ public class JsonTreePanel extends JPanel {
                 Opt.ofNullable(tree.getSelectionPath())
                         .ifPresent(path -> Clipboard.copy(getNodeText(path.getLastPathComponent(), 1)))
         );
+        // 复制路径
+        final JMenuItem copyPath = new JMenuItem(BUNDLE.getString("json.tree.copy.path"));
+        copyPath.addActionListener(e ->
+                Opt.ofNullable(tree.getSelectionPath())
+                        .ifPresent(path -> Clipboard.copy(buildJsonPath(path)))
+        );
         // 复制键
         final JMenuItem copyKey = new JMenuItem(BUNDLE.getString("json.tree.copy.key"));
         copyKey.addActionListener(e ->
@@ -238,6 +250,7 @@ public class JsonTreePanel extends JPanel {
         );
         popupMenu.add(copyKey);
         popupMenu.add(copyVal);
+        popupMenu.add(copyPath);
         popupMenu.add(copyItem);
         // 添加鼠标监听器
         tree.addMouseListener(new MouseAdapter() {
@@ -290,6 +303,46 @@ public class JsonTreePanel extends JPanel {
                     .orElse(node.toString());
             case null, default -> Convert.toStr(node);
         };
+    }
+
+    /**
+     * 构建JSON路径
+     *
+     * @param selectionPath 选择的路径
+     * @return {@link String }
+     */
+    private String buildJsonPath(final TreePath selectionPath) {
+        // 从根节点之后开始遍历
+        return IntStream.range(1, selectionPath.getPathCount())
+                // 获取每个路径组件
+                .mapToObj(selectionPath::getPathComponent)
+                // 确保是`DefaultMutableTreeNode`类型
+                .filter(DefaultMutableTreeNode.class::isInstance)
+                // 将对象转换为`DefaultMutableTreeNode`类型
+                .map(DefaultMutableTreeNode.class::cast)
+                // 获取用户选择对象
+                .map(DefaultMutableTreeNode::getUserObject)
+                // 确保是`JsonNodeParser.JsonNode`类型
+                .filter(JsonNodeParser.JsonNode.class::isInstance)
+                // 将对象转换为`JsonNodeParser.JsonNode`类型
+                .map(JsonNodeParser.JsonNode.class::cast)
+                // 获取键
+                .map(JsonNodeParser.JsonNode::key)
+                // 过滤掉空的键字符串
+                .filter(StrUtil::isNotEmpty)
+                // 组合各节点的路径表达式
+                .map(key ->
+                        // 匹配数组索引模式
+                        Opt.ofNullable(ARRAY_INDEX_PATTERN.matcher(key))
+                                // 检查是否匹配成功
+                                .filter(Matcher::matches)
+                                // 格式化数组索引
+                                .map(item -> "[%d]".formatted(Convert.toInt(item.group(1))))
+                                // 格式化普通键值
+                                .orElseGet(() -> ".%s".formatted(key))
+                )
+                // 将所有部分连接成最终的 JSON 路径字符串
+                .collect(Collectors.joining("", "$", ""));
     }
 
     /**

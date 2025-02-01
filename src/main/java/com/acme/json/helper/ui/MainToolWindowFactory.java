@@ -85,6 +85,8 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         });
         // 将页签内容添加到工具窗口
         toolWindow.getContentManager().addContent(content);
+        // 切换焦点到新页签
+        ApplicationManager.getApplication().invokeLater(() -> toolWindow.getContentManager().setSelectedContent(content, Boolean.TRUE));
     }
 
     /**

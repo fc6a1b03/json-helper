@@ -1,6 +1,8 @@
 package com.acme.json.helper.ui.action;
 
 import cn.hutool.core.lang.Opt;
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
@@ -250,23 +252,12 @@ public class JsonHelperAction extends AnAction {
             ApplicationManager.getApplication().invokeLater(() ->
                     findReusableEditor(config).ifPresentOrElse(
                             // 更新现有编辑器
-                            editor -> updateEditorContent(editor, content),
+                            editor -> updateEditorContent(config, editor, content),
                             // 新建标签页流程
                             () -> createNewEditorTab(config, content)
                     )
             );
         });
-    }
-
-    private JScrollPane findScrollPane(EditorTextField editor) {
-        Container parent = editor.getParent();
-        while (parent != null) {
-            if (parent instanceof JScrollPane) {
-                return (JScrollPane) parent;
-            }
-            parent = parent.getParent();
-        }
-        return null;
     }
 
     /* ########################### 统一编辑器推送逻辑 ########################### */
@@ -337,12 +328,28 @@ public class JsonHelperAction extends AnAction {
      * @param editor 编辑器
      * @param text 文本
      */
-    private void updateEditorContent(@NotNull final EditorTextField editor, @NotNull final String text) {
+    private void updateEditorContent(@NotNull final EditorConfig config, @NotNull final EditorTextField editor, @NotNull final String text) {
         ApplicationManager.getApplication().invokeLater(() -> {
             // 将内容写入编辑器
             editor.setText(text);
             // 激活编辑器文本格式化
             com.acme.json.helper.ui.editor.Editor.reformat(editor);
+            // 激活对应页签
+            Opt.ofNullable(Opt.ofNullable(editor.getParent())
+                            .map(Component::getParent).filter(Objects::nonNull)
+                            .map(Component::getParent).orElse(null))
+                    .ifPresent(item -> {
+                        // 获取内容管理器
+                        final ContentManager contentManager = config.toolWindow().getContentManager();
+                        // 切换到包含编辑器的页签
+                        Arrays.stream(contentManager.getContents())
+                                .sequential()
+                                .filter(ArrayUtil::isNotEmpty)
+                                .filter(content -> {
+                                    return ObjectUtil.equal(content.getComponent(), item);
+                                })
+                                .findFirst().ifPresent(content -> contentManager.setSelectedContent(content, Boolean.TRUE));
+                    });
         });
     }
 
@@ -357,8 +364,7 @@ public class JsonHelperAction extends AnAction {
         new MainToolWindowFactory().createNewTab(config.project(), config.toolWindow());
         ApplicationManager.getApplication().invokeLater(() -> {
             // 获取窗口所有内容管理
-            final ContentManager contentManager = config.toolWindow().getContentManager();
-            final Content[] contents = contentManager.getContents();
+            final Content[] contents = config.toolWindow().getContentManager().getContents();
             if (contents.length == 0) return;
             // 获取最新创建的标签页
             final Content newContent = contents[contents.length - 1];
@@ -366,9 +372,7 @@ public class JsonHelperAction extends AnAction {
             final EditorTextField editor = deepFindEditor(newContent.getComponent());
             if (Objects.nonNull(editor)) {
                 // 在找到的编辑器中更新内容
-                updateEditorContent(editor, text);
-                // 切换焦点到新页签
-                contentManager.setSelectedContent(newContent, Boolean.TRUE);
+                updateEditorContent(config, editor, text);
             }
         });
     }

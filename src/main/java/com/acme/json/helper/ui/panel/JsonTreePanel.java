@@ -1,9 +1,13 @@
 package com.acme.json.helper.ui.panel;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.convert.Convert;
+import cn.hutool.core.lang.Opt;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.parser.JsonNodeParser;
+import com.alibaba.fastjson2.JSON;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.event.DocumentEvent;
@@ -214,14 +218,26 @@ public class JsonTreePanel extends JPanel {
     private void addRightClickMenuToTree(final Tree tree) {
         // 创建右键菜单
         final JPopupMenu popupMenu = new JPopupMenu();
+        // 复制对象
         final JMenuItem copyItem = new JMenuItem(BUNDLE.getString("json.tree.copy"));
-        // 复制动作实现
-        copyItem.addActionListener(e -> {
-            final TreePath path = tree.getSelectionPath();
-            if (Objects.nonNull(path)) {
-                Clipboard.copy(getNodeText(path.getLastPathComponent()));
-            }
-        });
+        copyItem.addActionListener(e ->
+                Opt.ofNullable(tree.getSelectionPath())
+                        .ifPresent(path -> Clipboard.copy(getNodeText(path.getLastPathComponent(), 1)))
+        );
+        // 复制键
+        final JMenuItem copyKey = new JMenuItem(BUNDLE.getString("json.tree.copy.key"));
+        copyKey.addActionListener(e ->
+                Opt.ofNullable(tree.getSelectionPath())
+                        .ifPresent(path -> Clipboard.copy(getNodeText(path.getLastPathComponent(), 2)))
+        );
+        // 复制值
+        final JMenuItem copyVal = new JMenuItem(BUNDLE.getString("json.tree.copy.val"));
+        copyVal.addActionListener(e ->
+                Opt.ofNullable(tree.getSelectionPath())
+                        .ifPresent(path -> Clipboard.copy(getNodeText(path.getLastPathComponent(), 3)))
+        );
+        popupMenu.add(copyKey);
+        popupMenu.add(copyVal);
         popupMenu.add(copyItem);
         // 添加鼠标监听器
         tree.addMouseListener(new MouseAdapter() {
@@ -243,24 +259,37 @@ public class JsonTreePanel extends JPanel {
     /**
      * 从树节点提取可复制的文本
      *
-     * @param node node
+     * @param node 选择的节点
+     * @param type 类型：1.object 2.key 3.value
      * @return {@link String }
      */
-    private String getNodeText(final Object node) {
-        if (node instanceof DefaultMutableTreeNode) {
-            final Object userObject = ((DefaultMutableTreeNode) node).getUserObject();
-            if (Objects.nonNull(userObject)) {
-                // 如果是键值对结构（例如 Map.Entry）
-                if (userObject instanceof final Map.Entry<?, ?> entry) {
-                    return String.format("%s: %s",
-                            entry.getKey().toString(),
-                            entry.getValue().toString()
-                    );
-                }
-                return userObject.toString();
-            }
-        }
-        return node.toString();
+    private String getNodeText(final Object node, final Integer type) {
+        return switch (node) {
+            // 确认是`DefaultMutableTreeNode`才会处理节点
+            case final DefaultMutableTreeNode treeNode -> Opt.ofNullable(treeNode.getUserObject())
+                    .map(Object::toString)
+                    .filter(StrUtil::isNotEmpty)
+                    .map(item -> switch (type) {
+                        // 对象
+                        case Integer i when ObjectUtil.equal(i, 1) -> item;
+                        // 键
+                        case Integer i when ObjectUtil.equal(i, 2) -> Opt.of(JSON.isValidObject(item))
+                                .filter(b -> b)
+                                .map(b -> JSON.parseObject(item).keySet().stream().filter(StrUtil::isNotEmpty).findFirst().orElse(null))
+                                .orElse(null);
+                        // 值
+                        case Integer i when ObjectUtil.equal(i, 3) -> Opt.of(JSON.isValidObject(item))
+                                .filter(b -> b)
+                                .map(b -> JSON.parseObject(item).values().stream().filter(Objects::nonNull).findFirst().orElse(null))
+                                .orElse(null);
+                        default -> null;
+                    })
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .filter(StrUtil::isNotEmpty)
+                    .orElse(node.toString());
+            case null, default -> Convert.toStr(node);
+        };
     }
 
     /**

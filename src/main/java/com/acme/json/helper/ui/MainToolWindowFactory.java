@@ -73,10 +73,11 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
             Arrays.stream(contentPanel.getComponents())
                     .filter(Objects::nonNull)
                     .filter(EditorTextField.class::isInstance)
-                    .map(comp -> ((EditorTextField) comp).getEditor()).filter(Objects::nonNull)
+                    .map(EditorTextField.class::cast)
+                    .map(EditorTextField::getEditor).filter(Objects::nonNull)
                     .forEach(editor -> EditorFactory.getInstance().releaseEditor(editor));
             // 所有页签关闭后重置计数器
-            SwingUtilities.invokeLater(() ->
+            ApplicationManager.getApplication().invokeLater(() ->
                     Opt.of(toolWindow.getContentManager().getContentCount() == 0)
                             .filter(i -> i)
                             .ifPresent(item -> tabCounter.set(0))
@@ -118,7 +119,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         // 创建JSON编辑器
         final EditorTextField editor = new JsonEditor().create(project, number);
         // 等待编辑器初始化后，挂载面板功能
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             // JSON编辑框绑定拖放监听
             Editor.bindDragAndDropListening(editor);
             // 组合布局
@@ -165,7 +166,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     private void initSplitPaneLayout(final JSplitPane splitPane) {
         // 延迟计算布局（确保父容器尺寸已确定）
-        SwingUtilities.invokeLater(() ->
+        ApplicationManager.getApplication().invokeLater(() ->
                 // 设置分隔条初始位置（底部组件显示最小高度）
                 splitPane.setDividerLocation(
                         splitPane.getHeight() - splitPane.getDividerSize() - splitPane.getBottomComponent().getMinimumSize().height

@@ -296,7 +296,7 @@ public class JsonTreePanel extends JPanel {
             @Override
             public void keyTyped(final KeyEvent e) {
                 final char keyChar = e.getKeyChar();
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     // 退格键
                     if (keyChar == KeyEvent.VK_BACK_SPACE && StrUtil.isNotEmpty(searchText)) {
                         searchText = StrUtil.sub(searchText, 0, searchText.length() - 1);

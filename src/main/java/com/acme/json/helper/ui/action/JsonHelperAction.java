@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
@@ -235,22 +236,37 @@ public class JsonHelperAction extends AnAction {
                         .map(p -> ToolWindowManager.getInstance(p).getToolWindow("Json Helper"))
                         .orElse(null)
         );
-        // 配置有效性检查：若工具窗口未初始化/项目已关闭，则中止操作
-        if (Boolean.FALSE.equals(config.isValid())) {
-            Notifier.notifyWarn(BUNDLE.getString("editor.not.available"), project);
-            return;
+        // 工具窗口对象
+        final ToolWindow toolWindow = config.toolWindow();
+        // 工具窗口未打开则会自动打开
+        Opt.ofNullable(config.toolWindow())
+                .filter(item -> Boolean.FALSE.equals(item.isVisible()))
+                .ifPresent(ToolWindow::show);
+        // 窗口激活时执行内容填充
+        toolWindow.activate(() -> {
+            // 编辑器内容更新策略：
+            // 1. 优先查找现有可用编辑器（如已打开的JSON预览标签页）
+            // 2. 存在则直接更新内容，否则创建新标签页并初始化内容
+            ApplicationManager.getApplication().invokeLater(() ->
+                    findReusableEditor(config).ifPresentOrElse(
+                            // 更新现有编辑器
+                            editor -> updateEditorContent(editor, content),
+                            // 新建标签页流程
+                            () -> createNewEditorTab(config, content)
+                    )
+            );
+        });
+    }
+
+    private JScrollPane findScrollPane(EditorTextField editor) {
+        Container parent = editor.getParent();
+        while (parent != null) {
+            if (parent instanceof JScrollPane) {
+                return (JScrollPane) parent;
+            }
+            parent = parent.getParent();
         }
-        // 编辑器内容更新策略：
-        // 1. 优先查找现有可用编辑器（如已打开的JSON预览标签页）
-        // 2. 存在则直接更新内容，否则创建新标签页并初始化内容
-        findReusableEditor(config).ifPresentOrElse(
-                // 更新现有编辑器
-                editor -> updateEditorContent(editor, content),
-                // 新建标签页流程
-                () -> createNewEditorTab(config, content)
-        );
-        // 确保工具窗口处于激活状态
-        activateToolWindow(config.toolWindow());
+        return null;
     }
 
     /* ########################### 统一编辑器推送逻辑 ########################### */
@@ -316,19 +332,17 @@ public class JsonHelperAction extends AnAction {
     }
 
     /**
-     * 更新编辑器内容（线程安全）
+     * 更新编辑器内容
      *
      * @param editor 编辑器
      * @param text 文本
      */
     private void updateEditorContent(@NotNull final EditorTextField editor, @NotNull final String text) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             // 将内容写入编辑器
             editor.setText(text);
             // 激活编辑器文本格式化
             com.acme.json.helper.ui.editor.Editor.reformat(editor);
-            // 跳转顶部
-            editor.setCaretPosition(0);
         });
     }
 
@@ -341,7 +355,7 @@ public class JsonHelperAction extends AnAction {
     private void createNewEditorTab(@NotNull final EditorConfig config, @NotNull final String text) {
         // 创建新的工具窗口标签页（该操作会触发UI更新）
         new MainToolWindowFactory().createNewTab(config.project(), config.toolWindow());
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             // 获取窗口所有内容管理
             final ContentManager contentManager = config.toolWindow().getContentManager();
             final Content[] contents = contentManager.getContents();
@@ -356,19 +370,6 @@ public class JsonHelperAction extends AnAction {
                 // 切换焦点到新页签
                 contentManager.setSelectedContent(newContent, Boolean.TRUE);
             }
-        });
-    }
-
-    /**
-     * 激活工具窗口（如果未打开则自动打开）
-     *
-     * @param toolWindow 工具窗口
-     */
-    private void activateToolWindow(@NotNull final ToolWindow toolWindow) {
-        if (toolWindow.isVisible()) return;
-        SwingUtilities.invokeLater(() -> {
-            toolWindow.show();
-            toolWindow.activate(null);
         });
     }
 

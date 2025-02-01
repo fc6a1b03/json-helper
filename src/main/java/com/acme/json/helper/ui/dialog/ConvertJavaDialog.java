@@ -5,6 +5,7 @@ import cn.hutool.core.util.ObjectUtil;
 import com.acme.json.helper.core.parser.JsonParser;
 import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.JavaEditor;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.EditorTextField;
@@ -46,7 +47,7 @@ public class ConvertJavaDialog extends DialogWrapper {
         setSize(800, 600);
         setTitle(BUNDLE.getString("dialog.convert.java.title"));
         // 初始化编辑器内容
-        SwingUtilities.invokeLater(() -> updateEditorContent(Boolean.TRUE));
+        ApplicationManager.getApplication().invokeLater(() -> updateEditorContent(Boolean.TRUE));
     }
 
     @Override
@@ -65,7 +66,7 @@ public class ConvertJavaDialog extends DialogWrapper {
         // 设置默认选择
         classRadioButton.setSelected(Boolean.TRUE);
         // 添加事件监听
-        final ItemListener radioListener = e -> SwingUtilities.invokeLater(() -> {
+        final ItemListener radioListener = e -> ApplicationManager.getApplication().invokeLater(() -> {
             // 等待编辑器初始化后，设置默认内容
             if (ObjectUtil.equal(e.getSource(), classRadioButton)) {
                 updateEditorContent(Boolean.TRUE);
@@ -120,6 +121,5 @@ public class ConvertJavaDialog extends DialogWrapper {
                         .orElseGet(() -> JsonParser.convertToJsonRecord(jsonText))
         );
         Editor.reformat(javaEditor);
-        javaEditor.setCaretPosition(0);
     }
 }

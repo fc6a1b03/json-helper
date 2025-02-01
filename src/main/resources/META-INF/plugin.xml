@@ -7,6 +7,15 @@
             <a href="https://github.com/fc6a1b03/json-helper" style="color: #2B65EC; text-decoration: none; font-weight: 500;">Github</a>
             <p style="color: #666; line-height: 1.5; margin: 8px 0 12px;">这个工具支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON 数据，还支持通过 JsonPath 进行高效查询和处理</p>
         </div>
+        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
+            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview1.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview1" border="0" />
+        </div>
+        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
+            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview2.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview2" border="0" />
+        </div>
+        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
+            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview3.gif" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
+        </div>
     ]]></description>
     <depends>com.intellij.java</depends>
     <depends>com.intellij.modules.lang</depends>

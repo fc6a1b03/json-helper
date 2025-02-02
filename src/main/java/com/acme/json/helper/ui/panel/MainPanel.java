@@ -442,7 +442,7 @@ public class MainPanel {
                                     Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
                             );
                         }
-                    } catch (Exception ex) {
+                    } catch (Exception ignored) {
                         ApplicationManager.getApplication().invokeLater(() ->
                                 Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
                         );

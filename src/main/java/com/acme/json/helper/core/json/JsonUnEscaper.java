@@ -12,7 +12,7 @@ public final class JsonUnEscaper implements JsonOperation {
     public String process(final String json) {
         try {
             return new JsonFormatter().process(JSON.parseObject(json, String.class)).trim();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return json;
         }
     }

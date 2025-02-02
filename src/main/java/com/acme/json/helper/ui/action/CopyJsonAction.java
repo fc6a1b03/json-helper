@@ -4,12 +4,14 @@ import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.parser.ClassParser;
+import com.acme.json.helper.settings.PluginSettings;
 import com.acme.json.helper.ui.notice.Notifier;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
@@ -33,21 +35,54 @@ public class CopyJsonAction extends AnAction {
         return ActionUpdateThread.BGT;
     }
 
+    /**
+     * 更新动作可见性状态
+     *
+     * @param e 行动事件
+     */
     @Override
+    @SuppressWarnings("DuplicatedCode")
     public void update(@NotNull AnActionEvent e) {
-        e.getPresentation().setEnabledAndVisible(UastSupported.of(e.getData(CommonDataKeys.PSI_FILE)));
+        // 确认配置已开启
+        if (Boolean.FALSE.equals(PluginSettings.of().copyJson)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            return;
+        }
+        // 确认窗口项目正常
+        final Project project = e.getProject();
+        if (Objects.isNull(project)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            return;
+        }
+        // 确认文件索引已完成
+        if (DumbService.isDumb(project)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            return;
+        }
+        // 确认文件PSI正常
+        final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
+        if (Objects.isNull(psiFile)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), e.getProject());
+            return;
+        }
+        e.getPresentation().setEnabledAndVisible(
+                // 检查文件的UAST语言支持 且 存在有效的类上下文
+                UastSupported.of(psiFile) && UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psiFile)
+        );
     }
 
+    /**
+     * 主执行逻辑
+     *
+     * @param e 行动事件
+     */
     @Override
-    public void actionPerformed(final AnActionEvent e) {
+    public void actionPerformed(final @NotNull AnActionEvent e) {
         final Project project = e.getProject();
         final Editor editor = e.getData(CommonDataKeys.EDITOR);
         final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
         if (Objects.isNull(project) || Objects.isNull(editor) || Objects.isNull(psiFile)) {
-            return;
-        }
-        if (Boolean.FALSE.equals(UastSupported.of(psiFile))) {
-            Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), project);
             return;
         }
         // 获取当前选中的类

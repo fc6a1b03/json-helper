@@ -57,7 +57,7 @@ public class FileDropHandler extends DropTargetAdapter {
             } else {
                 e.rejectDrop();
             }
-        } catch (Exception ex) {
+        } catch (Exception ignored) {
             e.rejectDrop();
             Notifier.notifyError(BUNDLE.getString("file.to.path.warn"), editor.getProject());
         }

@@ -18,7 +18,7 @@ public final class JsonFormatter implements JsonOperation {
     public String process(final String json) {
         try {
             return JSON.toJSONString(JSON.parse(json), JSONWriter.Feature.PrettyFormat).trim();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return json;
         }
     }

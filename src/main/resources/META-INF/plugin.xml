@@ -26,6 +26,7 @@
     <depends>com.intellij.modules.platform</depends>
     <resource-bundle>messages.JsonHelperBundle</resource-bundle>
     <actions>
+        <!-- 注册右键菜单 -->
         <action id="CopyJsonAction"
                 text="Copy JSON" icon="AllIcons.General.Copy"
                 class="com.acme.json.helper.ui.action.CopyJsonAction"
@@ -41,12 +42,20 @@
         </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
+        <!-- 注册窗口 -->
         <toolWindow id="Json Helper"
                     anchor="right"
                     secondary="true"
                     canCloseContents="true"
                     icon="/icons/pluginIcon.svg"
                     factoryClass="com.acme.json.helper.ui.MainToolWindowFactory"/>
+        <!-- 注册插件配置 -->
+        <applicationConfigurable parentId="tools" displayName="Json Helper"
+                                 id="com.acme.json.helper.settings.PluginSettings"
+                                 instance="com.acme.json.helper.settings.PluginSettings"/>
+        <!-- 设置状态 -->
+        <applicationService serviceImplementation="com.acme.json.helper.settings.PluginSettingsState"/>
+        <!-- 注册通知 -->
         <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON"/>
     </extensions>
 </idea-plugin>

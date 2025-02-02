@@ -12,7 +12,7 @@ public final class JsonCompressor implements JsonOperation {
     public String process(final String json) {
         try {
             return JSON.toJSONString(JSON.parse(json)).trim();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return json;
         }
     }

@@ -54,7 +54,7 @@ public class PathParser {
     private static boolean isLocalPath(final String path) {
         try {
             return Opt.of(path.startsWith("file://")).filter(i -> i).orElseGet(() -> Paths.get(path).isAbsolute());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return Boolean.FALSE;
         }
     }
@@ -79,7 +79,7 @@ public class PathParser {
                         .filter(i -> i)
                         .map(item -> response.body())
                         .orElseGet(null);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 return null;
             }
         });
@@ -106,7 +106,7 @@ public class PathParser {
                         .filter(i -> i)
                         .map(item -> FileUtil.readUtf8String(Paths.get(URI.create(path)).toFile()))
                         .orElseGet(() -> FileUtil.readUtf8String(path));
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 return null;
             }
         });

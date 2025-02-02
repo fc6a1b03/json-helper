@@ -97,7 +97,7 @@ public class ClassParser {
             final PsiClass psiClass,
             final Set<PsiClass> processed
     ) {
-        // 强制线程安全检查（IDE 插件开发要求）
+        // 强制线程安全检查
         ThreadingAssertions.assertReadAccess();
         // 终止条件：已处理类或标记忽略的类型
         if (processed.contains(psiClass) ||
@@ -112,7 +112,7 @@ public class ClassParser {
                     .sequential()
                     .filter(Objects::nonNull)
                     // 过滤静态字段
-                    .filter(f -> !f.hasModifierProperty(PsiModifier.STATIC))
+                    .filter(f -> Boolean.FALSE.equals(f.hasModifierProperty(PsiModifier.STATIC)))
                     // 过滤被 @JsonIgnore 标记的字段
                     .filter(f -> Objects.isNull(f.getAnnotation(JsonIgnore.class.getName())))
                     // 递归处理字段类型（传递 processed 集合防止循环）

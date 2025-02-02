@@ -7,6 +7,7 @@ import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.parser.ClassParser;
+import com.acme.json.helper.settings.PluginSettings;
 import com.acme.json.helper.ui.MainToolWindowFactory;
 import com.acme.json.helper.ui.notice.Notifier;
 import com.alibaba.fastjson2.JSON;
@@ -17,12 +18,12 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
@@ -61,9 +62,28 @@ public class JsonHelperAction extends AnAction {
      * 判断逻辑：
      * 1. 当前为支持UAST解析的Java文件（光标位于类定义内）
      * 2. 或存在有效的JSON文本选区
+     *
+     * @param e 行动事件
      */
     @Override
+    @SuppressWarnings("DuplicatedCode")
     public void update(@NotNull AnActionEvent e) {
+        // 确认配置已开启
+        if (Boolean.FALSE.equals(PluginSettings.of().jsonHelper)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            return;
+        }
+        // 确认窗口项目正常
+        final Project project = e.getProject();
+        if (Objects.isNull(project)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            return;
+        }
+        // 确认文件索引已完成
+        if (DumbService.isDumb(project)) {
+            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
+            return;
+        }
         e.getPresentation().setEnabledAndVisible(
                 checkJavaContextValidity(e) || checkJsonSelectionValidity(e)
         );
@@ -91,36 +111,39 @@ public class JsonHelperAction extends AnAction {
 
     /**
      * 检查Java上下文有效性
+     * <br/>
+     * 本方法执行链式安全检查，验证以下条件：
+     * 1. 确认配置已开启
+     * 2. 文件已完成索引
+     * 3. 是UAST语言支持
+     * 4. 是有效的`PsiFile`
+     * 5. 是`Java`文件
      *
      * @param e 行动事件
      * @return true表示当前处于有效的Java类上下文
      */
     private boolean checkJavaContextValidity(@NotNull final AnActionEvent e) {
+        // 确认文件PSI正常
         final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
-        return UastSupported.of(psiFile) &&
-                hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psiFile);
+        if (Objects.isNull(psiFile)) {
+            Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), e.getProject());
+            return Boolean.FALSE;
+        }
+        // 检查文件的UAST语言支持 且 存在有效的类上下文
+        return UastSupported.of(psiFile) && UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psiFile);
     }
 
     /* ########################### 上下文验证方法 ########################### */
 
     /**
-     * 检查是否存在有效的类上下文
-     *
-     * @param editor 编辑器
-     * @param psiFile PSI文件
-     * @return boolean
-     */
-    private boolean hasValidClassContext(final Editor editor, final PsiFile psiFile) {
-        return Objects.nonNull(editor) && Objects.nonNull(psiFile) && Objects.nonNull(locatePsiClass(editor, psiFile));
-    }
-
-    /**
      * 验证当前编辑器选区内容是否为合法JSON格式
      * <br/>
      * 本方法执行链式安全检查，验证以下条件：
-     * 1. 存在有效的编辑器实例
-     * 2. 编辑器存在文本选区
-     * 3. 选中文本内容符合JSON语法规范
+     * 1. 确认配置已开启
+     * 2. 文件已完成索引
+     * 3. 存在有效的编辑器实例
+     * 4. 编辑器存在文本选区
+     * 5. 选中文本内容符合JSON语法规范
      *
      * @param e 动作事件上下文，包含编辑器、项目等运行时数据
      * @return 验证结果：
@@ -137,7 +160,6 @@ public class JsonHelperAction extends AnAction {
                 .filter(SelectionModel::hasSelection)
                 // 执行JSON语法验证
                 .map(sel -> JSON.isValid(sel.getSelectedText()))
-                // 默认返回false（任一环节失败时）
                 .orElse(Boolean.FALSE);
     }
 
@@ -150,7 +172,7 @@ public class JsonHelperAction extends AnAction {
      */
     private void handleJavaClassContext(final Project project, final Editor editor, final PsiFile psiFile) {
         // 定位当前光标所在的PSI类
-        final PsiClass targetClass = locatePsiClass(editor, psiFile);
+        final PsiClass targetClass = UastSupported.locatePsiClass(editor, psiFile);
         if (Objects.isNull(targetClass)) {
             Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), project);
             return;
@@ -160,20 +182,6 @@ public class JsonHelperAction extends AnAction {
     }
 
     /* ########################### Java类处理逻辑 ########################### */
-
-    /**
-     * 定位当前光标所在的PSI类
-     *
-     * @param editor 编辑器
-     * @param psiFile PSI文件
-     * @return {@link PsiClass }
-     */
-    private PsiClass locatePsiClass(final Editor editor, final PsiFile psiFile) {
-        return PsiTreeUtil.getParentOfType(
-                psiFile.findElementAt(editor.getCaretModel().getOffset()),
-                PsiClass.class
-        );
-    }
 
     /**
      * 生成类结构JSON

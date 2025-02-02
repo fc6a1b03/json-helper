@@ -1,9 +1,6 @@
 package com.acme.json.helper.settings;
 
-import com.intellij.ide.projectView.ProjectView;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.Configurable;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.components.JBCheckBox;
@@ -72,12 +69,6 @@ public class PluginSettings implements Configurable {
         // 将设置组件状态覆盖全局状态
         settings.copyJson = component.getCopyJson();
         settings.jsonHelper = component.getJsonHelper();
-        // 触发项目树刷新
-        ApplicationManager.getApplication().invokeLater(() ->
-                Arrays.stream(ProjectManager.getInstance().getOpenProjects())
-                        .parallel()
-                        .forEach(project -> ProjectView.getInstance(project).refresh())
-        );
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.action;
 
+import com.acme.json.helper.common.ActionEventCheck;
 import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
@@ -11,7 +12,6 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
@@ -41,35 +41,30 @@ public class CopyJsonAction extends AnAction {
      * @param e 行动事件
      */
     @Override
-    @SuppressWarnings("DuplicatedCode")
-    public void update(@NotNull AnActionEvent e) {
-        // 确认配置已开启
-        if (Boolean.FALSE.equals(PluginSettings.of().copyJson)) {
-            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
-            return;
+    public void update(@NotNull final AnActionEvent e) {
+        // 分步检查
+        switch (ActionEventCheck.stepByStepInspection(e, PluginSettings.of().copyJson)) {
+            // 执行错误状态
+            case ActionEventCheck.Check.Failed failed -> failed.action().run();
+            // 确认最终状态
+            case ActionEventCheck.Check.Success ignored -> {
+                // 确认文件PSI正常
+                final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
+                if (Objects.isNull(psiFile)) {
+                    ActionEventCheck.disabled(e);
+                    Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), e.getProject());
+                    return;
+                }
+                // 确认最终状态设置
+                e.getPresentation().setEnabledAndVisible(
+                        switch (e.getData(CommonDataKeys.PSI_FILE)) {
+                            case null -> Boolean.FALSE;
+                            case PsiFile psi -> UastSupported.of(psi) &&
+                                    UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psi);
+                        }
+                );
+            }
         }
-        // 确认窗口项目正常
-        final Project project = e.getProject();
-        if (Objects.isNull(project)) {
-            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
-            return;
-        }
-        // 确认文件索引已完成
-        if (DumbService.isDumb(project)) {
-            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
-            return;
-        }
-        // 确认文件PSI正常
-        final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
-        if (Objects.isNull(psiFile)) {
-            e.getPresentation().setEnabledAndVisible(Boolean.FALSE);
-            Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), e.getProject());
-            return;
-        }
-        e.getPresentation().setEnabledAndVisible(
-                // 检查文件的UAST语言支持 且 存在有效的类上下文
-                UastSupported.of(psiFile) && UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psiFile)
-        );
     }
 
     /**
@@ -78,7 +73,7 @@ public class CopyJsonAction extends AnAction {
      * @param e 行动事件
      */
     @Override
-    public void actionPerformed(final @NotNull AnActionEvent e) {
+    public void actionPerformed(@NotNull final AnActionEvent e) {
         final Project project = e.getProject();
         final Editor editor = e.getData(CommonDataKeys.EDITOR);
         final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);

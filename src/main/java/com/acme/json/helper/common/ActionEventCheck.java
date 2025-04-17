@@ -4,7 +4,6 @@ import cn.hutool.core.lang.Opt;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbService;
 
-import java.util.ResourceBundle;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -15,9 +14,6 @@ import java.util.stream.Stream;
  * @date 2025-02-03
  */
 public class ActionEventCheck {
-    /** 加载语言资源文件 */
-    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-
     /**
      * 分步检查
      *

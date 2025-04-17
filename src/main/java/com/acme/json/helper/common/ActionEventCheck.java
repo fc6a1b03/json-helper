@@ -37,7 +37,7 @@ public class ActionEventCheck {
                                 .orElse(new Check.Failed(() -> disabled(e))),
                         // 检查索引状态
                         () -> Opt.ofNullable(e.getProject())
-                                .filter(p -> Boolean.FALSE.equals(DumbService.isDumb(p)))
+                                .filter(p -> !DumbService.isDumb(p))
                                 .<Check>map(p -> new Check.Success())
                                 .orElse(new Check.Failed(() -> disabled(e)))
                 )

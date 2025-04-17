@@ -239,7 +239,7 @@ public class JsonHelperAction extends AnAction {
         final ToolWindow toolWindow = config.toolWindow();
         // 工具窗口未打开则会自动打开
         Opt.ofNullable(config.toolWindow())
-                .filter(item -> Boolean.FALSE.equals(item.isVisible()))
+                .filter(item -> !item.isVisible())
                 .ifPresent(ToolWindow::show);
         // 窗口激活时执行内容填充
         toolWindow.activate(() -> {
@@ -386,8 +386,8 @@ public class JsonHelperAction extends AnAction {
          * @return true表示配置有效可用于UI操作
          */
         public boolean isValid() {
-            return Objects.nonNull(project) && Boolean.FALSE.equals(project.isDisposed()) &&
-                    Objects.nonNull(toolWindow) && Boolean.FALSE.equals(toolWindow.isDisposed());
+            return Objects.nonNull(project) && !project.isDisposed() &&
+                    Objects.nonNull(toolWindow) && !toolWindow.isDisposed();
         }
     }
 }

@@ -1,11 +1,12 @@
+//file:noinspection DependencyNotationArgument
 plugins {
     id 'java'
     // https://github.com/JetBrains/intellij-platform-gradle-plugin
-    id 'org.jetbrains.intellij.platform' version '2.2.1'
+    id 'org.jetbrains.intellij.platform' version '2.5.0'
 }
 
 group 'com.acme'
-version '0.7.10.1'
+version '0.7.10.2'
 
 repositories {
     mavenCentral()
@@ -21,14 +22,14 @@ java {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity '2024.3.2.2'
+        intellijIdeaCommunity '2025.1'
         bundledPlugin 'com.intellij.java'
         bundledPlugin 'com.intellij.gradle'
         bundledPlugin 'com.intellij.modules.json'
     }
-    implementation 'cn.hutool:hutool-core:5.8.35'
-    implementation 'cn.hutool:hutool-http:5.8.35'
-    implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
+    implementation 'cn.hutool:hutool-core:5.8.37'
+    implementation 'cn.hutool:hutool-http:5.8.37'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.57'
 }
 
 runIde {

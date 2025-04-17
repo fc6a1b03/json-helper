@@ -23,8 +23,8 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.Timer;
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
@@ -34,8 +34,8 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -392,7 +392,7 @@ public class JsonTreePanel extends JPanel {
                         currentMatchIndex = -1;
                     }
                     // 其他键
-                    else if (Boolean.FALSE.equals(Character.isISOControl(keyChar))) {
+                    else if (!Character.isISOControl(keyChar)) {
                         searchText += Character.toLowerCase(keyChar);
                         restartSearchTimer();
                     }

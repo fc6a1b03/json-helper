@@ -39,7 +39,7 @@ public class TemporalTypeHandler {
         new Scanner(formatConfig)
                 .useDelimiter("\\R").tokens()
                 .filter(StrUtil::isNotEmpty)
-                .filter(line -> Boolean.FALSE.equals(line.startsWith("#")))
+                .filter(line -> !line.startsWith("#"))
                 .map(line -> line.split("=", 2))
                 .forEach(parts -> {
                     final String className = StrUtil.trim(parts[0]);

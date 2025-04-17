@@ -35,7 +35,7 @@ public final class JsonSearchEngine implements JsonOperation {
         try {
             return Opt.ofBlankAble(new JsonFormatter().process(JSONPath.eval(json, expression).toString()))
                     // 过滤null字面量
-                    .filter(item -> Boolean.FALSE.equals("null".equals(item)))
+                    .filter(item -> !"null".equals(item))
                     .orElse("").trim();
         } catch (Exception ignored) {
             return "";

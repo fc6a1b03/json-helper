@@ -98,8 +98,8 @@ public class MainPanel {
      * @param redoButton 重做按钮
      */
     private void updateButtons(final JButton undoButton, final JButton redoButton) {
-        undoButton.setEnabled(Boolean.FALSE.equals(undoStack.isEmpty()));
-        redoButton.setEnabled(Boolean.FALSE.equals(redoStack.isEmpty()));
+        undoButton.setEnabled(!undoStack.isEmpty());
+        redoButton.setEnabled(!redoStack.isEmpty());
     }
 
     /**
@@ -249,8 +249,8 @@ public class MainPanel {
             public void actionPerformed(final @NotNull AnActionEvent e) {
                 if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
                 final Document document = editor.getDocument();
-                if (Boolean.FALSE.equals(JSON.isValid(document.getText()))) return;
-                if (Boolean.FALSE.equals(JSON.isValidObject(document.getText()))) {
+                if (!JSON.isValid(document.getText())) return;
+                if (!JSON.isValidObject(document.getText())) {
                     Notifier.notifyWarn(BUNDLE.getString("json.to.bean.warn"), editor.getProject());
                     return;
                 }
@@ -279,7 +279,7 @@ public class MainPanel {
                 // 文档内容
                 final String text = e.getDocument().getText().trim();
                 // 根据文档内容调整清空按钮的状态
-                clearButton.setEnabled(Boolean.FALSE.equals(StrUtil.isEmpty(text)));
+                clearButton.setEnabled(!StrUtil.isEmpty(text));
                 // 自动识别`web路径`或`本地文件路径`转为JSON，写回编辑器
                 OptPath(text, editor, e, this);
             }
@@ -379,7 +379,7 @@ public class MainPanel {
                          final Editor editor, final JsonOperation operation) {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Document document = editor.getDocument();
-        if (Boolean.FALSE.equals(JSON.isValid(document.getText()))) return;
+        if (!JSON.isValid(document.getText())) return;
         WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
             // 储存撤销历史
             undoStack.push(document.getText());

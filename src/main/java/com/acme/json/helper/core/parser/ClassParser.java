@@ -112,7 +112,7 @@ public class ClassParser {
                     .sequential()
                     .filter(Objects::nonNull)
                     // 过滤静态字段
-                    .filter(f -> Boolean.FALSE.equals(f.hasModifierProperty(PsiModifier.STATIC)))
+                    .filter(f -> !f.hasModifierProperty(PsiModifier.STATIC))
                     // 过滤被 @JsonIgnore 标记的字段
                     .filter(f -> Objects.isNull(f.getAnnotation(JsonIgnore.class.getName())))
                     // 递归处理字段类型（传递 processed 集合防止循环）

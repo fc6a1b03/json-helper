@@ -88,15 +88,19 @@ public class CollectionTypeHandler {
      * @return {@link Object }
      */
     private static Object createPrimitiveArray(final PsiPrimitiveType type, final Object value) {
-        return switch (type.getCanonicalText()) {
+        final String typeName = type.getCanonicalText();
+        if ("byte".equals(typeName) && value instanceof byte[]) {
+            return value;
+        }
+        return switch (typeName) {
             case "int" -> new int[]{(int) value};
-            case "long" -> new long[]{(long) value};
-            case "float" -> new float[]{(float) value};
-            case "double" -> new double[]{(double) value};
-            case "boolean" -> new boolean[]{(boolean) value};
             case "char" -> new char[]{(char) value};
             case "byte" -> new byte[]{(byte) value};
+            case "long" -> new long[]{(long) value};
+            case "float" -> new float[]{(float) value};
             case "short" -> new short[]{(short) value};
+            case "double" -> new double[]{(double) value};
+            case "boolean" -> new boolean[]{(boolean) value};
             default -> new Object[]{value};
         };
     }

@@ -180,9 +180,10 @@ public class JsonTreePanel extends JPanel {
                         UIUtil.getTreeBackground()
                 );
                 // 处理不同节点类型
-                switch (node.getUserObject()) {
-                    case JsonNodeParser.JsonNode data -> renderJsonNode(data);
-                    default -> renderer.append(node.toString());
+                if (Objects.requireNonNull(node.getUserObject()) instanceof JsonNodeParser.JsonNode data) {
+                    renderJsonNode(data);
+                } else {
+                    renderer.append(node.toString());
                 }
                 return renderer;
             }

@@ -417,7 +417,7 @@ public class MainPanel {
     private void handleFileOpen(final EditorTextField editor) {
         FileChooser.chooseFile(
                 FileChooserDescriptorFactory
-                        .createSingleFileDescriptor()
+                        .createSingleFileDescriptor(editor.getFileType())
                         .withFileFilter(virtualFile -> "json".equalsIgnoreCase(virtualFile.getExtension())),
                 editor.getProject(), null, virtualFile -> {
                     if (Objects.isNull(virtualFile)) return;

@@ -342,9 +342,7 @@ public class JsonHelperAction extends AnAction {
                         Arrays.stream(contentManager.getContents())
                                 .sequential()
                                 .filter(ArrayUtil::isNotEmpty)
-                                .filter(content -> {
-                                    return ObjectUtil.equal(content.getComponent(), item);
-                                })
+                                .filter(content -> ObjectUtil.equal(content.getComponent(), item))
                                 .findFirst().ifPresent(content -> contentManager.setSelectedContent(content, Boolean.TRUE));
                     });
         });

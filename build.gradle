@@ -2,11 +2,12 @@
 plugins {
     id 'java'
     // https://github.com/JetBrains/intellij-platform-gradle-plugin
+    // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
     id 'org.jetbrains.intellij.platform' version '2.5.0'
 }
 
 group 'com.acme'
-version '0.7.10.5'
+version '0.7.10.6'
 
 repositories {
     mavenCentral()
@@ -33,38 +34,35 @@ dependencies {
 }
 
 runIde {
-    // jvm参数
+    // jvm参数优化
     jvmArgs += [
+            "-Xms1g",
+            "-Xmx4g",
             "-Xshare:off",
-            "-Djava.security.manager=allow",
+            "-Dfile.encoding=UTF-8",
+            // 其他优化
+            "-XX:+UseParallelGC",
+            "-Didea.wsl.disable=true",
+            "-XX:ReduceInitialCardSetAllocation=10",
+            // 启用模块拓展
             "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+            "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
     ]
-    // 设置日志级别
-    systemProperty 'idea.log.level', 'DEBUG'
-    // 设置IDEA实例的系统属性
-    systemProperty 'idea.is.internal', 'true'
     // 设置主题
     systemProperty 'idea.ui.themes', 'Darcula'
+    // 设置编码
+    systemProperty 'file.encoding', 'UTF-8'
+    systemProperty 'idea.encoding.charset', 'UTF-8'
     // 设置插件开发模式
+    systemProperty 'idea.is.internal', 'true'
+    systemProperty 'idea.auto.update', 'false'
+    systemProperty 'idea.dynamic.classpath', 'true'
+    systemProperty 'idea.accelerator.manager', 'true'
+    systemProperty 'idea.inspections.enabled', 'false'
     systemProperty 'idea.plugins.developer.mode', 'true'
     systemProperty 'idea.plugins.developer.mode.debug', 'true'
-    // 增加JVM内存分配
-    systemProperty 'idea.vmoptions', '-Xmx1g'
-    // 启用硬件加速
-    systemProperty 'idea.ui.accelerator', 'true'
-    // 禁用代码检查
-    systemProperty 'idea.inspections.enabled', 'false'
-    // 启用低内存模式
-    systemProperty 'idea.low.memory.mode', 'true'
-    // 调整垃圾回收器
-    systemProperty 'idea.gc.options', '-XX:+UseG1GC'
-    // 禁用自动更新
-    systemProperty 'idea.auto.update', 'false'
-    // 设置文件编码
-    systemProperty 'file.encoding', 'UTF-8'
 }
 
 tasks.register('printVersion') {

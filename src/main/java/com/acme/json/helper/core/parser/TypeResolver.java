@@ -7,11 +7,13 @@ import com.acme.json.helper.common.CollectionTypeHandler;
 import com.acme.json.helper.common.TemporalTypeHandler;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.*;
+import kotlin.jvm.functions.Function0;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Map.entry;
@@ -38,59 +40,53 @@ public class TypeResolver {
      * <li>short类型通过Convert.toShort进行范围适配</li>
      * <li>虽然String不是基本类型，但因其高频使用特性特别包含在此映射表中</li>
      */
-    private static final Map<String, Object> DEFAULTS = Map.ofEntries(
+    private static final Map<String, Function0<Object>> DEFAULTS = Map.ofEntries(
             // 原始类型
-            entry("char", RandomUtil.randomChar()),
-            entry("boolean", RandomUtil.randomBoolean()),
-            entry("int", Math.abs(RandomUtil.randomInt())),
-            entry("long", Math.abs(RandomUtil.randomLong())),
-            entry("float", Math.abs(RandomUtil.randomFloat())),
-            entry("byte", RandomUtil.randomBytes(BigDecimal.ONE.intValue())),
-            entry("short", Math.abs(Convert.toShort(RandomUtil.randomInt(Short.MAX_VALUE)))),
-            entry("double", Math.abs(RandomUtil.randomDouble(BigDecimal.ONE.intValue(), Short.MAX_VALUE))),
+            entry("char", RandomUtil::randomChar),
+            entry("boolean", RandomUtil::randomBoolean),
+            entry("int", () -> Math.abs(RandomUtil.randomInt())),
+            entry("long", () -> Math.abs(RandomUtil.randomLong())),
+            entry("float", () -> Math.abs(RandomUtil.randomFloat())),
+            entry("byte", () -> RandomUtil.randomBytes(BigDecimal.ONE.intValue())),
+            entry("short", () -> Math.abs(Convert.toShort(RandomUtil.randomInt(Short.MAX_VALUE)))),
+            entry("double", () -> Math.abs(RandomUtil.randomDouble(BigDecimal.ONE.intValue(), Short.MAX_VALUE))),
             // 包装类型
-            entry("Character", RandomUtil.randomChar()),
-            entry("Boolean", RandomUtil.randomBoolean()),
-            entry("Long", Math.abs(RandomUtil.randomLong())),
-            entry("Integer", Math.abs(RandomUtil.randomInt())),
-            entry("Float", Math.abs(RandomUtil.randomFloat())),
-            entry("Byte", RandomUtil.randomBytes(BigDecimal.ONE.intValue())),
-            entry("Short", Math.abs(Convert.toShort(RandomUtil.randomInt(Short.MAX_VALUE)))),
-            entry("Double", Math.abs(RandomUtil.randomDouble(BigDecimal.ONE.intValue(), Short.MAX_VALUE))),
-            entry("java.lang.Character", RandomUtil.randomChar()),
-            entry("java.lang.Boolean", RandomUtil.randomBoolean()),
-            entry("java.lang.Long", Math.abs(RandomUtil.randomLong())),
-            entry("java.lang.Integer", Math.abs(RandomUtil.randomInt())),
-            entry("java.lang.Float", Math.abs(RandomUtil.randomFloat())),
-            entry("java.lang.Byte", RandomUtil.randomBytes(BigDecimal.ONE.intValue())),
-            entry("java.lang.Short", Math.abs(Convert.toShort(RandomUtil.randomInt(Short.MAX_VALUE)))),
-            entry("java.lang.Double", Math.abs(RandomUtil.randomDouble(BigDecimal.ONE.intValue(), Short.MAX_VALUE))),
+            entry("Character", RandomUtil::randomChar),
+            entry("Boolean", RandomUtil::randomBoolean),
+            entry("Long", () -> Math.abs(RandomUtil.randomLong())),
+            entry("Integer", () -> Math.abs(RandomUtil.randomInt())),
+            entry("Float", () -> Math.abs(RandomUtil.randomFloat())),
+            entry("Byte", () -> RandomUtil.randomBytes(BigDecimal.ONE.intValue())),
+            entry("Short", () -> Math.abs(Convert.toShort(RandomUtil.randomInt(Short.MAX_VALUE)))),
+            entry("Double", () -> Math.abs(RandomUtil.randomDouble(BigDecimal.ONE.intValue(), Short.MAX_VALUE))),
+            entry("java.lang.Character", RandomUtil::randomChar),
+            entry("java.lang.Boolean", RandomUtil::randomBoolean),
+            entry("java.lang.Long", () -> Math.abs(RandomUtil.randomLong())),
+            entry("java.lang.Integer", () -> Math.abs(RandomUtil.randomInt())),
+            entry("java.lang.Float", () -> Math.abs(RandomUtil.randomFloat())),
+            entry("java.lang.Byte", () -> RandomUtil.randomBytes(BigDecimal.ONE.intValue())),
+            entry("java.lang.Short", () -> Math.abs(Convert.toShort(RandomUtil.randomInt(Short.MAX_VALUE)))),
+            entry("java.lang.Double", () -> Math.abs(RandomUtil.randomDouble(BigDecimal.ONE.intValue(), Short.MAX_VALUE))),
             // 字符串
-            entry("String", RandomUtil.randomString(10)),
-            entry("java.lang.String", RandomUtil.randomString(10)),
+            entry("String", () -> RandomUtil.randomString(10)),
+            entry("java.lang.String", () -> RandomUtil.randomString(10)),
             // 数值类
-            entry("BigInteger", new BigInteger(64, RandomUtil.getRandom())),
-            entry("BigDecimal", BigDecimal.valueOf(RandomUtil.randomDouble(1, Short.MAX_VALUE))),
-            entry("java.math.BigInteger", new BigInteger(64, RandomUtil.getRandom())),
-            entry("java.math.BigDecimal", BigDecimal.valueOf(RandomUtil.randomDouble(1, Short.MAX_VALUE)))
+            entry("BigInteger", () -> new BigInteger(64, RandomUtil.getRandom())),
+            entry("BigDecimal", () -> BigDecimal.valueOf(RandomUtil.randomDouble(1, Short.MAX_VALUE))),
+            entry("java.math.BigInteger", () -> new BigInteger(64, RandomUtil.getRandom())),
+            entry("java.math.BigDecimal", () -> BigDecimal.valueOf(RandomUtil.randomDouble(1, Short.MAX_VALUE)))
     );
 
     /**
-     * 获取原始默认值
+     * 合并后的获取默认值方法，支持PsiType类型
      * @param type 类型
      * @return {@link Object }
      */
-    public static Object getDefault(final PsiPrimitiveType type) {
-        return Opt.ofNullable(type).map(item -> DEFAULTS.get(type.getCanonicalText())).orElse(null);
-    }
-
-    /**
-     * 获取基础默认值
-     * @param type 类型
-     * @return {@link Object }
-     */
-    public static Object getDefault(final PsiClassType type) {
-        return Opt.ofNullable(type).map(item -> DEFAULTS.get(type.getCanonicalText())).orElse(null);
+    public static Object getDefault(final PsiType type) {
+        return Opt.ofNullable(type)
+                .map(t -> DEFAULTS.get(t.getCanonicalText()))
+                .map(Function0::invoke)
+                .orElse(null);
     }
 
     /**
@@ -102,6 +98,7 @@ public class TypeResolver {
         return Opt.ofNullable(type.resolve())
                 .stream()
                 .flatMap(c -> Arrays.stream(c.getAllFields()))
+                .filter(Objects::nonNull)
                 .filter(PsiEnumConstant.class::isInstance)
                 .findFirst()
                 .map(PsiField::getName)
@@ -133,11 +130,10 @@ public class TypeResolver {
             // 数组类型，处理为包含示例元素的数组
             case PsiArrayType at -> CollectionTypeHandler.handleArray(at, processed);
             // 枚举类型，返回枚举的第一个常量值
-            case PsiClassType ct when Opt.ofNullable(ct.resolve()).map(PsiClass::isEnum).orElse(Boolean.FALSE) ->
-                    getEnumValue(ct);
+            case PsiClassType ct when ct.resolve() instanceof PsiClass c && c.isEnum() -> getEnumValue(ct);
             // 时间类型（如LocalDate），返回格式化字符串（如"2023-01-01"）
-            case PsiClassType ct when TemporalTypeHandler.isTemporal(ct.resolve()) ->
-                    TemporalTypeHandler.format(ct.resolve());
+            case PsiClassType ct when ct.resolve() instanceof PsiClass c && TemporalTypeHandler.isTemporal(c) ->
+                    TemporalTypeHandler.format(c);
             // 集合类型（List/Set），创建包含示例元素的集合
             case PsiClassType ct when CollectionTypeHandler.isCollection(ct) ->
                     CollectionTypeHandler.handleCollection(ct, processed);

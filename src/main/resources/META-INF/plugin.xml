@@ -17,13 +17,18 @@
             <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview4.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
         </div>
         <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
+            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview5.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
+        </div>
+        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
             <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview3.gif" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
         </div>
     ]]></description>
+    <depends>org.toml.lang</depends>
     <depends>com.intellij.java</depends>
-    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.gradle</depends>
+    <depends>com.intellij.properties</depends>
     <depends>com.intellij.modules.json</depends>
-    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.yaml</depends>
     <resource-bundle>messages.JsonHelperBundle</resource-bundle>
     <actions>
         <!-- 注册右键菜单 -->

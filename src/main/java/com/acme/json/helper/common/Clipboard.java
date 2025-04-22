@@ -1,7 +1,9 @@
 package com.acme.json.helper.common;
 
+import cn.hutool.core.convert.Convert;
 import com.intellij.openapi.ide.CopyPasteManager;
 
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 
 /**
@@ -16,5 +18,14 @@ public class Clipboard {
      */
     public static void copy(final String content) {
         CopyPasteManager.getInstance().setContents(new StringSelection(content));
+    }
+
+    /**
+     * 获取粘贴板内容
+     *
+     * @return {@link String }
+     */
+    public static String get() {
+        return Convert.toStr(CopyPasteManager.getInstance().getContents(DataFlavor.stringFlavor), "");
     }
 }

@@ -1,8 +1,9 @@
 package com.acme.json.helper.ui;
 
 import cn.hutool.core.lang.Opt;
+import com.acme.json.helper.ui.editor.CustomizeEditorFactory;
 import com.acme.json.helper.ui.editor.Editor;
-import com.acme.json.helper.ui.editor.JsonEditor;
+import com.acme.json.helper.ui.editor.SupportedLanguages;
 import com.acme.json.helper.ui.panel.JsonTreePanel;
 import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;
@@ -119,7 +120,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         // 窗口工具
         final JPanel toolWindowContent = new JPanel(new BorderLayout());
         // 创建JSON编辑器
-        final EditorTextField editor = new JsonEditor().create(project, number);
+        final EditorTextField editor = new CustomizeEditorFactory(SupportedLanguages.JSON, "Dummy_%d.json".formatted(number)).create(project);
         // 等待编辑器初始化后，挂载面板功能
         ApplicationManager.getApplication().invokeLater(() -> {
             // JSON编辑框绑定拖放监听

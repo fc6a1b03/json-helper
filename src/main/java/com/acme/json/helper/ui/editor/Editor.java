@@ -28,7 +28,7 @@ import java.util.Objects;
  * @author 拒绝者
  * @date 2025-01-26
  */
-public sealed interface Editor permits JsonEditor, JavaEditor {
+public sealed interface Editor permits CustomizeEditorFactory {
     /**
      * 创建编辑器<br/>
      * 单页签编辑器使用
@@ -36,17 +36,6 @@ public sealed interface Editor permits JsonEditor, JavaEditor {
      * @return {@link EditorTextField }
      */
     default EditorTextField create(final Project project) {
-        return new EditorTextField();
-    }
-
-    /**
-     * 创建编辑器<br/>
-     * 多页签编辑器使用
-     * @param project 项目
-     * @param number  数
-     * @return {@link EditorTextField }
-     */
-    default EditorTextField create(final Project project, final int number) {
         return new EditorTextField();
     }
 

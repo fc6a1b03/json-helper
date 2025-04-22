@@ -1,11 +1,15 @@
 package com.acme.json.helper.ui.panel;
 
 import cn.hutool.core.util.StrUtil;
+import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.json.*;
 import com.acme.json.helper.core.parser.PathParser;
-import com.acme.json.helper.ui.dialog.ConvertJavaDialog;
+import com.acme.json.helper.ui.dialog.ConvertAnyDialog;
 import com.acme.json.helper.ui.notice.Notifier;
 import com.alibaba.fastjson2.JSON;
+import com.intellij.diff.DiffContentFactory;
+import com.intellij.diff.DiffManager;
+import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -201,9 +205,11 @@ public class MainPanel {
                 AllIcons.Actions.SearchNewLine, new JsonUnEscaper(), redoButton, undoButton, editor);
         // 分隔符
         group.addSeparator();
-        // 转为Java类
-        addJsonToJavaAction(group, editor);
-        // 打开本地JSON文件
+        // 差异对比菜单
+        addDiffAction(group, editor);
+        // 转为任何
+        addJsonToAnyAction(group, editor);
+        // 添加打开文件菜单
         addOpenFileAction(group, editor);
         // 分隔符
         group.addSeparator();
@@ -236,13 +242,13 @@ public class MainPanel {
     }
 
     /**
-     * 添加JSONToJAVA操作
+     * 添加JSONToAny操作
      * @param group Action组
      */
-    private void addJsonToJavaAction(final DefaultActionGroup group, final EditorTextField editor) {
+    private void addJsonToAnyAction(final DefaultActionGroup group, final EditorTextField editor) {
         group.add(new AnAction(
-                BUNDLE.getString("json.to.java"),
-                BUNDLE.getString("json.to.java.desc"),
+                BUNDLE.getString("json.to.any"),
+                BUNDLE.getString("json.to.any.desc"),
                 AllIcons.Debugger.Db_muted_dep_line_breakpoint
         ) {
             @Override
@@ -255,7 +261,7 @@ public class MainPanel {
                     return;
                 }
                 // 激活弹窗
-                ApplicationManager.getApplication().invokeLater(() -> new ConvertJavaDialog(editor.getProject(), document.getText()).show());
+                ApplicationManager.getApplication().invokeLater(() -> new ConvertAnyDialog(editor.getProject(), document.getText()).show());
             }
         });
     }
@@ -410,6 +416,25 @@ public class MainPanel {
     }
 
     /**
+     * 添加差异操作
+     *
+     * @param group 组
+     * @param editor 编辑
+     */
+    private void addDiffAction(final DefaultActionGroup group, final EditorTextField editor) {
+        group.add(new AnAction(
+                BUNDLE.getString("menu.diff.viewer"),
+                BUNDLE.getString("menu.diff.viewer.desc"),
+                AllIcons.Actions.Diff
+        ) {
+            @Override
+            public void actionPerformed(@NotNull final AnActionEvent e) {
+                showDiffViewer(editor);
+            }
+        });
+    }
+
+    /**
      * 处理文件打开操作
      *
      * @param editor 编辑器
@@ -448,5 +473,22 @@ public class MainPanel {
                         );
                     }
                 });
+    }
+
+    /**
+     * 显示差异查看器
+     *
+     * @param editor 编辑
+     */
+    private void showDiffViewer(final EditorTextField editor) {
+        if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
+        final DiffContentFactory factory = DiffContentFactory.getInstance();
+        WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> DiffManager.getInstance().showDiff(editor.getProject(),
+                new SimpleDiffRequest(
+                        BUNDLE.getString("menu.diff.viewer"),
+                        factory.createEditable(editor.getProject(), editor.getDocument().getText(), null),
+                        factory.createEditable(editor.getProject(), Clipboard.get(), null), "", ""
+                )
+        ));
     }
 }

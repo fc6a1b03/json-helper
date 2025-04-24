@@ -3,7 +3,7 @@ package com.acme.json.helper.ui;
 import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.ui.editor.CustomizeEditorFactory;
 import com.acme.json.helper.ui.editor.Editor;
-import com.acme.json.helper.ui.editor.SupportedLanguages;
+import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
 import com.acme.json.helper.ui.panel.JsonTreePanel;
 import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;

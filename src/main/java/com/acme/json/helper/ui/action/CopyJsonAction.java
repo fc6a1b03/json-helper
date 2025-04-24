@@ -5,7 +5,7 @@ import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.parser.ClassParser;
-import com.acme.json.helper.settings.PluginSettings;
+import com.acme.json.helper.core.settings.PluginSettings;
 import com.acme.json.helper.ui.notice.Notifier;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;

@@ -1,4 +1,4 @@
-package com.acme.json.helper.settings;
+package com.acme.json.helper.core.settings;
 
 import cn.hutool.core.lang.Opt;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-02-02
  */
 @State(
-        name = "com.acme.json.helper.settings.SettingsState",
+        name = "com.acme.json.helper.core.settings.SettingsState",
         storages = @Storage("JsonHelperGlobal.xml")
 )
 public class PluginSettingsState implements PersistentStateComponent<PluginSettingsState> {

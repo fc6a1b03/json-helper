@@ -6,7 +6,7 @@ import com.acme.json.helper.common.enums.AnyFile;
 import com.acme.json.helper.core.parser.JsonParser;
 import com.acme.json.helper.ui.editor.CustomizeEditorFactory;
 import com.acme.json.helper.ui.editor.Editor;
-import com.acme.json.helper.ui.editor.SupportedLanguages;
+import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.EditorTextField;

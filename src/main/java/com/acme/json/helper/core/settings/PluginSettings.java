@@ -1,4 +1,4 @@
-package com.acme.json.helper.settings;
+package com.acme.json.helper.core.settings;
 
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.util.NlsContexts;

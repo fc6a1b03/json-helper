@@ -44,6 +44,7 @@
                 text="Json Helper" icon="AllIcons.Duplicates.SendToTheRight"
                 description="Send JSON to json helper editor toolwindow">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="ConsoleEditorPopupMenu" anchor="first"/>
         </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
@@ -56,11 +57,13 @@
                     factoryClass="com.acme.json.helper.ui.MainToolWindowFactory"/>
         <!-- 注册插件配置 -->
         <applicationConfigurable parentId="tools" displayName="Json Helper"
-                                 id="com.acme.json.helper.settings.PluginSettings"
-                                 instance="com.acme.json.helper.settings.PluginSettings"/>
+                                 id="com.acme.json.helper.core.settings.PluginSettings"
+                                 instance="com.acme.json.helper.core.settings.PluginSettings"/>
         <!-- 设置状态 -->
-        <applicationService serviceImplementation="com.acme.json.helper.settings.PluginSettingsState"/>
+        <applicationService serviceImplementation="com.acme.json.helper.core.settings.PluginSettingsState"/>
         <!-- 注册通知 -->
         <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON"/>
+        <!-- 控制台过滤器 -->
+        <!--<consoleFilterProvider implementation="com.acme.json.helper.core.console.JsonFilterProvider"/>-->
     </extensions>
 </idea-plugin>

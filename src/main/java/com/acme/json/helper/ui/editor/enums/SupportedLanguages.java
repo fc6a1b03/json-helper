@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.editor;
+package com.acme.json.helper.ui.editor.enums;
 
 import com.acme.json.helper.common.enums.AnyFile;
 import com.intellij.ide.highlighter.JavaFileType;

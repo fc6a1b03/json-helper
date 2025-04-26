@@ -2,13 +2,8 @@ package com.acme.json.helper.core.json;
 
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
-import io.github.haibiiin.json.repair.Expecting;
 import io.github.haibiiin.json.repair.JSONRepair;
 import io.github.haibiiin.json.repair.JSONRepairConfig;
-import io.github.haibiiin.json.repair.RepairStrategy;
-import org.antlr.v4.runtime.tree.ParseTree;
-
-import java.util.List;
 
 /**
  * JSON修复器
@@ -23,12 +18,7 @@ public final class JsonRepairer implements JsonOperation {
      * @return {@link JSONRepair }
      */
     private static JSONRepair repair() {
-        return new JSONRepair(new RepairStrategy() {
-            @Override
-            public String repair(final String json, final List<ParseTree> beRepairParseList, final Expecting expecting) {
-                return "";
-            }
-        });
+        return new JSONRepair();
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.panel;
 
+import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.json.*;
@@ -35,7 +36,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.ResourceBundle;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -191,6 +191,9 @@ public class MainPanel {
     private void showEditorPopupMenu(final JButton redoButton, final JButton undoButton,
                                      final EditorTextField editor, final MouseEvent e) {
         final DefaultActionGroup group = new DefaultActionGroup();
+        // 修复菜单
+        addJsonAction(group, "json.repair.json", "json.repair.json.desc",
+                AllIcons.Toolwindows.ToolWindowBuild, new JsonRepairer(), redoButton, undoButton, editor);
         // 格式化菜单
         addJsonAction(group, "json.format.json", "json.format.json.desc",
                 AllIcons.Actions.Refresh, new JsonFormatter(), redoButton, undoButton, editor);
@@ -283,7 +286,9 @@ public class MainPanel {
             @Override
             public void documentChanged(final @NotNull DocumentEvent e) {
                 // 文档内容
-                final String text = e.getDocument().getText().trim();
+                final String text = Opt.ofBlankAble(e.getDocument().getText())
+                        .map(item -> item.stripTrailing().trim())
+                        .orElse("");
                 // 根据文档内容调整清空按钮的状态
                 clearButton.setEnabled(!StrUtil.isEmpty(text));
                 // 自动识别`web路径`或`本地文件路径`转为JSON，写回编辑器
@@ -342,36 +347,25 @@ public class MainPanel {
                          final @NotNull DocumentEvent e,
                          final @NotNull DocumentListener listener) {
         // 异步执行路径转换任务
-        final CompletableFuture<String> convertPathToJson = PathParser.convertPathToJson(text);
-        if (Objects.nonNull(convertPathToJson)) {
-            convertPathToJson
-                    // 异步处理完成后的回调（UI线程执行）
-                    .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
-                        // 验证JSON格式有效性
-                        if (JSON.isValid(processedText)) {
-                            // 临时移除文档监听器，避免文本变更的循环触发
-                            e.getDocument().removeDocumentListener(listener);
-                            try {
-                                // 清空原始记录
-                                originalJson.set("");
-                                // 使用JSON格式化工具美化输出，并更新编辑器内容
-                                editor.setText(new JsonFormatter().process(processedText));
-                            } finally {
-                                // 确保无论成功与否都重新注册监听器
-                                e.getDocument().addDocumentListener(listener);
+        Opt.ofNullable(PathParser.convertPathToJson(text))
+                .ifPresent(item ->
+                        // 异步处理完成后的回调（UI线程执行）
+                        item.thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
+                            if (JSON.isValid(processedText)) {
+                                try {
+                                    // 临时移除文档监听器，避免文本变更的循环触发
+                                    e.getDocument().removeDocumentListener(listener);
+                                    // 清空原始记录
+                                    originalJson.set("");
+                                    // 使用JSON格式化工具美化输出，并更新编辑器内容
+                                    editor.setText(new JsonFormatter().process(processedText));
+                                } finally {
+                                    // 确保无论成功与否都重新注册监听器
+                                    e.getDocument().addDocumentListener(listener);
+                                }
                             }
-                        } else {
-                            Notifier.notifyError(BUNDLE.getString("path.to.json.warn"), editor.getProject());
-                        }
-                    }))
-                    // 异常处理流程
-                    .exceptionally(ex -> {
-                        ApplicationManager.getApplication().invokeLater(() ->
-                                Notifier.notifyError(BUNDLE.getString("path.to.json.warn"), editor.getProject())
-                        );
-                        return null;
-                    });
-        }
+                        }))
+                );
     }
 
     /**
@@ -385,7 +379,7 @@ public class MainPanel {
                          final Editor editor, final JsonOperation operation) {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Document document = editor.getDocument();
-        if (!JSON.isValid(document.getText())) return;
+        if (!operation.isValid(document.getText())) return;
         WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
             // 储存撤销历史
             undoStack.push(document.getText());

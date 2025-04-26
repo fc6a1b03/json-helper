@@ -24,14 +24,15 @@ public class PathParser {
      * @return {@link String }
      */
     public static CompletableFuture<String> convertPathToJson(final String text) {
-        if (StrUtil.isEmpty(text)) return null;
-        // 匹配`Web`路径
-        if (isWebPath(text)) {
-            return fetchWebContent(text);
-        }
-        // 匹配`local`路径
-        if (isLocalPath(text)) {
-            return readLocalFile(text);
+        if (StrUtil.isNotEmpty(text)) {
+            // 匹配`Web`路径
+            if (isWebPath(text)) {
+                return fetchWebContent(text);
+            }
+            // 匹配`local`路径
+            if (isLocalPath(text)) {
+                return readLocalFile(text);
+            }
         }
         return null;
     }

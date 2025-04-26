@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.7.11.4'
+version '0.7.12'
 
 repositories {
     mavenCentral()
@@ -24,6 +24,7 @@ java {
 ext {
     hutoolVersion = '5.8.37'
     jacksonVersion = '2.19.0'
+    jsonRepairVersion = '0.3.0'
     fastjson2Version = '2.0.57'
 }
 
@@ -39,6 +40,7 @@ dependencies {
     }
     implementation "cn.hutool:hutool-core:${hutoolVersion}"
     implementation "cn.hutool:hutool-http:${hutoolVersion}"
+    implementation "io.github.haibiiin:json-repair:${jsonRepairVersion}"
     implementation "com.alibaba.fastjson2:fastjson2:${fastjson2Version}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jacksonVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-toml:${jacksonVersion}"

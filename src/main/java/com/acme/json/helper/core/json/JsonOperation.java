@@ -1,18 +1,21 @@
 package com.acme.json.helper.core.json;
 
+import cn.hutool.core.convert.Convert;
+import com.alibaba.fastjson2.JSON;
+
 /**
  * JSON操作
  * @author 拒绝者
  * @date 2025-01-18
  */
-public sealed interface JsonOperation permits JsonCompressor, JsonEscaper, JsonFormatter, JsonSearchEngine, JsonUnEscaper {
+public sealed interface JsonOperation permits JsonCompressor, JsonEscaper, JsonFormatter, JsonSearchEngine, JsonUnEscaper, JsonRepairer {
     /**
      * JSON操作
      * @param input 输入
      * @return {@link String }
      */
     default String process(final Object input) {
-        return String.valueOf(input);
+        return Convert.toStr(input);
     }
 
     /**
@@ -32,5 +35,19 @@ public sealed interface JsonOperation permits JsonCompressor, JsonEscaper, JsonF
      */
     default String process(final String input, final String expression) {
         return process(input);
+    }
+
+    /**
+     * 有效
+     *
+     * @param input 输入
+     * @return boolean
+     */
+    default boolean isValid(final Object input) {
+        return isValid(Convert.toStr(input));
+    }
+
+    default boolean isValid(final String input) {
+        return JSON.isValid(input);
     }
 }

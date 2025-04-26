@@ -52,7 +52,6 @@ public class CopyJsonAction extends AnAction {
                 final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
                 if (Objects.isNull(psiFile)) {
                     ActionEventCheck.disabled(e);
-                    Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), e.getProject());
                     return;
                 }
                 // 确认最终状态设置

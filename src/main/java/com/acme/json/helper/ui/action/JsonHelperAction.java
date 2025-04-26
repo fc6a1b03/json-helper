@@ -7,7 +7,6 @@ import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.parser.ClassParser;
 import com.acme.json.helper.core.settings.PluginSettings;
 import com.acme.json.helper.ui.editor.JsonEditorPushProvider;
-import com.acme.json.helper.ui.notice.Notifier;
 import com.alibaba.fastjson2.JSON;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -102,7 +101,6 @@ public class JsonHelperAction extends AnAction {
         // 确认文件PSI正常
         final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
         if (Objects.isNull(psiFile)) {
-            Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), e.getProject());
             return Boolean.FALSE;
         }
         // 检查文件的UAST语言支持 且 存在有效的类上下文
@@ -150,7 +148,6 @@ public class JsonHelperAction extends AnAction {
         // 定位当前光标所在的PSI类
         final PsiClass targetClass = UastSupported.locatePsiClass(editor, psiFile);
         if (Objects.isNull(targetClass)) {
-            Notifier.notifyWarn(BUNDLE.getString("bean.copy.json.warn"), project);
             return;
         }
         // 将内容推送到JSON编辑器

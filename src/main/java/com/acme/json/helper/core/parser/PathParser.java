@@ -19,11 +19,10 @@ import java.util.concurrent.CompletableFuture;
 public class PathParser {
     /**
      * 将Path转换为JSON
-     *
      * @param text 文本
      * @return {@link String }
      */
-    public static CompletableFuture<String> convertPathToJson(final String text) {
+    public static CompletableFuture<String> convert(final String text) {
         if (StrUtil.isNotEmpty(text)) {
             // 匹配`Web`路径
             if (isWebPath(text)) {
@@ -34,7 +33,7 @@ public class PathParser {
                 return readLocalFile(text);
             }
         }
-        return null;
+        return CompletableFuture.supplyAsync(() -> "");
     }
 
     /**
@@ -48,14 +47,13 @@ public class PathParser {
 
     /**
      * 是`local`路径
-     *
      * @param path 路径
      * @return boolean
      */
     private static boolean isLocalPath(final String path) {
         try {
             return Opt.of(path.startsWith("file://")).filter(i -> i).orElseGet(() -> Paths.get(path).isAbsolute());
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
             return Boolean.FALSE;
         }
     }
@@ -68,7 +66,6 @@ public class PathParser {
      * - 仅返回200状态码的成功响应内容
      * - 支持HTTPS协议
      * - 异常时返回null（包含网络错误、超时、解析失败等情况）
-     *
      * @param url 完整的HTTP/HTTPS地址，需要包含协议头（如http://或https://）
      * @return CompletableFuture<String> 异步结果容器，成功时包含网页内容字符串，失败返回null
      */
@@ -80,7 +77,7 @@ public class PathParser {
                         .filter(i -> i)
                         .map(item -> response.body())
                         .orElseGet(null);
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 return null;
             }
         });
@@ -92,10 +89,9 @@ public class PathParser {
      * 特性：
      * - 自动处理文件编码（UTF-8）
      * - 支持两种路径格式：
-     *   1. file://协议路径（如file:///path/to/file）
-     *   2. 直接文件系统路径（如/path/to/file 或 C:\path\to\file）
+     * 1. file://协议路径（如file:///path/to/file）
+     * 2. 直接文件系统路径（如/path/to/file 或 C:\path\to\file）
      * - 异常时返回null（包含文件不存在、权限问题、编码错误等）
-     *
      * @param path 文件路径（支持标准URI格式或直接路径）
      * @return CompletableFuture<String> 异步结果容器，成功时包含文件内容字符串，失败返回null
      */
@@ -107,7 +103,7 @@ public class PathParser {
                         .filter(i -> i)
                         .map(item -> FileUtil.readUtf8String(Paths.get(URI.create(path)).toFile()))
                         .orElseGet(() -> FileUtil.readUtf8String(path));
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 return null;
             }
         });

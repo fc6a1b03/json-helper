@@ -4,6 +4,7 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.json.*;
+import com.acme.json.helper.core.parser.JwtParser;
 import com.acme.json.helper.core.parser.PathParser;
 import com.acme.json.helper.ui.dialog.ConvertAnyDialog;
 import com.acme.json.helper.ui.notice.Notifier;
@@ -36,6 +37,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -44,13 +46,21 @@ import java.util.concurrent.atomic.AtomicReference;
  * @date 2025-01-19
  */
 public class MainPanel {
-    /** 加载语言资源文件 */
+    /**
+     * 加载语言资源文件
+     */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    /** 撤销历史堆栈 */
+    /**
+     * 撤销历史堆栈
+     */
     private final Deque<String> undoStack = new ArrayDeque<>();
-    /** 重做历史堆栈 */
+    /**
+     * 重做历史堆栈
+     */
     private final Deque<String> redoStack = new ArrayDeque<>();
-    /** 原始记录`用于JSON搜索` */
+    /**
+     * 原始记录`用于JSON搜索`
+     */
     private final AtomicReference<String> originalJson = new AtomicReference<>("");
 
     /**
@@ -298,7 +308,7 @@ public class MainPanel {
         // 上下文菜单
         editor.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseReleased(MouseEvent e) {
+            public void mouseReleased(final MouseEvent e) {
                 if (e.isPopupTrigger()) showEditorPopupMenu(redoButton, undoButton, editor, e);
             }
         });
@@ -336,36 +346,30 @@ public class MainPanel {
     /**
      * 自动识别路径类型（Web或本地路径）并将其转换为格式化JSON，回写到编辑器<br/>
      * 处理过程采用异步方式以避免阻塞UI线程，包含完整的异常处理和用户反馈
-     *
-     * @param text    当前编辑器中的原始文本内容
-     * @param editor  目标编辑器组件，用于回写处理结果
-     * @param e       文档变更事件对象，用于操作关联的文档
+     * @param text     当前编辑器中的原始文本内容
+     * @param editor   目标编辑器组件，用于回写处理结果
+     * @param e        文档变更事件对象，用于操作关联的文档
      * @param listener 文档监听器，处理过程中需要临时解除绑定避免循环触发
      */
     private void OptPath(final String text,
                          final EditorTextField editor,
                          final @NotNull DocumentEvent e,
                          final @NotNull DocumentListener listener) {
-        // 异步执行路径转换任务
-        Opt.ofNullable(PathParser.convertPathToJson(text))
-                .ifPresent(item ->
-                        // 异步处理完成后的回调（UI线程执行）
-                        item.thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
-                            if (JSON.isValid(processedText)) {
-                                try {
-                                    // 临时移除文档监听器，避免文本变更的循环触发
-                                    e.getDocument().removeDocumentListener(listener);
-                                    // 清空原始记录
-                                    originalJson.set("");
-                                    // 使用JSON格式化工具美化输出，并更新编辑器内容
-                                    editor.setText(new JsonFormatter().process(processedText));
-                                } finally {
-                                    // 确保无论成功与否都重新注册监听器
-                                    e.getDocument().addDocumentListener(listener);
-                                }
-                            }
-                        }))
-                );
+        // 先进行路径解析，如不成功则再执行JWT解析。都不成功则略过
+        PathParser.convert(text)
+                .thenCompose(pathResult -> JSON.isValid(pathResult) ? CompletableFuture.completedFuture(pathResult) : JwtParser.convert(text))
+                // 统一结果处理
+                .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
+                    if (JSON.isValid(processedText)) {
+                        try {
+                            e.getDocument().removeDocumentListener(listener);
+                            originalJson.set("");
+                            editor.setText(new JsonFormatter().process(processedText));
+                        } finally {
+                            e.getDocument().addDocumentListener(listener);
+                        }
+                    }
+                }));
     }
 
     /**
@@ -392,8 +396,7 @@ public class MainPanel {
 
     /**
      * 添加打开JSON文件操作
-     *
-     * @param group 默认操作组
+     * @param group  默认操作组
      * @param editor 编辑器
      */
     private void addOpenFileAction(final DefaultActionGroup group, final EditorTextField editor) {
@@ -411,8 +414,7 @@ public class MainPanel {
 
     /**
      * 添加差异操作
-     *
-     * @param group 组
+     * @param group  组
      * @param editor 编辑
      */
     private void addDiffAction(final DefaultActionGroup group, final EditorTextField editor) {
@@ -430,7 +432,6 @@ public class MainPanel {
 
     /**
      * 处理文件打开操作
-     *
      * @param editor 编辑器
      */
     private void handleFileOpen(final EditorTextField editor) {
@@ -461,7 +462,7 @@ public class MainPanel {
                                     Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
                             );
                         }
-                    } catch (Exception ignored) {
+                    } catch (final Exception ignored) {
                         ApplicationManager.getApplication().invokeLater(() ->
                                 Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
                         );
@@ -471,7 +472,6 @@ public class MainPanel {
 
     /**
      * 显示差异查看器
-     *
      * @param editor 编辑
      */
     private void showDiffViewer(final EditorTextField editor) {

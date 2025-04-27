@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.7.12'
+version '0.7.13'
 
 repositories {
     mavenCentral()
@@ -22,6 +22,7 @@ java {
 }
 
 ext {
+    auth0Version = '4.5.0'
     hutoolVersion = '5.8.37'
     jacksonVersion = '2.19.0'
     jsonRepairVersion = '0.3.0'
@@ -38,6 +39,7 @@ dependencies {
         bundledPlugin 'com.intellij.modules.json'
         bundledPlugin 'org.jetbrains.plugins.yaml'
     }
+    implementation "com.auth0:java-jwt:${auth0Version}"
     implementation "cn.hutool:hutool-core:${hutoolVersion}"
     implementation "cn.hutool:hutool-http:${hutoolVersion}"
     implementation "io.github.haibiiin:json-repair:${jsonRepairVersion}"

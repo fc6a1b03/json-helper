@@ -269,10 +269,6 @@ public class MainPanel {
                 if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
                 final Document document = editor.getDocument();
                 if (!JSON.isValid(document.getText())) return;
-                /*if (!JSON.isValidObject(document.getText())) {
-                    Notifier.notifyWarn(BUNDLE.getString("json.to.bean.warn"), editor.getProject());
-                    return;
-                }*/
                 // 激活弹窗
                 ApplicationManager.getApplication().invokeLater(() -> new ConvertAnyDialog(editor.getProject(), document.getText()).show());
             }

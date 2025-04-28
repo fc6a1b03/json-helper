@@ -23,7 +23,7 @@ import java.util.Optional;
 /**
  * JSON编辑器推送
  *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonEditorPushProvider {

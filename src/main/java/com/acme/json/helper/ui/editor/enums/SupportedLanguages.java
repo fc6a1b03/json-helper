@@ -14,7 +14,7 @@ import java.util.Arrays;
 
 /**
  * 支持语言
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-22
  */
 public enum SupportedLanguages {
@@ -23,6 +23,7 @@ public enum SupportedLanguages {
     TOML(TomlFileType.INSTANCE, AnyFile.TOML),
     JSON(JsonFileType.INSTANCE, AnyFile.JSON),
     CLASS(JavaFileType.INSTANCE, AnyFile.CLASS),
+    CSV(PlainTextFileType.INSTANCE, AnyFile.CSV),
     RECORD(JavaFileType.INSTANCE, AnyFile.RECORD),
     Text(PlainTextFileType.INSTANCE, AnyFile.Text),
     URL_PARAMS(PlainTextFileType.INSTANCE, AnyFile.URL_PARAMS),
@@ -37,7 +38,6 @@ public enum SupportedLanguages {
 
     /**
      * 通过任何文件获取
-     *
      * @param any 任何
      * @return {@link SupportedLanguages }
      */
@@ -49,7 +49,6 @@ public enum SupportedLanguages {
 
     /**
      * 获取文件类型
-     *
      * @return {@link T }
      */
     @SuppressWarnings("unchecked")
@@ -59,7 +58,6 @@ public enum SupportedLanguages {
 
     /**
      * 获得拓展
-     *
      * @return {@link AnyFile }
      */
     public AnyFile getExtension() {

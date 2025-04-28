@@ -7,8 +7,7 @@ import com.fasterxml.jackson.dataformat.javaprop.JavaPropsMapper;
 
 /**
  * Properties转换器
- *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-21
  */
 public class PropertiesConverter implements DataFormatConverter {
@@ -20,8 +19,8 @@ public class PropertiesConverter implements DataFormatConverter {
     @Override
     public String convert(final String json) throws ConvertException {
         try {
-            return properties.writeValueAsString(JSON.parseObject(json));
-        } catch (Exception e) {
+            return properties.writeValueAsString(JSON.parse(json));
+        } catch (final Exception e) {
             return "";
         }
     }

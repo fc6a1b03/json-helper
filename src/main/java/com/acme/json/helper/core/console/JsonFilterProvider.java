@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * JSON日志监听器
  *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonFilterProvider implements ConsoleFilterProvider {

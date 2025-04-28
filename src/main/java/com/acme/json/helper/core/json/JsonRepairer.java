@@ -8,7 +8,7 @@ import io.github.haibiiin.json.repair.JSONRepairConfig;
 /**
  * JSON修复器
  *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-26
  */
 public final class JsonRepairer implements JsonOperation {
@@ -45,10 +45,10 @@ public final class JsonRepairer implements JsonOperation {
         try {
             try {
                 return repair().handle(json);
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 return extractRepair().handle(json);
             }
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
             return json;
         }
     }

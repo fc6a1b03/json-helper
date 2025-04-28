@@ -7,9 +7,9 @@ import java.util.List;
 
 /**
  * JSON转任何文件
- * @see AnyFile
  * @author 拒绝者
  * @date 2025-01-26
+ * @see AnyFile
  */
 public class JsonParser {
     /**
@@ -22,12 +22,13 @@ public class JsonParser {
             new PropertiesConverter(),
             new UrlParamsConverter(),
             new ClassConverter(),
-            new RecordConverter()
+            new RecordConverter(),
+            new CsvConverter()
     );
 
     /**
      * 转换器
-     * @param json 数据
+     * @param json         数据
      * @param targetFormat 目标格式
      * @return {@link String }
      */

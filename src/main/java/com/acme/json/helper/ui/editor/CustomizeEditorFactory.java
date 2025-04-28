@@ -8,7 +8,7 @@ import com.intellij.ui.EditorTextField;
 
 /**
  * 编辑器工厂
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-22
  */
 public final class CustomizeEditorFactory implements Editor {

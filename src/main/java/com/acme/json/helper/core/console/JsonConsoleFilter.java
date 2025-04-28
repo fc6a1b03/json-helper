@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 /**
  * JSON控制台过滤器
  *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonConsoleFilter implements Filter {
@@ -66,7 +66,7 @@ public class JsonConsoleFilter implements Filter {
     /**
      * JSON超链接信息
      *
-     * @author xuhaifeng
+     * @author 拒绝者
      * @date 2025-04-23
      */
     private record JsonHyperlinkInfo(String json) implements HyperlinkInfo {

@@ -3,14 +3,13 @@ package com.acme.json.helper.core.parser.converter;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.ConvertException;
 import com.acme.json.helper.common.enums.AnyFile;
-import com.alibaba.fastjson2.JSON;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
  * 类转换器
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-21
  */
 public class ClassConverter extends JavaStructure {
@@ -25,7 +24,6 @@ public class ClassConverter extends JavaStructure {
      *   <li>根据字段类型收集需要导入的包（如 {@code java.util.List}）</li>
      *   <li>生成最终代码时自动合并导入语句到文件顶部</li>
      * </ul>
-     *
      * @param root 根类结构定义（包含类名、字段列表和嵌套类）
      * @return 格式化后的完整类代码（含包导入和类体）
      */
@@ -56,17 +54,15 @@ public class ClassConverter extends JavaStructure {
      *   <li>私有字段定义（根据 {@code ClassStructure.fields} 生成）</li>
      *   <li>嵌套类代码（递归调用自身处理）</li>
      * </ol>
-     *
      * @param clazz   当前层级的类结构定义
      * @param code    代码构建器（直接操作此对象以拼接代码）
      * @param imports 导包集合（用于收集字段类型的依赖包）
      * @param depth   递归深度（控制缩进层级：0=根类，1=一级嵌套类，依此类推）
-     *
      * @implNote 缩进规则：
-     * <ul>
-     *   <li>根类无额外缩进（例如：{@code public class Outer { ... }}）</li>
-     *   <li>嵌套类每层增加 4 空格缩进（例如：{@code public static class Inner { ... }}）</li>
-     * </ul>
+     *         <ul>
+     *           <li>根类无额外缩进（例如：{@code public class Outer { ... }}）</li>
+     *           <li>嵌套类每层增加 4 空格缩进（例如：{@code public static class Inner { ... }}）</li>
+     *         </ul>
      */
     private static void buildClassCode(
             final ClassStructure clazz,
@@ -103,7 +99,7 @@ public class ClassConverter extends JavaStructure {
 
     @Override
     public String convert(final String json) throws ConvertException {
-        return generateClassCode(processObject(JSON.parseObject(json), DEFAULT_CLASS_NAME, Boolean.FALSE));
+        return generateClassCode(processObject(json, DEFAULT_CLASS_NAME, Boolean.FALSE));
     }
 
     @Override

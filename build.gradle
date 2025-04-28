@@ -7,12 +7,13 @@ plugins {
 }
 
 group 'com.acme'
-version '0.7.13'
+version '0.7.14'
 
 repositories {
     mavenCentral()
     intellijPlatform {
         defaultRepositories()
+        marketplace()
     }
 }
 
@@ -44,6 +45,7 @@ dependencies {
     implementation "cn.hutool:hutool-http:${hutoolVersion}"
     implementation "io.github.haibiiin:json-repair:${jsonRepairVersion}"
     implementation "com.alibaba.fastjson2:fastjson2:${fastjson2Version}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${jacksonVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jacksonVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-toml:${jacksonVersion}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonVersion}"

@@ -2,8 +2,7 @@ package com.acme.json.helper.common.enums;
 
 /**
  * 任何文件枚举
- *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-21
  */
 public enum AnyFile {
@@ -40,6 +39,10 @@ public enum AnyFile {
      */
     URL_PARAMS,
     /**
+     * 逗号分隔值
+     */
+    CSV,
+    /**
      * 单文本
      */
     Text;
@@ -51,7 +54,7 @@ public enum AnyFile {
     public String extension() {
         return switch (this) {
             case CLASS, RECORD -> "java";
-            case JSON, XML, YAML, TOML, PROPERTIES -> this.name().toLowerCase();
+            case JSON, XML, YAML, TOML, CSV, PROPERTIES -> this.name().toLowerCase();
             default -> "txt";
         };
     }

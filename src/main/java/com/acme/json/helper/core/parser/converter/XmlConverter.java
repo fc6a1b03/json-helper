@@ -8,8 +8,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 /**
  * XML转换器
- *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-21
  */
 public class XmlConverter implements DataFormatConverter {
@@ -21,8 +20,8 @@ public class XmlConverter implements DataFormatConverter {
     @Override
     public String convert(final String json) throws ConvertException {
         try {
-            return xml.writerWithDefaultPrettyPrinter().withRootName("dummy").writeValueAsString(JSON.parseObject(json));
-        } catch (JsonProcessingException e) {
+            return xml.writerWithDefaultPrettyPrinter().withRootName("dummy").writeValueAsString(JSON.parse(json));
+        } catch (final JsonProcessingException e) {
             return "";
         }
     }

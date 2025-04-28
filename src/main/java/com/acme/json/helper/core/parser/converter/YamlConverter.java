@@ -8,7 +8,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 /**
  * YAML转换器
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-21
  */
 public class YamlConverter implements DataFormatConverter {
@@ -20,8 +20,8 @@ public class YamlConverter implements DataFormatConverter {
     @Override
     public String convert(final String json) throws ConvertException {
         try {
-            return yaml.writeValueAsString(JSON.parseObject(json));
-        } catch (JsonProcessingException e) {
+            return yaml.writeValueAsString(JSON.parse(json));
+        } catch (final JsonProcessingException e) {
             return "";
         }
     }

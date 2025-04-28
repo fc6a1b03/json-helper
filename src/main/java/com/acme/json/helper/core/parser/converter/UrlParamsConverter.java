@@ -8,20 +8,34 @@ import com.alibaba.fastjson2.JSON;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 /**
  * URL参数转换器
- *
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-04-21
  */
 public class UrlParamsConverter implements DataFormatConverter {
     @Override
     public String convert(final String json) throws ConvertException {
+        final Object parsed = JSON.parse(json);
         final StringBuilder urlParams = new StringBuilder();
-        JSON.parseObject(json).forEach((key, val) ->
-                urlParams.append(URLEncoder.encode(key, StandardCharsets.UTF_8)).append("=").append(URLEncoder.encode(Convert.toStr(val), StandardCharsets.UTF_8)).append("&")
-        );
+        if (parsed instanceof final Map<?, ?> map) {
+            // 处理对象类型JSON
+            map.forEach((key, val) ->
+                    urlParams.append(URLEncoder.encode(key.toString(), StandardCharsets.UTF_8))
+                            .append("=")
+                            .append(URLEncoder.encode(Convert.toStr(val), StandardCharsets.UTF_8))
+                            .append("&")
+            );
+        } else if (parsed instanceof final List<?> list) {
+            // 处理数组类型JSON
+            list.forEach(item ->
+                    urlParams.append(URLEncoder.encode(Convert.toStr(item), StandardCharsets.UTF_8))
+                            .append("&")
+            );
+        }
         return Opt.ofBlankAble(urlParams)
                 .map(item -> item.substring(0, item.length() - 1))
                 .orElse("");

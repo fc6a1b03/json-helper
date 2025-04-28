@@ -17,13 +17,14 @@ public class JsonParser {
      */
     private static final List<DataFormatConverter> CONVERTERS = List.of(
             new XmlConverter(),
+            new CsvConverter(),
             new YamlConverter(),
             new TomlConverter(),
-            new PropertiesConverter(),
-            new UrlParamsConverter(),
+            new XlsxConverter(),
             new ClassConverter(),
             new RecordConverter(),
-            new CsvConverter()
+            new UrlParamsConverter(),
+            new PropertiesConverter()
     );
 
     /**

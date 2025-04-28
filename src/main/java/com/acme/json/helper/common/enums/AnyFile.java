@@ -43,6 +43,10 @@ public enum AnyFile {
      */
     CSV,
     /**
+     * 工作簿
+     */
+    XLSX,
+    /**
      * 单文本
      */
     Text;
@@ -54,8 +58,32 @@ public enum AnyFile {
     public String extension() {
         return switch (this) {
             case CLASS, RECORD -> "java";
-            case JSON, XML, YAML, TOML, CSV, PROPERTIES -> this.name().toLowerCase();
+            case JSON, XML, YAML, TOML, CSV, XLSX, PROPERTIES -> this.name().toLowerCase();
             default -> "txt";
         };
+    }
+
+    /**
+     * 是编辑
+     * @return boolean
+     */
+    public boolean isEditor() {
+        return this != AnyFile.Text && this != AnyFile.JSON && this != AnyFile.XLSX;
+    }
+
+    /**
+     * 是表格
+     * @return boolean
+     */
+    public boolean isTable() {
+        return this == AnyFile.XLSX;
+    }
+
+    /**
+     * 是单选框
+     * @return boolean
+     */
+    public boolean isRadio() {
+        return this != AnyFile.Text && this != AnyFile.JSON;
     }
 }

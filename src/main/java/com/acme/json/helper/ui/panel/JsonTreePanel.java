@@ -121,12 +121,13 @@ public class JsonTreePanel extends JPanel {
         searchField = new JTextField();
         // 搜索框只读
         searchField.setEditable(Boolean.FALSE);
+        searchField.setFocusable(Boolean.FALSE);
         // 搜索框样式
         searchField.setForeground(JBColor.GRAY);
         searchField.setBackground(UIUtil.getPanelBackground());
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 // 底部边框
-                BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
+                BorderFactory.createMatteBorder(0, 0, 0, 0, JBColor.border()),
                 // 内边距
                 BorderFactory.createEmptyBorder(2, 8, 2, 8)
         ));
@@ -180,7 +181,7 @@ public class JsonTreePanel extends JPanel {
                         UIUtil.getTreeBackground()
                 );
                 // 处理不同节点类型
-                if (Objects.requireNonNull(node.getUserObject()) instanceof JsonNodeParser.JsonNode data) {
+                if (Objects.requireNonNull(node.getUserObject()) instanceof final JsonNodeParser.JsonNode data) {
                     renderJsonNode(data);
                 } else {
                     renderer.append(node.toString());
@@ -256,7 +257,7 @@ public class JsonTreePanel extends JPanel {
         // 添加鼠标监听器
         tree.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mouseClicked(final MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     // 选中右键点击的节点
                     final TreePath path = tree.getPathForLocation(e.getX(), e.getY());
@@ -285,14 +286,14 @@ public class JsonTreePanel extends JPanel {
                     .filter(StrUtil::isNotEmpty)
                     .map(item -> switch (type) {
                         // 对象
-                        case Integer i when ObjectUtil.equal(i, 1) -> item;
+                        case final Integer i when ObjectUtil.equal(i, 1) -> item;
                         // 键
-                        case Integer i when ObjectUtil.equal(i, 2) -> Opt.of(JSON.isValidObject(item))
+                        case final Integer i when ObjectUtil.equal(i, 2) -> Opt.of(JSON.isValidObject(item))
                                 .filter(b -> b)
                                 .map(b -> JSON.parseObject(item).keySet().stream().filter(StrUtil::isNotEmpty).findFirst().orElse(null))
                                 .orElse(null);
                         // 值
-                        case Integer i when ObjectUtil.equal(i, 3) -> Opt.of(JSON.isValidObject(item))
+                        case final Integer i when ObjectUtil.equal(i, 3) -> Opt.of(JSON.isValidObject(item))
                                 .filter(b -> b)
                                 .map(b -> JSON.parseObject(item).values().stream().filter(Objects::nonNull).findFirst().orElse(null))
                                 .orElse(null);
@@ -447,7 +448,7 @@ public class JsonTreePanel extends JPanel {
     private void collectMatches(final DefaultMutableTreeNode node, final TreePath path) {
         // 判断节点是否匹配搜索条件
         if (switch (node.getUserObject()) {
-            case JsonNodeParser.JsonNode jsonNode -> ("%s:%s".formatted(jsonNode.key(), jsonNode.value()))
+            case final JsonNodeParser.JsonNode jsonNode -> ("%s:%s".formatted(jsonNode.key(), jsonNode.value()))
                     .toLowerCase()
                     .contains(searchText);
             default -> node.toString().toLowerCase().contains(searchText);

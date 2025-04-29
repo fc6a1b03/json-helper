@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.dialog;
 
+import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
@@ -9,11 +10,17 @@ import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -24,6 +31,10 @@ import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ItemEvent;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -81,7 +92,7 @@ public class ConvertAnyDialog extends DialogWrapper {
      * 根据内容调整列
      * @param table 表格
      */
-    private static void fitColumnsToContent(final JBTable table) {
+    private void fitColumnsToContent(final JBTable table) {
         final JTableHeader header = table.getTableHeader();
         final int spacing = table.getIntercellSpacing().width;
         Collections.list(table.getColumnModel().getColumns()).forEach(column -> {
@@ -144,7 +155,12 @@ public class ConvertAnyDialog extends DialogWrapper {
         final JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         final ButtonGroup group = new ButtonGroup();
         // 添加卡片到面板
-        tableMap.forEach((fileType, table) -> cardPanel.add(new JBScrollPane(table), fileType.name()));
+        tableMap.forEach((fileType, table) -> {
+            final JPanel panel = new JPanel(new BorderLayout());
+            panel.add(createButton(table), BorderLayout.NORTH);
+            panel.add(new JBScrollPane(table), BorderLayout.CENTER);
+            cardPanel.add(panel, fileType.name());
+        });
         editorMap.forEach((fileType, editor) -> cardPanel.add(new JBScrollPane(editor), fileType.name()));
         // 添加按钮到面板
         Arrays.stream(AnyFile.values())
@@ -155,6 +171,20 @@ public class ConvertAnyDialog extends DialogWrapper {
         mainPanel.add(typePanel, BorderLayout.NORTH);
         mainPanel.add(cardPanel, BorderLayout.CENTER);
         return mainPanel;
+    }
+
+    /**
+     * 创建标准化按钮
+     * @param table 表格
+     * @return 配置好的JButton实例
+     */
+    private JButton createButton(final JBTable table) {
+        final JButton button = new JButton();
+        button.setEnabled(Boolean.TRUE);
+        button.setIcon(AllIcons.General.Export);
+        button.addActionListener(e -> exportXlsx(table));
+        button.setPreferredSize(new Dimension(35, 35));
+        return button;
     }
 
     /**
@@ -222,5 +252,55 @@ public class ConvertAnyDialog extends DialogWrapper {
             }
         });
         return table;
+    }
+
+    /**
+     * 导出xlsx
+     *
+     * @param table 表格
+     */
+    private void exportXlsx(final JTable table) {
+        // 目录选择器
+        final VirtualFile selectedDirectory = FileChooser.chooseFile(
+                new FileChooserDescriptor(Boolean.FALSE, Boolean.TRUE, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE),
+                project, null
+        );
+        if (Objects.nonNull(selectedDirectory)) {
+            // 设置文件路径
+            final String filePath = Paths.get(selectedDirectory.getPath(), "export_%s.xlsx".formatted(DatePattern.PURE_DATETIME_FORMATTER.format(LocalDateTime.now()))).toString();
+            try (final Workbook workbook = new XSSFWorkbook()) {
+                final Sheet sheet = workbook.createSheet("Data");
+                // 单元格样式
+                final CellStyle cellStyle = workbook.createCellStyle();
+                cellStyle.setAlignment(HorizontalAlignment.CENTER);
+                // 写入表头
+                final Row headerRow = sheet.createRow(0);
+                IntStream.range(0, table.getColumnCount()).forEach(colIdx -> {
+                    final Cell cell = headerRow.createCell(colIdx);
+                    cell.setCellStyle(cellStyle);
+                    cell.setCellValue(table.getColumnName(colIdx));
+                });
+                // 写入数据行
+                IntStream.range(0, table.getRowCount()).forEach(rowIdx -> {
+                    final Row row = sheet.createRow(rowIdx + 1);
+                    IntStream.range(0, table.getColumnCount()).forEach(colIdx -> {
+                        final Cell cell = row.createCell(colIdx);
+                        final Object value = table.getValueAt(rowIdx, colIdx);
+                        if (value instanceof Number) {
+                            cell.setCellValue(((Number) value).doubleValue());
+                        } else {
+                            cell.setCellValue(value.toString());
+                        }
+                    });
+                });
+                // 自动调整列宽
+                IntStream.range(0, table.getColumnCount()).forEach(sheet::autoSizeColumn);
+                // 写出文件
+                try (final FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                    workbook.write(fileOut);
+                }
+            } catch (final IOException ignored) {
+            }
+        }
     }
 }

@@ -25,6 +25,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.keymap.KeymapManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
+import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -75,6 +76,12 @@ public class MainPanel {
         final JTextField searchBox = new JTextField();
         searchBox.setPreferredSize(new Dimension(220, 20));
         searchBox.setToolTipText(BUNDLE.getString("json.tool.tip.text"));
+        searchBox.setBorder(BorderFactory.createCompoundBorder(
+                // 底部边框
+                BorderFactory.createMatteBorder(0, 0, 0, 0, JBColor.border()),
+                // 内边距
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)
+        ));
         // 按钮组`撤消按钮`、`重做按钮`、`清除按钮`
         final JButton undoButton = createButton(AllIcons.Actions.Undo);
         final JButton redoButton = createButton(AllIcons.Actions.Redo);
@@ -201,9 +208,6 @@ public class MainPanel {
     private void showEditorPopupMenu(final JButton redoButton, final JButton undoButton,
                                      final EditorTextField editor, final MouseEvent e) {
         final DefaultActionGroup group = new DefaultActionGroup();
-        // 修复菜单
-        addJsonAction(group, "json.repair.json", "json.repair.json.desc",
-                AllIcons.Toolwindows.ToolWindowBuild, new JsonRepairer(), redoButton, undoButton, editor);
         // 格式化菜单
         addJsonAction(group, "json.format.json", "json.format.json.desc",
                 AllIcons.Actions.Refresh, new JsonFormatter(), redoButton, undoButton, editor);
@@ -216,6 +220,9 @@ public class MainPanel {
         // 去转义菜单
         addJsonAction(group, "json.un.escaping.json", "json.un.escaping.json.desc",
                 AllIcons.Actions.SearchNewLine, new JsonUnEscaper(), redoButton, undoButton, editor);
+        // 修复菜单
+        addJsonAction(group, "json.repair.json", "json.repair.json.desc",
+                AllIcons.Toolwindows.ToolWindowBuild, new JsonRepairer(), redoButton, undoButton, editor);
         // 分隔符
         group.addSeparator();
         // 差异对比菜单

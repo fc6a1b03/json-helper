@@ -25,7 +25,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.keymap.KeymapManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
-import com.intellij.ui.JBColor;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -71,23 +71,20 @@ public class MainPanel {
      */
     public JPanel create(final EditorTextField editor) {
         // 创建主面板
-        final JPanel searchPanel = new JPanel(new BorderLayout());
+        final JPanel searchPanel = new JPanel(new BorderLayout(0, 0));
+        searchPanel.setBorder(BorderFactory.createEmptyBorder());
         // 搜索框
         final JTextField searchBox = new JTextField();
-        searchBox.setPreferredSize(new Dimension(220, 20));
+        searchBox.setMargin(JBUI.emptyInsets());
+        searchBox.setPreferredSize(new Dimension(220, 35));
         searchBox.setToolTipText(BUNDLE.getString("json.tool.tip.text"));
-        searchBox.setBorder(BorderFactory.createCompoundBorder(
-                // 底部边框
-                BorderFactory.createMatteBorder(0, 0, 0, 0, JBColor.border()),
-                // 内边距
-                BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
         // 按钮组`撤消按钮`、`重做按钮`、`清除按钮`
         final JButton undoButton = createButton(AllIcons.Actions.Undo);
         final JButton redoButton = createButton(AllIcons.Actions.Redo);
         final JButton clearButton = createButton(AllIcons.Actions.ClearCash);
         // 添加按钮面板
-        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder());
         buttonPanel.add(undoButton);
         buttonPanel.add(redoButton);
         buttonPanel.add(clearButton);
@@ -109,6 +106,7 @@ public class MainPanel {
         final JButton button = new JButton();
         button.setIcon(icon);
         button.setEnabled(Boolean.FALSE);
+        button.setMargin(JBUI.emptyInsets());
         button.setPreferredSize(new Dimension(35, 35));
         return button;
     }

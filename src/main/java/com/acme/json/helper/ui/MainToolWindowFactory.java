@@ -22,6 +22,8 @@ import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
@@ -118,7 +120,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     private JPanel createWindowContent(@NotNull final Project project, final int number) {
         // 窗口工具
-        final JPanel toolWindowContent = new JPanel(new BorderLayout());
+        final JPanel toolWindow = new JPanel(new BorderLayout(0, 0));
         // 创建JSON编辑器
         final EditorTextField editor = new CustomizeEditorFactory(SupportedLanguages.JSON, "Dummy_%d.json".formatted(number)).create(project);
         // 等待编辑器初始化后，挂载面板功能
@@ -126,12 +128,13 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
             // JSON编辑框绑定拖放监听
             Editor.bindDragAndDropListening(editor);
             // 组合布局
-            toolWindowContent.add(createSynthesisPanel(editor), BorderLayout.CENTER);
+            toolWindow.setBorder(BorderFactory.createEmptyBorder());
+            toolWindow.add(createSynthesisPanel(editor), BorderLayout.CENTER);
             // 重新绘制窗口
-            toolWindowContent.revalidate();
-            toolWindowContent.repaint();
+            toolWindow.revalidate();
+            toolWindow.repaint();
         });
-        return toolWindowContent;
+        return toolWindow;
     }
 
     /**
@@ -142,20 +145,44 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     private JPanel createSynthesisPanel(final EditorTextField editor) {
         // 创建合成面板
-        final JPanel panel = new JPanel(new BorderLayout());
-        // MainPanel 固定高度（放在 NORTH）
+        final JPanel panel = new JPanel(new BorderLayout(0, 0));
+        // 主面板
+        panel.setBorder(BorderFactory.createEmptyBorder());
         panel.add(new MainPanel().create(editor), BorderLayout.NORTH);
         // 创建滑动分区区块
         final JSplitPane editorTreeSplit = new JSplitPane(
                 JSplitPane.VERTICAL_SPLIT,
                 editor,
+                // 树面板
                 new JsonTreePanel().create(editor)
         );
+        // 自定义分隔条样式
+        editorTreeSplit.setUI(new BasicSplitPaneUI() {
+            @Override
+            public BasicSplitPaneDivider createDefaultDivider() {
+                return new BasicSplitPaneDivider(this) {
+                    @Override
+                    public void paint(final Graphics g) {
+                        final int height = getHeight();
+                        if (g instanceof final Graphics2D g2d) {
+                            g2d.fillRect(0, 0, getWidth(), height);
+                            g2d.setPaint(new GradientPaint(0, 0, UIManager.getColor("controlShadow"), 0, height, UIManager.getColor("controlLtHighlight")));
+                        }
+                    }
+
+                    @Override
+                    public Dimension getPreferredSize() {
+                        return new Dimension(8, 5);
+                    }
+                };
+            }
+        });
         // 初始比例
         editorTreeSplit.setDividerSize(8);
         editorTreeSplit.setResizeWeight(1);
         // 拖动时实时更新
         editorTreeSplit.setContinuousLayout(Boolean.TRUE);
+        editorTreeSplit.setBorder(BorderFactory.createEmptyBorder());
         // 初始化分割窗格布局
         initSplitPaneLayout(editorTreeSplit);
         panel.add(editorTreeSplit, BorderLayout.CENTER);

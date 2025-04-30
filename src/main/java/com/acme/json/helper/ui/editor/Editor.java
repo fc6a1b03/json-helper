@@ -10,7 +10,6 @@ import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.ex.EditorSettingsExternalizable;
-import com.intellij.openapi.editor.ex.FoldingModelEx;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.project.Project;
@@ -20,6 +19,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.awt.dnd.DropTarget;
 import java.util.Objects;
 
@@ -100,10 +100,10 @@ public sealed interface Editor permits CustomizeEditorFactory {
         editor.setCaretVisible(Boolean.TRUE);
         editor.setVerticalScrollbarVisible(Boolean.TRUE);
         editor.setHorizontalScrollbarVisible(Boolean.TRUE);
+        editor.setBorder(BorderFactory.createEmptyBorder());
         editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
         // 折叠功能配置
-        final FoldingModelEx foldingModel = editor.getFoldingModel();
-        foldingModel.setFoldingEnabled(Boolean.TRUE);
+        editor.getFoldingModel().setFoldingEnabled(Boolean.TRUE);
         // 设置菜单和交互
         editor.setContextMenuGroupId(IdeActions.GROUP_EDITOR_POPUP);
         // 编辑器设置统一配置
@@ -122,9 +122,7 @@ public sealed interface Editor permits CustomizeEditorFactory {
         settings.setCaretBlinkPeriod(externalSettings.getBlinkPeriod());
         // 高亮和配色方案
         editor.setColorsScheme(EditorColorsManager.getInstance().getGlobalScheme());
-        editor.setHighlighter(
-                EditorHighlighterFactory.getInstance().createEditorHighlighter(project, languageType)
-        );
+        editor.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(project, languageType));
         return editor;
     }
 }

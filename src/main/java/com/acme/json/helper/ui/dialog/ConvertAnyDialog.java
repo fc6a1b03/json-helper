@@ -71,21 +71,22 @@ public class ConvertAnyDialog extends DialogWrapper {
         // 初始化创建所有编辑器及表格
         Arrays.stream(AnyFile.values())
                 .filter(AnyFile::isEditor)
-                .forEach(fileType -> this.editorMap.put(fileType, createEditorForType(fileType, jsonText)));
+                .forEach(fileType -> this.editorMap.put(fileType, this.createEditorForType(fileType, jsonText)));
         Arrays.stream(AnyFile.values())
                 .filter(AnyFile::isTable)
-                .forEach(fileType -> this.tableMap.put(fileType, createTableForType(fileType, jsonText)));
-        this.cardPanel = new JPanel(new CardLayout());
-        init();
+                .forEach(fileType -> this.tableMap.put(fileType, this.createTableForType(fileType, jsonText)));
+        this.cardPanel = new JPanel(new CardLayout(0, 0));
+        this.cardPanel.setBorder(BorderFactory.createEmptyBorder());
+        this.init();
     }
 
     @Override
     protected void init() {
         super.init();
-        setModal(Boolean.FALSE);
-        setResizable(Boolean.TRUE);
-        setSize(800, 800);
-        setTitle(BUNDLE.getString("dialog.convert.java.title"));
+        this.setModal(Boolean.FALSE);
+        this.setResizable(Boolean.TRUE);
+        this.setSize(800, 800);
+        this.setTitle(BUNDLE.getString("dialog.convert.java.title"));
     }
 
     /**
@@ -145,31 +146,36 @@ public class ConvertAnyDialog extends DialogWrapper {
     @Override
     public void dispose() {
         // 清空编辑器内容
-        editorMap.values().forEach(Container::removeAll);
+        this.editorMap.values().forEach(Container::removeAll);
         super.dispose();
     }
 
     @Override
     protected JComponent createCenterPanel() {
-        final JPanel mainPanel = new JPanel(new BorderLayout());
-        final JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         final ButtonGroup group = new ButtonGroup();
+        final JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
+        final JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         // 添加卡片到面板
-        tableMap.forEach((fileType, table) -> {
-            final JPanel panel = new JPanel(new BorderLayout());
-            panel.add(createButton(table), BorderLayout.NORTH);
+        this.tableMap.forEach((fileType, table) -> {
+            final JPanel panel = new JPanel(new BorderLayout(0, 0));
+            panel.setBorder(BorderFactory.createEmptyBorder());
+            panel.add(this.createButton(table), BorderLayout.NORTH);
             panel.add(new JBScrollPane(table), BorderLayout.CENTER);
-            cardPanel.add(panel, fileType.name());
+            this.cardPanel.add(panel, fileType.name());
         });
-        editorMap.forEach((fileType, editor) -> cardPanel.add(new JBScrollPane(editor), fileType.name()));
+        this.editorMap.forEach((fileType, editor) -> {
+            final JBScrollPane pane = new JBScrollPane(editor);
+            pane.setBorder(BorderFactory.createEmptyBorder());
+            this.cardPanel.add(pane, fileType.name());
+        });
         // 添加按钮到面板
         Arrays.stream(AnyFile.values())
                 .filter(AnyFile::isRadio)
-                .forEach(fileType -> typePanel.add(createRadioButton(fileType, group)));
+                .forEach(fileType -> typePanel.add(this.createRadioButton(fileType, group)));
         // 设置默认显示
-        ((CardLayout) cardPanel.getLayout()).show(cardPanel, AnyFile.CLASS.name());
+        ((CardLayout) this.cardPanel.getLayout()).show(this.cardPanel, AnyFile.CLASS.name());
         mainPanel.add(typePanel, BorderLayout.NORTH);
-        mainPanel.add(cardPanel, BorderLayout.CENTER);
+        mainPanel.add(this.cardPanel, BorderLayout.CENTER);
         return mainPanel;
     }
 
@@ -182,7 +188,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         final JButton button = new JButton();
         button.setEnabled(Boolean.TRUE);
         button.setIcon(AllIcons.General.Export);
-        button.addActionListener(e -> exportXlsx(table));
+        button.addActionListener(e -> this.exportXlsx(table));
         button.setPreferredSize(new Dimension(35, 35));
         return button;
     }
@@ -201,7 +207,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         }
         radio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                ((CardLayout) cardPanel.getLayout()).show(cardPanel, fileType.name());
+                ((CardLayout) this.cardPanel.getLayout()).show(this.cardPanel, fileType.name());
             }
         });
         return radio;
@@ -216,7 +222,7 @@ public class ConvertAnyDialog extends DialogWrapper {
     private EditorTextField createEditorForType(final AnyFile anyFile, final String jsonText) {
         return Opt.ofNullable(
                         new CustomizeEditorFactory(SupportedLanguages.getByAnyFile(anyFile), "Dummy.%s".formatted(anyFile.extension()))
-                                .create(project)
+                                .create(this.project)
                 )
                 .peek(item -> item.setText(JsonParser.convert(jsonText, anyFile)))
                 .peek(Editor::reformat).orElse(null);
@@ -232,6 +238,8 @@ public class ConvertAnyDialog extends DialogWrapper {
         final JBTable table = new JBTable();
         // 关闭自动调整
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        // 取消边框
+        table.setBorder(BorderFactory.createEmptyBorder());
         // 生成表格数据
         Opt.ofBlankAble(JsonParser.convert(jsonText, anyFile))
                 .map(JSON::parseObject)
@@ -242,13 +250,13 @@ public class ConvertAnyDialog extends DialogWrapper {
                             JSON.parseObject(item.getString("headers"), new TypeReference<Object[]>() {
                             })
                     ));
-                    fitColumnsToContent(table);
+                    this.fitColumnsToContent(table);
                 }, () -> table.setModel(new DefaultTableModel()));
         // 注册表格监听器
         table.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(final ComponentEvent e) {
-                fitColumnsToContent(table);
+                ConvertAnyDialog.this.fitColumnsToContent(table);
             }
         });
         return table;
@@ -263,7 +271,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         // 目录选择器
         final VirtualFile selectedDirectory = FileChooser.chooseFile(
                 new FileChooserDescriptor(Boolean.FALSE, Boolean.TRUE, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE),
-                project, null
+                this.project, null
         );
         if (Objects.nonNull(selectedDirectory)) {
             // 设置文件路径

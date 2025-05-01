@@ -25,6 +25,8 @@ import javax.swing.*;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -51,9 +53,9 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     public void createToolWindowContent(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
         ApplicationManager.getApplication().invokeLater(() -> {
             // 创建初始页签
-            createNewTab(project, toolWindow);
+            this.createNewTab(project, toolWindow);
             // 绑定活动分组到窗口
-            toolWindow.setTitleActions(List.of(createActionGroup(project, toolWindow)));
+            toolWindow.setTitleActions(List.of(this.createActionGroup(project, toolWindow)));
         });
     }
 
@@ -66,7 +68,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         // 增加页签号数
         final int number = tabCounter.incrementAndGet();
         // 创建页签内容面板
-        final JPanel contentPanel = createWindowContent(project, number);
+        final JPanel contentPanel = this.createWindowContent(project, number);
         // 创建页签内容
         final Content content = ContentFactory.getInstance().createContent(contentPanel, String.valueOf(number), Boolean.FALSE);
         content.setCloseable(Boolean.TRUE);
@@ -106,7 +108,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                 // 检查项目和窗口是否有效
                 if (project.isDisposed() || toolWindow.isDisposed()) return;
                 // 创建新页签
-                createNewTab(project, toolWindow);
+                MainToolWindowFactory.this.createNewTab(project, toolWindow);
             }
         });
         return actionGroup;
@@ -129,7 +131,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
             Editor.bindDragAndDropListening(editor);
             // 组合布局
             toolWindow.setBorder(BorderFactory.createEmptyBorder());
-            toolWindow.add(createSynthesisPanel(editor), BorderLayout.CENTER);
+            toolWindow.add(this.createSynthesisPanel(editor), BorderLayout.CENTER);
             // 重新绘制窗口
             toolWindow.revalidate();
             toolWindow.repaint();
@@ -163,16 +165,16 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                 return new BasicSplitPaneDivider(this) {
                     @Override
                     public void paint(final Graphics g) {
-                        final int height = getHeight();
+                        final int height = this.getHeight();
                         if (g instanceof final Graphics2D g2d) {
-                            g2d.fillRect(0, 0, getWidth(), height);
+                            g2d.fillRect(0, 0, this.getWidth(), height);
                             g2d.setPaint(new GradientPaint(0, 0, UIManager.getColor("controlShadow"), 0, height, UIManager.getColor("controlLtHighlight")));
                         }
                     }
 
                     @Override
                     public Dimension getPreferredSize() {
-                        return new Dimension(8, 5);
+                        return new Dimension(8, 8);
                     }
                 };
             }
@@ -184,7 +186,12 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         editorTreeSplit.setContinuousLayout(Boolean.TRUE);
         editorTreeSplit.setBorder(BorderFactory.createEmptyBorder());
         // 初始化分割窗格布局
-        initSplitPaneLayout(editorTreeSplit);
+        editorTreeSplit.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(final ComponentEvent e) {
+                MainToolWindowFactory.this.initSplitPaneLayout(editorTreeSplit);
+            }
+        });
         panel.add(editorTreeSplit, BorderLayout.CENTER);
         return panel;
     }

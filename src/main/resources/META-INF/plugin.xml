@@ -46,6 +46,13 @@
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="ConsoleEditorPopupMenu" anchor="first"/>
         </action>
+        <action
+                id="CreateClassFromJsonAction"
+                class="com.acme.json.helper.ui.action.CreateClassFromJsonAction"
+                text="Java Class from JSON" icon="AllIcons.Nodes.Class"
+                description="Create a Java class from JSON">
+            <add-to-group group-id="NewGroup" anchor="first"/>
+        </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <!-- 注册窗口 -->

@@ -167,8 +167,10 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                     public void paint(final Graphics g) {
                         final int height = this.getHeight();
                         if (g instanceof final Graphics2D g2d) {
+                            final Color color = UIManager.getColor("Component.borderColor");
+                            g2d.setColor(color);
                             g2d.fillRect(0, 0, this.getWidth(), height);
-                            g2d.setPaint(new GradientPaint(0, 0, UIManager.getColor("controlShadow"), 0, height, UIManager.getColor("controlLtHighlight")));
+                            g2d.setPaint(new GradientPaint(0, 0, color, 0, height, color));
                         }
                     }
 

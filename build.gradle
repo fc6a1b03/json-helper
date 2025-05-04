@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.7.17.1'
+version '0.7.17.2'
 
 repositories {
     mavenCentral()

@@ -176,18 +176,20 @@ public class JsonTreePanel extends JPanel {
             @Override
             public Component getTreeCellRendererComponent(final JTree tree, final Object value, final boolean selected,
                                                           final boolean expanded, final boolean leaf, final int row, final boolean hasFocus) {
-                this.renderer.clear();
-                final DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
-                // 背景色设置
-                this.renderer.setBackground(selected ?
-                        UIUtil.getTreeSelectionBackground(Boolean.TRUE) :
-                        UIUtil.getTreeBackground()
-                );
-                // 处理不同节点类型
-                if (Objects.requireNonNull(node.getUserObject()) instanceof final JsonNodeParser.JsonNode data) {
-                    this.renderJsonNode(data);
-                } else {
-                    this.renderer.append(node.toString());
+                if (value instanceof final DefaultMutableTreeNode node) {
+                    // 清空渲染器
+                    this.renderer.clear();
+                    // 背景色设置
+                    this.renderer.setBackground(selected ?
+                            UIUtil.getTreeSelectionBackground(Boolean.TRUE) :
+                            UIUtil.getTreeBackground()
+                    );
+                    // 处理不同节点类型
+                    if (Objects.requireNonNull(node.getUserObject()) instanceof final JsonNodeParser.JsonNode data) {
+                        this.renderJsonNode(data);
+                    } else {
+                        this.renderer.append(node.toString());
+                    }
                 }
                 return this.renderer;
             }

@@ -22,6 +22,16 @@ public interface DataFormatConverter {
     String convert(final String json) throws ConvertException;
 
     /**
+     * 反向转换
+     *
+     * @param any 任何
+     * @return {@link String }
+     */
+    default String reverseConvert(final String any) {
+        return any;
+    }
+
+    /**
      * 支持
      * @param any 任何
      * @return boolean

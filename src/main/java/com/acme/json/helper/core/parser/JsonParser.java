@@ -4,6 +4,7 @@ import com.acme.json.helper.common.enums.AnyFile;
 import com.acme.json.helper.core.parser.converter.*;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * JSON转任何文件
@@ -39,5 +40,23 @@ public class JsonParser {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("不支持的格式"))
                 .convert(json);
+    }
+
+    /**
+     * 反向转换
+     *
+     * @param json 数据
+     * @param targetFormat 目标格式
+     * @return {@link String }
+     */
+    public static String reverseConvert(final String json, final AnyFile targetFormat) {
+        if (Objects.isNull(targetFormat)) {
+            return "";
+        }
+        return CONVERTERS.stream()
+                .filter(c -> c.support(targetFormat))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("不支持的格式"))
+                .reverseConvert(json);
     }
 }

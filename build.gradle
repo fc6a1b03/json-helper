@@ -1,3 +1,4 @@
+//file:noinspection SpellCheckingInspection
 //file:noinspection DependencyNotationArgument
 plugins {
     id 'java'
@@ -7,7 +8,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.7.17.2'
+version '0.8'
 
 repositories {
     mavenCentral()
@@ -32,6 +33,10 @@ ext {
 }
 
 dependencies {
+    /* BOM依赖 */
+    implementation platform("cn.hutool:hutool-bom:${hutoolVersion}")
+    implementation platform("com.fasterxml.jackson:jackson-bom:${jacksonVersion}")
+    /* IntelliJ 平台依赖 */
     intellijPlatform {
         intellijIdeaCommunity '2025.1'
         bundledPlugin 'org.toml.lang'
@@ -41,17 +46,21 @@ dependencies {
         bundledPlugin 'com.intellij.modules.json'
         bundledPlugin 'org.jetbrains.plugins.yaml'
     }
+    /* hutool */
+    implementation "cn.hutool:hutool-core"
+    implementation "cn.hutool:hutool-http"
+    /* jackson */
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-toml"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties"
+    /* 非BOM依赖 */
     implementation "com.auth0:java-jwt:${auth0Version}"
-    implementation "cn.hutool:hutool-core:${hutoolVersion}"
-    implementation "cn.hutool:hutool-http:${hutoolVersion}"
     implementation "org.apache.poi:poi-ooxml:${apachePoiVersion}"
     implementation "io.github.haibiiin:json-repair:${jsonRepairVersion}"
     implementation "com.alibaba.fastjson2:fastjson2:${fastjson2Version}"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${jacksonVersion}"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jacksonVersion}"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-toml:${jacksonVersion}"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonVersion}"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jacksonVersion}"
 }
 
 runIde {

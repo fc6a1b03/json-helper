@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import java.util.Base64;
@@ -29,14 +30,18 @@ public class JwtParser {
      * @return 异步JSON结果
      */
     public static CompletableFuture<String> convert(final String token) {
-        return CompletableFuture.supplyAsync(() ->
-                Opt.ofBlankAble(token)
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return Opt.ofBlankAble(token)
                         .map(JWT::decode)
                         .filter(Objects::nonNull)
                         .map(JwtParser::convertToJson)
                         .filter(StrUtil::isNotEmpty)
-                        .orElse(null)
-        );
+                        .orElse("");
+            } catch (final JWTDecodeException e) {
+                return "";
+            }
+        });
     }
 
     /**

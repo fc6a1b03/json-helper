@@ -76,9 +76,9 @@ public class PathParser {
                 return Opt.of(response.isOk())
                         .filter(i -> i)
                         .map(item -> response.body())
-                        .orElseGet(null);
+                        .orElse("");
             } catch (final Exception ignored) {
-                return null;
+                return "";
             }
         });
     }
@@ -104,7 +104,7 @@ public class PathParser {
                         .map(item -> FileUtil.readUtf8String(Paths.get(URI.create(path)).toFile()))
                         .orElseGet(() -> FileUtil.readUtf8String(path));
             } catch (final Exception ignored) {
-                return null;
+                return "";
             }
         });
     }

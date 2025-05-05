@@ -4,6 +4,7 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.json.*;
+import com.acme.json.helper.core.parser.AnyParser;
 import com.acme.json.helper.core.parser.JwtParser;
 import com.acme.json.helper.core.parser.PathParser;
 import com.acme.json.helper.ui.dialog.ConvertAnyDialog;
@@ -362,17 +363,25 @@ public class MainPanel {
         clearButton.addActionListener(e -> this.clearContent(redoButton, undoButton, editor));
         undoButton.addActionListener(e -> this.undoLastSearch(redoButton, undoButton, editor));
         redoButton.addActionListener(e -> this.redoLastSearch(redoButton, undoButton, editor));
-        // 激活清空按钮
         editor.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void documentChanged(final @NotNull DocumentEvent e) {
+                // 获取新旧片段并预处理
+                final CharSequence oldText = e.getOldFragment();
+                final CharSequence newText = e.getNewFragment();
+                // 内容无变化时直接跳过
+                if (CharSequence.compare(oldText, newText) == 0) {
+                    return;
+                }
+                // 内容无变化时直接跳过 - 忽略空白差异
+                if (oldText.toString().stripTrailing().trim().equals(newText.toString().stripTrailing().trim())) {
+                    return;
+                }
                 // 文档内容
-                final String text = Opt.ofBlankAble(e.getDocument().getText())
-                        .map(item -> item.stripTrailing().trim())
-                        .orElse("");
+                final String text = Opt.ofBlankAble(e.getDocument().getText()).orElse("");
                 // 根据文档内容调整清空按钮的状态
                 clearButton.setEnabled(!StrUtil.isEmpty(text));
-                // 自动识别`web路径`或`本地文件路径`转为JSON，写回编辑器
+                // 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器
                 MainPanel.this.OptPath(text, editor, e, this);
             }
         });
@@ -415,7 +424,7 @@ public class MainPanel {
     }
 
     /**
-     * 自动识别路径类型（Web或本地路径）并将其转换为格式化JSON，回写到编辑器<br/>
+     * 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器<br/>
      * 处理过程采用异步方式以避免阻塞UI线程，包含完整的异常处理和用户反馈
      * @param text     当前编辑器中的原始文本内容
      * @param editor   目标编辑器组件，用于回写处理结果
@@ -426,21 +435,26 @@ public class MainPanel {
                          final EditorTextField editor,
                          final @NotNull DocumentEvent e,
                          final @NotNull DocumentListener listener) {
-        // 先进行路径解析，如不成功则再执行JWT解析。都不成功则略过
-        PathParser.convert(text)
-                .thenCompose(pathResult -> JSON.isValid(pathResult) ? CompletableFuture.completedFuture(pathResult) : JwtParser.convert(text))
-                // 统一结果处理
-                .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
-                    if (JSON.isValid(processedText)) {
-                        try {
-                            e.getDocument().removeDocumentListener(listener);
+        // 清空监听，防止重复执行
+        e.getDocument().removeDocumentListener(listener);
+        try {
+            // 先进行路径解析，如不成功则再执行JWT解析，最后进行任意文件解析。都不成功则略过
+            PathParser.convert(text)
+                    // 路径 -> JWT
+                    .thenCompose(pathResult -> JSON.isValid(pathResult) ? CompletableFuture.completedFuture(pathResult) : JwtParser.convert(text))
+                    // JWT -> Any
+                    .thenCompose(jwtResult -> JSON.isValid(jwtResult) ? CompletableFuture.completedFuture(jwtResult) : AnyParser.convert(text))
+                    // 统一结果处理
+                    .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
+                        if (JSON.isValid(processedText)) {
                             this.originalJson.set("");
                             editor.setText(new JsonFormatter().process(processedText));
-                        } finally {
-                            e.getDocument().addDocumentListener(listener);
                         }
-                    }
-                }));
+                    }));
+        } finally {
+            // 转换完成后，重新添加监听
+            e.getDocument().addDocumentListener(listener);
+        }
     }
 
     /**

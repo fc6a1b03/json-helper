@@ -151,6 +151,11 @@ public class ConvertAnyDialog extends DialogWrapper {
     }
 
     @Override
+    protected @NotNull DialogStyle getStyle() {
+        return DialogStyle.COMPACT;
+    }
+
+    @Override
     protected JComponent createCenterPanel() {
         final ButtonGroup group = new ButtonGroup();
         final JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
@@ -264,7 +269,6 @@ public class ConvertAnyDialog extends DialogWrapper {
 
     /**
      * 导出xlsx
-     *
      * @param table 表格
      */
     private void exportXlsx(final JTable table) {

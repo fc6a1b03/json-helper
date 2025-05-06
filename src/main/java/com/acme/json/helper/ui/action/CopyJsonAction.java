@@ -45,9 +45,9 @@ public class CopyJsonAction extends AnAction {
         // 分步检查
         switch (ActionEventCheck.stepByStepInspection(e, PluginSettings.of().copyJson)) {
             // 执行错误状态
-            case ActionEventCheck.Check.Failed failed -> failed.action().run();
+            case final ActionEventCheck.Check.Failed failed -> failed.action().run();
             // 确认最终状态
-            case ActionEventCheck.Check.Success ignored -> {
+            case final ActionEventCheck.Check.Success ignored -> {
                 // 确认文件PSI正常
                 final PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
                 if (Objects.isNull(psiFile)) {
@@ -58,12 +58,14 @@ public class CopyJsonAction extends AnAction {
                 e.getPresentation().setEnabledAndVisible(
                         switch (e.getData(CommonDataKeys.PSI_FILE)) {
                             case null -> Boolean.FALSE;
-                            case PsiFile psi -> UastSupported.of(psi) &&
+                            case final PsiFile psi -> UastSupported.of(psi) &&
                                     UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psi);
                         }
                 );
             }
         }
+        e.getPresentation().setText("Copy JSON");
+        e.getPresentation().setDescription("Generate JSON structure from class fields");
     }
 
     /**

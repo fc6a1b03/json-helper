@@ -13,6 +13,7 @@ import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.ResourceBundle;
 
 /**
  * 从JSON创建类
@@ -20,6 +21,9 @@ import java.util.Objects;
  * @date 2025-04-29
  */
 public class CreateClassFromJsonAction extends AnAction {
+    /** 加载语言资源文件 */
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
         return ActionUpdateThread.BGT;
@@ -27,6 +31,8 @@ public class CreateClassFromJsonAction extends AnAction {
 
     @Override
     public void update(@NotNull final AnActionEvent e) {
+        e.getPresentation().setText(BUNDLE.getString("action.create.class.from.json.text"));
+        e.getPresentation().setDescription(BUNDLE.getString("action.create.class.from.json.desc"));
         e.getPresentation().setEnabledAndVisible(Objects.nonNull(e.getProject()) && Objects.nonNull(this.getPsiDirectory(e.getDataContext().getData(CommonDataKeys.PSI_ELEMENT))));
     }
 

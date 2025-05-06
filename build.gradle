@@ -70,6 +70,7 @@ runIde {
             "-Xmx4g",
             "-Xshare:off",
             "-Dfile.encoding=UTF-8",
+            "-Duser.timezone=GMT+8",
             // 其他优化
             "-XX:+UseParallelGC",
             "-Didea.wsl.disable=true",
@@ -99,4 +100,10 @@ tasks.register('printVersion') {
     doLast {
         println project.version
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+    options.incremental = true
+    options.compilerArgs += ['-Xdoclint:none', '-Xlint:none', '-nowarn']
 }

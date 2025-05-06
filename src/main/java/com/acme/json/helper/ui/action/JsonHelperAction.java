@@ -55,9 +55,11 @@ public class JsonHelperAction extends AnAction {
             case final ActionEventCheck.Check.Failed failed -> failed.action().run();
             // 确认最终状态
             case final ActionEventCheck.Check.Success ignored -> e.getPresentation().setEnabledAndVisible(
-                    checkJavaContextValidity(e) || checkJsonSelectionValidity(e)
+                    this.checkJavaContextValidity(e) || this.checkJsonSelectionValidity(e)
             );
         }
+        e.getPresentation().setText("Json Helper");
+        e.getPresentation().setDescription("Send JSON to json helper editor toolwindow");
     }
 
     /**
@@ -71,12 +73,12 @@ public class JsonHelperAction extends AnAction {
      */
     @Override
     public void actionPerformed(@NotNull final AnActionEvent e) {
-        if (checkJavaContextValidity(e)) {
+        if (this.checkJavaContextValidity(e)) {
             // 处理Java文件上下文
-            handleJavaClassContext(e.getProject(), e.getData(CommonDataKeys.EDITOR), e.getData(CommonDataKeys.PSI_FILE));
-        } else if (checkJsonSelectionValidity(e)) {
+            this.handleJavaClassContext(e.getProject(), e.getData(CommonDataKeys.EDITOR), e.getData(CommonDataKeys.PSI_FILE));
+        } else if (this.checkJsonSelectionValidity(e)) {
             // 处理JSON文本选区
-            handleJsonSelection(e);
+            this.handleJsonSelection(e);
         }
     }
 
@@ -147,7 +149,7 @@ public class JsonHelperAction extends AnAction {
             return;
         }
         // 将内容推送到JSON编辑器
-        JsonEditorPushProvider.pushToJsonEditor(project, generateClassJson(targetClass));
+        JsonEditorPushProvider.pushToJsonEditor(project, this.generateClassJson(targetClass));
     }
 
     /* ########################### Java类处理逻辑 ########################### */
@@ -168,7 +170,7 @@ public class JsonHelperAction extends AnAction {
      * @param e 行动事件
      */
     private void handleJsonSelection(@NotNull final AnActionEvent e) {
-        JsonEditorPushProvider.pushToJsonEditor(e.getProject(), processSelectedJson(e));
+        JsonEditorPushProvider.pushToJsonEditor(e.getProject(), this.processSelectedJson(e));
     }
 
     /* ########################### JSON文本处理逻辑 ########################### */

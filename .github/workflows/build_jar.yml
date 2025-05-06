@@ -21,10 +21,16 @@ jobs:
           java-version: 21
           distribution: temurin
 
+      - name: Extract Gradle Version from Wrapper
+        id: extract_gradle_version
+        run: |
+          VERSION=$(grep -oP 'gradle-\\K[0-9.]+' gradle/wrapper/gradle-wrapper.properties)
+          echo "gradle_version=$VERSION" >> $GITHUB_ENV
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.12"
+          gradle-version: ${{ env.gradle_version }}
 
       - name: Build with Gradle
         run: gradle clean buildPlugin --no-daemon
@@ -45,7 +51,7 @@ jobs:
           echo "message=$(git log -1 --pretty=format:'- %s (%h)')" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: build/distributions/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}

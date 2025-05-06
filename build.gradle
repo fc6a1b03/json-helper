@@ -104,7 +104,7 @@ tasks.register('printVersion') {
 
 tasks.register('printJavaVersion') {
     doLast {
-        println JavaVersion.current()
+        println java.sourceCompatibility
     }
 }
 
@@ -117,7 +117,7 @@ tasks.register('printGradleVersion') {
 tasks.register('printAllVersions') {
     doLast {
         println "Project Version: ${project.version}"
-        println "Java Version: ${JavaVersion.current()}"
+        println "Java Version: ${java.sourceCompatibility}"
         println "Gradle Version: ${gradle.gradleVersion}"
     }
 }

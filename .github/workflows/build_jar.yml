@@ -15,16 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract Java Version from from build.gradle
+        id: extract_java_version
+        run: |
+          VERSION=$(gradle -q printJavaVersion)
+          echo "java_version=$VERSION" >> $GITHUB_ENV
+  
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: 21
           distribution: temurin
+          java-version: ${{ env.java_version }}
 
-      - name: Extract Gradle Version from Wrapper
+      - name: Extract Gradle Version from from build.gradle
         id: extract_gradle_version
         run: |
-          VERSION=$(grep -oP 'gradle-\\K[0-9.]+' gradle/wrapper/gradle-wrapper.properties)
+          VERSION=$(gradle -q printGradleVersion)
           echo "gradle_version=$VERSION" >> $GITHUB_ENV
 
       - name: Setup Gradle

@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.panel;
 
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.Clipboard;
@@ -96,7 +97,6 @@ public class MainPanel {
 
     /**
      * 创建搜索框
-     *
      * @return {@link JTextField }
      */
     private JTextField createSearchBox() {
@@ -156,7 +156,6 @@ public class MainPanel {
 
     /**
      * 按默认颜色创建边框`四周边框`
-     *
      * @return {@link Border }
      */
     private Border createBorderByDefaultColor() {
@@ -165,11 +164,10 @@ public class MainPanel {
 
     /**
      * 按默认颜色创建边框`自定义边框`
-     *
-     * @param top 顶端
-     * @param left 左边
+     * @param top    顶端
+     * @param left   左边
      * @param bottom 底部
-     * @param right 正确
+     * @param right  正确
      * @return {@link Border }
      */
     private Border createBorderByDefaultColor(final boolean top, final boolean left, final boolean bottom, final boolean right) {
@@ -374,7 +372,7 @@ public class MainPanel {
                     return;
                 }
                 // 内容无变化时直接跳过 - 忽略空白差异
-                if (oldText.toString().stripTrailing().trim().equals(newText.toString().stripTrailing().trim())) {
+                if (Convert.toStr(oldText).stripTrailing().trim().equals(Convert.toStr(newText).stripTrailing().trim())) {
                     return;
                 }
                 // 文档内容

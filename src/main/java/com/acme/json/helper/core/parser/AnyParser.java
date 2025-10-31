@@ -19,14 +19,15 @@ import java.util.regex.Pattern;
 /**
  * 任意解析器<br/>
  * 目前支持：xml、yaml、toml、properties
- * @see AnyFile
- *
  * @author xuhaifeng
  * @date 2025-05-05
+ * @see AnyFile
  */
 @SuppressWarnings({"RegExpRedundantClassElement", "UnnecessaryUnicodeEscape", "RegExpSimplifiable"})
 public class AnyParser {
-    /** properties模式 */
+    /**
+     * properties模式
+     */
     private static final Pattern PROPERTIES_PATTERN = Pattern.compile(
             // 非空行、非注释、键=值（键和值均非空）
             "^(?!\\s*(?:#|$)).+?=.+$", Pattern.MULTILINE
@@ -48,7 +49,6 @@ public class AnyParser {
 
     /**
      * 检测类型
-     *
      * @param input 输入
      * @return {@link AnyFile }
      */
@@ -62,7 +62,6 @@ public class AnyParser {
 
     /**
      * 是xml
-     *
      * @param input 输入
      * @return boolean
      */
@@ -79,7 +78,6 @@ public class AnyParser {
 
     /**
      * 是yaml
-     *
      * @param input 输入
      * @return boolean
      */
@@ -94,7 +92,6 @@ public class AnyParser {
 
     /**
      * 是toml
-     *
      * @param input 输入
      * @return boolean
      */
@@ -108,7 +105,6 @@ public class AnyParser {
 
     /**
      * 是properties
-     *
      * @param input 输入
      * @return boolean
      */

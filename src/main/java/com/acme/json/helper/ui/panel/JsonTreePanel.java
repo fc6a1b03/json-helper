@@ -44,29 +44,46 @@ import java.util.stream.IntStream;
 
 /**
  * JSON树面板
- *
  * @author 拒绝者
  * @date 2025-01-28
  */
 public class JsonTreePanel extends JPanel {
-    /** 加载语言资源文件 */
+    /**
+     * 加载语言资源文件
+     */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    /** JSON树 */
-    private final Tree jsonTree;
-    /** 搜索输入展示框 */
-    private JTextField searchField;
-    /** 匹配集合 */
-    private final List<TreePath> matches = new ArrayList<>();
-    /** 搜索计时器 */
-    private Timer searchTimer;
-    /** 搜索文本 */
-    private String searchText = "";
-    /** 当前匹配指数 */
-    private int currentMatchIndex = -1;
-    /** 正在搜索 */
-    private volatile boolean isSearching = Boolean.FALSE;
-    /** 数组索引模式 */
+    /**
+     * 数组索引模式
+     */
     private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("^\\[(\\d+)]$");
+    /**
+     * JSON树
+     */
+    private final Tree jsonTree;
+    /**
+     * 匹配集合
+     */
+    private final List<TreePath> matches = new ArrayList<>();
+    /**
+     * 搜索输入展示框
+     */
+    private JTextField searchField;
+    /**
+     * 搜索计时器
+     */
+    private Timer searchTimer;
+    /**
+     * 搜索文本
+     */
+    private String searchText = "";
+    /**
+     * 当前匹配指数
+     */
+    private int currentMatchIndex = -1;
+    /**
+     * 正在搜索
+     */
+    private volatile boolean isSearching = Boolean.FALSE;
 
     public JsonTreePanel() {
         super(new BorderLayout());
@@ -78,7 +95,6 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 加载JSON
-     *
      * @param txt JSON文本
      */
     public void loadJson(final String txt) {
@@ -117,7 +133,6 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 创建搜索框
-     *
      * @return {@link JTextField }
      */
     private JTextField createSearchField() {
@@ -188,7 +203,7 @@ public class JsonTreePanel extends JPanel {
                     if (Objects.requireNonNull(node.getUserObject()) instanceof final JsonNodeParser.JsonNode data) {
                         this.renderJsonNode(data);
                     } else {
-                        this.renderer.append(node.toString());
+                        this.renderer.append(Convert.toStr(node));
                     }
                 }
                 return this.renderer;
@@ -225,7 +240,6 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 为JSON树添加右键复制菜单
-     *
      * @param tree 树
      */
     private void addRightClickMenuToTree(final Tree tree) {
@@ -278,7 +292,6 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 从树节点提取可复制的文本
-     *
      * @param node 选择的节点
      * @param type 类型：1.object 2.key 3.value
      * @return {@link String }
@@ -307,14 +320,13 @@ public class JsonTreePanel extends JPanel {
                     .filter(Objects::nonNull)
                     .map(Object::toString)
                     .filter(StrUtil::isNotEmpty)
-                    .orElse(node.toString());
+                    .orElseGet(() -> Convert.toStr(node));
             case null, default -> Convert.toStr(node);
         };
     }
 
     /**
      * 构建JSON路径
-     *
      * @param selectionPath 选择的路径
      * @return {@link String }
      */
@@ -446,7 +458,6 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 收集匹配的节点路径
-     *
      * @param node node
      * @param path 路径
      */
@@ -456,7 +467,7 @@ public class JsonTreePanel extends JPanel {
             case final JsonNodeParser.JsonNode jsonNode -> ("%s:%s".formatted(jsonNode.key(), jsonNode.value()))
                     .toLowerCase()
                     .contains(this.searchText);
-            default -> node.toString().toLowerCase().contains(this.searchText);
+            default -> Convert.toStr(node).toLowerCase().contains(this.searchText);
         }) {
             this.matches.add(path);
         }
@@ -471,7 +482,6 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 滚动到指定索引的匹配项
-     *
      * @param index 指数
      */
     private void scrollToMatch(final int index) {

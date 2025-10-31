@@ -24,7 +24,7 @@ public class UrlParamsConverter implements DataFormatConverter {
         if (parsed instanceof final Map<?, ?> map) {
             // 处理对象类型JSON
             map.forEach((key, val) ->
-                    urlParams.append(URLEncoder.encode(key.toString(), StandardCharsets.UTF_8))
+                    urlParams.append(URLEncoder.encode(Convert.toStr(key), StandardCharsets.UTF_8))
                             .append("=")
                             .append(URLEncoder.encode(Convert.toStr(val), StandardCharsets.UTF_8))
                             .append("&")

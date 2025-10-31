@@ -34,17 +34,16 @@ public sealed interface JsonOperation permits JsonCompressor, JsonEscaper, JsonF
      * @return {@link String }
      */
     default String process(final String input, final String expression) {
-        return process(input);
+        return this.process(input);
     }
 
     /**
      * 有效
-     *
      * @param input 输入
      * @return boolean
      */
     default boolean isValid(final Object input) {
-        return isValid(Convert.toStr(input));
+        return this.isValid(Convert.toStr(input));
     }
 
     default boolean isValid(final String input) {

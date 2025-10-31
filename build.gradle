@@ -4,11 +4,11 @@ plugins {
     id 'java'
     // https://github.com/JetBrains/intellij-platform-gradle-plugin
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-    id 'org.jetbrains.intellij.platform' version '2.5.0'
+    id 'org.jetbrains.intellij.platform' version '2.10.3'
 }
 
 group 'com.acme'
-version '0.8.6'
+version '0.8.8'
 
 repositories {
     mavenCentral()
@@ -25,20 +25,26 @@ java {
 
 ext {
     auth0Version = '4.5.0'
-    hutoolVersion = '5.8.37'
-    jacksonVersion = '2.19.0'
+    hutoolVersion = '5.8.41'
+    jacksonVersion = '3.0.1'
     apachePoiVersion = '5.4.1'
+    fastjson2Version = '2.0.60'
     jsonRepairVersion = '0.3.0'
-    fastjson2Version = '2.0.57'
+}
+
+configurations.configureEach {
+    resolutionStrategy {
+        force 'org.apache.commons:commons-lang3:3.19.0'
+    }
 }
 
 dependencies {
     /* BOM依赖 */
     implementation platform("cn.hutool:hutool-bom:${hutoolVersion}")
-    implementation platform("com.fasterxml.jackson:jackson-bom:${jacksonVersion}")
+    implementation platform("tools.jackson:jackson-bom:${jacksonVersion}")
     /* IntelliJ 平台依赖 */
     intellijPlatform {
-        intellijIdeaCommunity '2025.1'
+        intellijIdeaCommunity '2025.2'
         bundledPlugin 'org.toml.lang'
         bundledPlugin 'com.intellij.java'
         bundledPlugin 'com.intellij.gradle'
@@ -50,12 +56,12 @@ dependencies {
     implementation "cn.hutool:hutool-core"
     implementation "cn.hutool:hutool-http"
     /* jackson */
-    implementation "com.fasterxml.jackson.core:jackson-databind"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-toml"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties"
+    implementation "tools.jackson.core:jackson-databind"
+    implementation "tools.jackson.dataformat:jackson-dataformat-csv"
+    implementation "tools.jackson.dataformat:jackson-dataformat-xml"
+    implementation "tools.jackson.dataformat:jackson-dataformat-toml"
+    implementation "tools.jackson.dataformat:jackson-dataformat-yaml"
+    implementation "tools.jackson.dataformat:jackson-dataformat-properties"
     /* 非BOM依赖 */
     implementation "com.auth0:java-jwt:${auth0Version}"
     implementation "org.apache.poi:poi-ooxml:${apachePoiVersion}"
@@ -68,18 +74,18 @@ runIde {
     jvmArgs += [
             "-Xms1g",
             "-Xmx4g",
+            "-XX:+UseZGC",
             "-Xshare:off",
             "-Dfile.encoding=UTF-8",
             "-Duser.timezone=GMT+8",
             // 其他优化
-            "-XX:+UseParallelGC",
             "-Didea.wsl.disable=true",
             "-XX:ReduceInitialCardSetAllocation=10",
             // 启用模块拓展
             "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED"
     ]
     // 设置主题
     systemProperty 'idea.ui.themes', 'Darcula'
@@ -91,6 +97,7 @@ runIde {
     systemProperty 'idea.auto.update', 'false'
     systemProperty 'idea.dynamic.classpath', 'true'
     systemProperty 'idea.accelerator.manager', 'true'
+    systemProperty 'idea.cwm.station.enabled', 'false'
     systemProperty 'idea.inspections.enabled', 'false'
     systemProperty 'idea.plugins.developer.mode', 'true'
     systemProperty 'idea.plugins.developer.mode.debug', 'true'

@@ -7,14 +7,12 @@ import io.github.haibiiin.json.repair.JSONRepairConfig;
 
 /**
  * JSON修复器
- *
  * @author 拒绝者
  * @date 2025-04-26
  */
 public final class JsonRepairer implements JsonOperation {
     /**
      * 维修
-     *
      * @return {@link JSONRepair }
      */
     private static JSONRepair repair() {
@@ -23,7 +21,6 @@ public final class JsonRepairer implements JsonOperation {
 
     /**
      * 提取维修
-     *
      * @return {@link JSONRepair }
      */
     private static JSONRepair extractRepair() {
@@ -34,7 +31,7 @@ public final class JsonRepairer implements JsonOperation {
 
     @Override
     public String process(final Object input) {
-        return process(Convert.toStr(input));
+        return this.process(Convert.toStr(input));
     }
 
     @Override

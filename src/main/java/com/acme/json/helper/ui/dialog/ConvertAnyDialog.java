@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.dialog;
 
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
@@ -279,7 +280,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         );
         if (Objects.nonNull(selectedDirectory)) {
             // 设置文件路径
-            final String filePath = Paths.get(selectedDirectory.getPath(), "export_%s.xlsx".formatted(DatePattern.PURE_DATETIME_FORMATTER.format(LocalDateTime.now()))).toString();
+            final String filePath = Convert.toStr(Paths.get(selectedDirectory.getPath(), "export_%s.xlsx".formatted(DatePattern.PURE_DATETIME_FORMATTER.format(LocalDateTime.now()))));
             try (final Workbook workbook = new XSSFWorkbook()) {
                 final Sheet sheet = workbook.createSheet("Data");
                 // 单元格样式
@@ -301,7 +302,7 @@ public class ConvertAnyDialog extends DialogWrapper {
                         if (value instanceof Number) {
                             cell.setCellValue(((Number) value).doubleValue());
                         } else {
-                            cell.setCellValue(value.toString());
+                            cell.setCellValue(Convert.toStr(value));
                         }
                     });
                 });

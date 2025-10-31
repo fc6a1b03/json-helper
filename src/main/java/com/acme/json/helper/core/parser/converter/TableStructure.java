@@ -1,5 +1,6 @@
 package com.acme.json.helper.core.parser.converter;
 
+import cn.hutool.core.convert.Convert;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 
@@ -27,7 +28,7 @@ public abstract class TableStructure implements DataFormatConverter {
             if (value instanceof JSONObject) {
                 flattenJsonObject((JSONObject) value, fullKey, flatMap);
             } else {
-                flatMap.put(fullKey, value.toString());
+                flatMap.put(fullKey, Convert.toStr(value));
             }
         });
     }

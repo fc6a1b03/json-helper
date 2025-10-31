@@ -1,5 +1,6 @@
 package com.acme.json.helper.core.console;
 
+import cn.hutool.core.convert.Convert;
 import com.acme.json.helper.ui.editor.JsonEditorPushProvider;
 import com.intellij.execution.filters.Filter;
 import com.intellij.execution.filters.HyperlinkInfo;
@@ -39,18 +40,18 @@ public class JsonConsoleFilter implements Filter {
             return new Result(0, line.length(), new JsonHyperlinkInfo(line));
         }
         // 多行JSON起始检测
-        if (line.trim().startsWith("{") && !inJsonBlock) {
-            inJsonBlock = Boolean.TRUE;
-            jsonBuffer.setLength(0);
-            jsonBuffer.append(line).append("\n");
+        if (line.trim().startsWith("{") && !this.inJsonBlock) {
+            this.inJsonBlock = Boolean.TRUE;
+            this.jsonBuffer.setLength(0);
+            this.jsonBuffer.append(line).append("\n");
         }
         // 多行JSON内容收集
-        else if (inJsonBlock) {
-            jsonBuffer.append(line).append("\n");
+        else if (this.inJsonBlock) {
+            this.jsonBuffer.append(line).append("\n");
             // JSON结束检测
             if (line.trim().endsWith("}")) {
-                inJsonBlock = Boolean.FALSE;
-                final String fullJson = jsonBuffer.toString();
+                this.inJsonBlock = Boolean.FALSE;
+                final String fullJson = Convert.toStr(this.jsonBuffer);
                 if (JSON_PATTERN.matcher(fullJson).matches()) {
                     return new Result(
                             entireLength - fullJson.length(),
@@ -76,7 +77,7 @@ public class JsonConsoleFilter implements Filter {
          */
         @Override
         public void navigate(final @NotNull Project project) {
-            JsonEditorPushProvider.pushToJsonEditor(project, json);
+            JsonEditorPushProvider.pushToJsonEditor(project, this.json);
         }
     }
 }

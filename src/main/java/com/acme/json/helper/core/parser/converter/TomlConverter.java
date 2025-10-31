@@ -5,9 +5,8 @@ import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.toml.TomlMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.toml.TomlMapper;
 
 /**
  * TOML转换器
@@ -15,13 +14,6 @@ import com.fasterxml.jackson.dataformat.toml.TomlMapper;
  * @date 2025-04-21
  */
 public class TomlConverter implements DataFormatConverter {
-    /**
-     * TOML转换器
-     */
-    private static final TomlMapper toml = new TomlMapper();
-    /** 对象转换器 */
-    private static final ObjectMapper object = new ObjectMapper();
-
     /**
      * 对作语法分析
      * @param json 数据
@@ -37,11 +29,7 @@ public class TomlConverter implements DataFormatConverter {
 
     @Override
     public String reverseConvert(final String any) {
-        try {
-            return object.writerWithDefaultPrettyPrinter().writeValueAsString(toml.readTree(any));
-        } catch (final JsonProcessingException e) {
-            return any;
-        }
+        return JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValueAsString(TomlMapper.builder().build().readTree(any));
     }
 
     @Override
@@ -51,10 +39,6 @@ public class TomlConverter implements DataFormatConverter {
 
     @Override
     public String convert(final String json) throws ConvertException {
-        try {
-            return toml.writeValueAsString(parse(json));
-        } catch (final Exception e) {
-            return "";
-        }
+        return TomlMapper.builder().build().writeValueAsString(parse(json));
     }
 }

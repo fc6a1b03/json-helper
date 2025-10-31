@@ -1,6 +1,7 @@
 package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.convert.ConvertException;
 import com.acme.json.helper.common.enums.AnyFile;
 
@@ -42,7 +43,7 @@ public class ClassConverter extends JavaStructure {
             imports.forEach(imp -> importBuilder.append("import ").append(imp).append(";"));
             code.insert(0, importBuilder);
         }
-        return code.toString().trim();
+        return Convert.toStr(code).trim();
     }
 
     /**

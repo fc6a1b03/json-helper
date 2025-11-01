@@ -8,7 +8,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.8.8'
+version '0.9'
 
 repositories {
     mavenCentral()
@@ -24,6 +24,7 @@ java {
 }
 
 ext {
+    toonVersion = '0.1.1'
     auth0Version = '4.5.0'
     hutoolVersion = '5.8.41'
     jacksonVersion = '3.0.1'
@@ -64,6 +65,7 @@ dependencies {
     implementation "tools.jackson.dataformat:jackson-dataformat-properties"
     /* 非BOM依赖 */
     implementation "com.auth0:java-jwt:${auth0Version}"
+    implementation "com.felipestanzani:jtoon:${toonVersion}"
     implementation "org.apache.poi:poi-ooxml:${apachePoiVersion}"
     implementation "io.github.haibiiin:json-repair:${jsonRepairVersion}"
     implementation "com.alibaba.fastjson2:fastjson2:${fastjson2Version}"

@@ -23,7 +23,7 @@ public class TomlConverter implements DataFormatConverter {
         return switch (JSON.parse(json)) {
             case final JSONObject obj -> obj;
             case final JSONArray arr -> JSONObject.of("dummy", arr);
-            default -> new JSONObject();
+            default -> JSONObject.of();
         };
     }
 

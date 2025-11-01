@@ -334,25 +334,23 @@ public class JsonTreePanel extends JPanel {
         // 从根节点之后开始遍历
         return IntStream.range(1, selectionPath.getPathCount())
                 // 获取每个路径组件
-                .mapToObj(selectionPath::getPathComponent)
+                .mapToObj(selectionPath::getPathComponent).filter(Objects::nonNull)
                 // 确保是`DefaultMutableTreeNode`类型
                 .filter(DefaultMutableTreeNode.class::isInstance)
                 // 将对象转换为`DefaultMutableTreeNode`类型
                 .map(DefaultMutableTreeNode.class::cast)
                 // 获取用户选择对象
-                .map(DefaultMutableTreeNode::getUserObject)
+                .map(DefaultMutableTreeNode::getUserObject).filter(Objects::nonNull)
                 // 确保是`JsonNodeParser.JsonNode`类型
                 .filter(JsonNodeParser.JsonNode.class::isInstance)
                 // 将对象转换为`JsonNodeParser.JsonNode`类型
                 .map(JsonNodeParser.JsonNode.class::cast)
                 // 获取键
-                .map(JsonNodeParser.JsonNode::key)
-                // 过滤掉空的键字符串
-                .filter(StrUtil::isNotEmpty)
+                .map(JsonNodeParser.JsonNode::key).filter(StrUtil::isNotEmpty)
                 // 组合各节点的路径表达式
                 .map(key ->
                         // 匹配数组索引模式
-                        Opt.ofNullable(ARRAY_INDEX_PATTERN.matcher(key))
+                        Opt.ofNullable(ARRAY_INDEX_PATTERN.matcher(key)).filter(Objects::nonNull)
                                 // 检查是否匹配成功
                                 .filter(Matcher::matches)
                                 // 格式化数组索引
@@ -465,8 +463,7 @@ public class JsonTreePanel extends JPanel {
         // 判断节点是否匹配搜索条件
         if (switch (node.getUserObject()) {
             case final JsonNodeParser.JsonNode jsonNode -> ("%s:%s".formatted(jsonNode.key(), jsonNode.value()))
-                    .toLowerCase()
-                    .contains(this.searchText);
+                    .toLowerCase().contains(this.searchText);
             default -> Convert.toStr(node).toLowerCase().contains(this.searchText);
         }) {
             this.matches.add(path);

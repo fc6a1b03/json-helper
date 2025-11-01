@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.dialog;
 
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.lang.Opt;
@@ -12,10 +13,15 @@ import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.components.JBScrollPane;
@@ -33,10 +39,12 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ItemEvent;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 /**
@@ -54,6 +62,10 @@ public class ConvertAnyDialog extends DialogWrapper {
      */
     private final Project project;
     /**
+     * 原始JSON
+     */
+    private final String jsonText;
+    /**
      * 卡片面板
      */
     private final JPanel cardPanel;
@@ -69,13 +81,7 @@ public class ConvertAnyDialog extends DialogWrapper {
     public ConvertAnyDialog(final Project project, final String jsonText) {
         super(project, Boolean.TRUE);
         this.project = project;
-        // 初始化创建所有编辑器及表格
-        Arrays.stream(AnyFile.values())
-                .filter(AnyFile::isEditor)
-                .forEach(fileType -> this.editorMap.put(fileType, this.createEditorForType(fileType, jsonText)));
-        Arrays.stream(AnyFile.values())
-                .filter(AnyFile::isTable)
-                .forEach(fileType -> this.tableMap.put(fileType, this.createTableForType(fileType, jsonText)));
+        this.jsonText = jsonText;
         this.cardPanel = new JPanel(new CardLayout(0, 0));
         this.cardPanel.setBorder(BorderFactory.createEmptyBorder());
         this.init();
@@ -88,6 +94,63 @@ public class ConvertAnyDialog extends DialogWrapper {
         this.setResizable(Boolean.TRUE);
         this.setSize(800, 800);
         this.setTitle(BUNDLE.getString("dialog.convert.java.title"));
+    }
+
+    /**
+     * 懒加载
+     * @param fileType 文件类型
+     */
+    private void lazyLoad(final AnyFile fileType) {
+        if (Objects.isNull(fileType)) {
+            return;
+        }
+        // 加载 编辑器
+        if (fileType.isEditor() && !this.editorMap.containsKey(fileType)) {
+            new Task.Backgroundable(this.project, BUNDLE.getString("json.to.any.load.content.editor").formatted(fileType)) {
+                @Override
+                public void run(@NotNull final ProgressIndicator indicator) {
+                    final EditorTextField editor = ConvertAnyDialog.this.createEditorForType(fileType, ConvertAnyDialog.this.jsonText);
+                    SwingUtilities.invokeLater(() -> {
+                        // 删掉旧占位
+                        ConvertAnyDialog.this.removePlaceholder();
+                        // 放置新组件
+                        ConvertAnyDialog.this.editorMap.put(fileType, editor);
+                        ConvertAnyDialog.this.cardPanel.add(new JBScrollPane(editor), fileType.name());
+                        ((CardLayout) ConvertAnyDialog.this.cardPanel.getLayout()).show(ConvertAnyDialog.this.cardPanel, fileType.name());
+                        // 重新加载
+                        ConvertAnyDialog.this.cardPanel.revalidate();
+                    });
+                }
+            }.queue();
+        }
+        // 加载 表格
+        else if (fileType.isTable() && !this.tableMap.containsKey(fileType)) {
+            new Task.Backgroundable(this.project, BUNDLE.getString("json.to.any.load.content.table").formatted(fileType)) {
+                @Override
+                public void run(@NotNull final ProgressIndicator indicator) {
+                    final JBTable table = ConvertAnyDialog.this.createTableForType(fileType, ConvertAnyDialog.this.jsonText);
+                    SwingUtilities.invokeLater(() -> {
+                        ConvertAnyDialog.this.tableMap.put(fileType, table);
+                        final JPanel panel = new JPanel(new BorderLayout());
+                        panel.add(ConvertAnyDialog.this.createButton(table), BorderLayout.NORTH);
+                        panel.add(new JBScrollPane(table), BorderLayout.CENTER);
+                        ConvertAnyDialog.this.cardPanel.add(panel, fileType.name());
+                        ((CardLayout) ConvertAnyDialog.this.cardPanel.getLayout()).show(ConvertAnyDialog.this.cardPanel, fileType.name());
+                    });
+                }
+            }.queue();
+        }
+        // 已加载过，直接切换
+        else {
+            ((CardLayout) this.cardPanel.getLayout()).show(this.cardPanel, fileType.name());
+        }
+    }
+
+    /**
+     * 删掉占位 JLabel
+     */
+    private void removePlaceholder() {
+        Arrays.stream(this.cardPanel.getComponents()).filter(JLabel.class::isInstance).findFirst().ifPresent(this.cardPanel::remove);
     }
 
     /**
@@ -161,25 +224,15 @@ public class ConvertAnyDialog extends DialogWrapper {
         final ButtonGroup group = new ButtonGroup();
         final JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
         final JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        // 添加卡片到面板
-        this.tableMap.forEach((fileType, table) -> {
-            final JPanel panel = new JPanel(new BorderLayout(0, 0));
-            panel.setBorder(BorderFactory.createEmptyBorder());
-            panel.add(this.createButton(table), BorderLayout.NORTH);
-            panel.add(new JBScrollPane(table), BorderLayout.CENTER);
-            this.cardPanel.add(panel, fileType.name());
-        });
-        this.editorMap.forEach((fileType, editor) -> {
-            final JBScrollPane pane = new JBScrollPane(editor);
-            pane.setBorder(BorderFactory.createEmptyBorder());
-            this.cardPanel.add(pane, fileType.name());
-        });
-        // 添加按钮到面板
-        Arrays.stream(AnyFile.values())
-                .filter(AnyFile::isRadio)
+        // 占位加载组件
+        this.cardPanel.add(new JLabel(BUNDLE.getString("json.to.any.load"), SwingConstants.CENTER), AnyFile.CLASS.name());
+        // 添加 按钮到面板
+        Arrays.stream(AnyFile.values()).filter(AnyFile::isRadio)
                 .forEach(fileType -> typePanel.add(this.createRadioButton(fileType, group)));
         // 设置默认显示
         ((CardLayout) this.cardPanel.getLayout()).show(this.cardPanel, AnyFile.CLASS.name());
+        // 设置默认加载
+        this.lazyLoad(AnyFile.CLASS);
         mainPanel.add(typePanel, BorderLayout.NORTH);
         mainPanel.add(this.cardPanel, BorderLayout.CENTER);
         return mainPanel;
@@ -213,7 +266,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         }
         radio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                ((CardLayout) this.cardPanel.getLayout()).show(this.cardPanel, fileType.name());
+                this.lazyLoad(fileType);
             }
         });
         return radio;
@@ -225,13 +278,33 @@ public class ConvertAnyDialog extends DialogWrapper {
      * @param jsonText JSON文本
      * @return {@link EditorTextField }
      */
+
     private EditorTextField createEditorForType(final AnyFile anyFile, final String jsonText) {
-        return Opt.ofNullable(
-                        new CustomizeEditorFactory(SupportedLanguages.getByAnyFile(anyFile), "Dummy.%s".formatted(anyFile.extension()))
-                                .create(this.project)
-                )
-                .peek(item -> item.setText(JsonParser.convert(jsonText, anyFile)))
-                .peek(Editor::reformat).orElse(null);
+        // JSON内容转换
+        final AtomicReference<String> converted = new AtomicReference<>();
+        try (final var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            converted.set(executor.submit(() -> JsonParser.convert(jsonText, anyFile)).get());
+        } catch (final Exception ignored) {
+            converted.set("");
+        }
+        // 加载并填充 编辑器
+        final List<EditorTextField> holder = ListUtil.toList();
+        ApplicationManager.getApplication().invokeAndWait(() -> holder.add(this.buildEditor(anyFile, converted.get())), ModalityState.any());
+        return holder.getFirst();
+    }
+
+    /**
+     * 构建编辑器
+     * @param anyFile   任何文件
+     * @param converted 转换
+     * @return {@link EditorTextField }
+     */
+    private EditorTextField buildEditor(final AnyFile anyFile, final String converted) {
+        final EditorTextField field = new CustomizeEditorFactory(SupportedLanguages.getByAnyFile(anyFile), "Dummy.%s".formatted(anyFile.extension()))
+                .create(this.project);
+        field.setText(converted);
+        Editor.reformat(field);
+        return field;
     }
 
     /**
@@ -300,7 +373,7 @@ public class ConvertAnyDialog extends DialogWrapper {
                         final Cell cell = row.createCell(colIdx);
                         final Object value = table.getValueAt(rowIdx, colIdx);
                         if (value instanceof Number) {
-                            cell.setCellValue(((Number) value).doubleValue());
+                            cell.setCellValue(Convert.toDouble(value));
                         } else {
                             cell.setCellValue(Convert.toStr(value));
                         }
@@ -312,7 +385,8 @@ public class ConvertAnyDialog extends DialogWrapper {
                 try (final FileOutputStream fileOut = new FileOutputStream(filePath)) {
                     workbook.write(fileOut);
                 }
-            } catch (final IOException ignored) {
+            } catch (final Exception e) {
+                Messages.showErrorDialog("%s: %s".formatted(BUNDLE.getString("export.xlsx.error.msg"), e.getMessage()), BUNDLE.getString("export.xlsx.error.title"));
             }
         }
     }

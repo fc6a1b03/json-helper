@@ -1,11 +1,14 @@
 package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.convert.ConvertException;
-import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * 数据格式变换器
@@ -23,7 +26,6 @@ public interface DataFormatConverter {
 
     /**
      * 反向转换
-     *
      * @param any 任何
      * @return {@link String }
      */
@@ -46,9 +48,11 @@ public interface DataFormatConverter {
     static JSONObject jsonToObject(final String json) {
         return switch (JSON.parse(json)) {
             case final JSONObject obj -> obj;
-            case final JSONArray arr ->
-                    ArrayUtil.isNotEmpty(arr) ? (arr.getFirst() instanceof final JSONObject object) ? object : new JSONObject() : new JSONObject();
-            default -> new JSONObject();
+            case final JSONArray arr -> Opt.ofEmptyAble(arr)
+                    .map(ArrayList::getFirst).filter(Objects::nonNull)
+                    .filter(JSONObject.class::isInstance).map(JSONObject.class::cast)
+                    .orElseGet(JSONObject::of);
+            default -> JSONObject.of();
         };
     }
 }

@@ -47,6 +47,10 @@ public enum AnyFile {
      */
     XLSX,
     /**
+     * 面向令牌的对象表示法
+     */
+    TOON,
+    /**
      * 单文本
      */
     Text;

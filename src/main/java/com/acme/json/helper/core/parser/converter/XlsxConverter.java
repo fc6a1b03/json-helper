@@ -27,7 +27,7 @@ public class XlsxConverter extends TableStructure {
      */
     private static JSONArray normalizeToArray(final String json) {
         return JSON.parse(json) instanceof final JSONArray array ?
-                array : new JSONArray().fluentAdd(JSONObject.parse(json));
+                array : JSONArray.of().fluentAdd(JSONObject.parse(json));
     }
 
     @Override
@@ -38,7 +38,7 @@ public class XlsxConverter extends TableStructure {
             // 表头信息
             final String[] headers = data.stream()
                     .<JSONObject>mapMulti((item, consumer) -> consumer.accept(JSONObject.from(item)))
-                    .flatMap(obj -> collectFlatHeaders(obj, ""))
+                    .flatMap(obj -> this.collectFlatHeaders(obj, ""))
                     .collect(Collectors.toCollection(LinkedHashSet::new))
                     .toArray(String[]::new);
             return JSONObject.of(
@@ -71,7 +71,7 @@ public class XlsxConverter extends TableStructure {
         return obj.keySet().stream().mapMulti((key, consumer) -> {
             final String fullKey = StrUtil.isEmpty(parentKey) ? key : "%s_%s".formatted(parentKey, key);
             if (obj.get(key) instanceof final JSONObject nestedObj) {
-                collectFlatHeaders(nestedObj, fullKey).forEach(consumer);
+                this.collectFlatHeaders(nestedObj, fullKey).forEach(consumer);
             } else {
                 consumer.accept(fullKey);
             }

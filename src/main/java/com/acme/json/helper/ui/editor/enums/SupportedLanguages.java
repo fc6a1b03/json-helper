@@ -19,6 +19,7 @@ import java.util.Arrays;
  */
 public enum SupportedLanguages {
     YAML(YAMLFileType.YML, AnyFile.YAML),
+    TOON(YAMLFileType.YML, AnyFile.YAML),
     XML(XmlFileType.INSTANCE, AnyFile.XML),
     TOML(TomlFileType.INSTANCE, AnyFile.TOML),
     JSON(JsonFileType.INSTANCE, AnyFile.JSON),
@@ -53,7 +54,7 @@ public enum SupportedLanguages {
      */
     @SuppressWarnings("unchecked")
     public <T extends LanguageFileType> T getFileType() {
-        return (T) fileType;
+        return (T) this.fileType;
     }
 
     /**
@@ -61,6 +62,6 @@ public enum SupportedLanguages {
      * @return {@link AnyFile }
      */
     public AnyFile getExtension() {
-        return extension;
+        return this.extension;
     }
 }

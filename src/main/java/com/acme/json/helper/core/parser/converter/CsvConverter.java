@@ -19,11 +19,6 @@ import java.util.stream.Collectors;
  */
 public class CsvConverter extends TableStructure {
     /**
-     * CSV转换器
-     */
-    private static final CsvMapper csv = new CsvMapper();
-
-    /**
      * 标准化为数组
      * @param json 数据
      * @return {@link JSONArray }
@@ -32,7 +27,7 @@ public class CsvConverter extends TableStructure {
         return Opt.of(JSON.parse(json))
                 .filter(JSONArray.class::isInstance)
                 .map(JSONArray.class::cast)
-                .orElseGet(() -> new JSONArray().fluentAdd(JSONObject.parse(json)));
+                .orElseGet(() -> JSONArray.of().fluentAdd(JSONObject.parse(json)));
     }
 
     /**
@@ -54,7 +49,7 @@ public class CsvConverter extends TableStructure {
     public String convert(final String json) throws ConvertException {
         try {
             final JSONArray data = normalizeToArray(json);
-            return csv.writer(
+            return CsvMapper.builder().build().writer(
                     CsvSchema.builder()
                             .addColumns(extractColumns(data))
                             .build()

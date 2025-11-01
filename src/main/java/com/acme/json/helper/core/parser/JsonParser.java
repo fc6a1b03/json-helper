@@ -20,6 +20,7 @@ public class JsonParser {
             new XmlConverter(),
             new CsvConverter(),
             new YamlConverter(),
+            new ToonConverter(),
             new TomlConverter(),
             new XlsxConverter(),
             new ClassConverter(),
@@ -37,15 +38,13 @@ public class JsonParser {
     public static String convert(final String json, final AnyFile targetFormat) {
         return CONVERTERS.stream()
                 .filter(c -> c.support(targetFormat))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("不支持的格式"))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("不支持的格式"))
                 .convert(json);
     }
 
     /**
      * 反向转换
-     *
-     * @param json 数据
+     * @param json         数据
      * @param targetFormat 目标格式
      * @return {@link String }
      */
@@ -55,8 +54,7 @@ public class JsonParser {
         }
         return CONVERTERS.stream()
                 .filter(c -> c.support(targetFormat))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("不支持的格式"))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("不支持的格式"))
                 .reverseConvert(json);
     }
 }

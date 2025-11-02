@@ -5,9 +5,9 @@ Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 J
 
 ## 运行环境
 
-- **JDK**: 21 或更高稳定版本
-- **Gradle**: 9.0 或更高版本
-- **IntelliJ IDEA**: 2023.1 或更高版本
+- **JDK**: 21 (跟随IDEA主线)
+- **Gradle**: 9 或更高版本
+- **IntelliJ IDEA**: 2024.1 或更高版本
 
 ## 预览
 

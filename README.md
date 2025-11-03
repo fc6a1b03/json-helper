@@ -1,3 +1,13 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fc6a1b03/json-helper)
+[![JDK](https://img.shields.io/badge/JDK-21-green.svg)](https://openjdk.org/projects/jdk/21/)
+[![Gradle](https://img.shields.io/badge/Gradle-9+-0076CD.svg)](https://gradle.org)
+[![IDEA](https://img.shields.io/badge/IntelliJ_IDEA-2024.1+-FF318C.svg)](https://www.jetbrains.com/idea)
+[![GitHub Release](https://img.shields.io/github/v/release/fc6a1b03/json-helper)](https://github.com/fc6a1b03/json-helper/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/fc6a1b03/json-helper/build_jar.yml?branch=master)](https://github.com/fc6a1b03/json-helper/actions)
+[![License](https://img.shields.io/github/license/fc6a1b03/json-helper.svg)](LICENSE)
+[![GitHub total commits](https://img.shields.io/github/commit-activity/t/fc6a1b03/json-helper)](https://github.com/fc6a1b03/json-helper/commits)
+[![GitHub Repo stars](https://img.shields.io/github/stars/fc6a1b03/json-helper?style=flat&logo=github)](https://github.com/fc6a1b03/json-helper/stargazers)
+
 # Json Helper Plugin
 
 Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON

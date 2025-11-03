@@ -33,12 +33,11 @@ public class TypeResolver {
      *   <li>对象反序列化时的默认值填充</li>
      *   <li>动态创建示例对象时的字段初始化</li>
      * </ul>
-     *
      * @implNote 使用不可变Map保证线程安全，Map.ofEntries创建的映射表具有如下特性：
-     * <li>键集合包含基本类型名称和String全限定名</li>
-     * <li>所有数值类型使用绝对值保证非负</li>
-     * <li>short类型通过Convert.toShort进行范围适配</li>
-     * <li>虽然String不是基本类型，但因其高频使用特性特别包含在此映射表中</li>
+     *         <li>键集合包含基本类型名称和String全限定名</li>
+     *         <li>所有数值类型使用绝对值保证非负</li>
+     *         <li>short类型通过Convert.toShort进行范围适配</li>
+     *         <li>虽然String不是基本类型，但因其高频使用特性特别包含在此映射表中</li>
      */
     private static final Map<String, Function0<Object>> DEFAULTS = Map.ofEntries(
             // 原始类型
@@ -85,8 +84,7 @@ public class TypeResolver {
     public static Object getDefault(final PsiType type) {
         return Opt.ofNullable(type)
                 .map(t -> DEFAULTS.get(t.getCanonicalText()))
-                .map(Function0::invoke)
-                .orElse(null);
+                .map(Function0::invoke).orElse(null);
     }
 
     /**
@@ -96,18 +94,14 @@ public class TypeResolver {
      */
     public static String getEnumValue(final PsiClassType type) {
         return Opt.ofNullable(type.resolve())
-                .stream()
+                .stream().filter(Objects::nonNull)
                 .flatMap(c -> Arrays.stream(c.getAllFields()))
-                .filter(Objects::nonNull)
-                .filter(PsiEnumConstant.class::isInstance)
-                .findFirst()
-                .map(PsiField::getName)
-                .orElse("");
+                .filter(Objects::nonNull).filter(PsiEnumConstant.class::isInstance)
+                .findFirst().map(PsiField::getName).orElse("");
     }
 
     /**
      * 解析类型并生成对应的默认值或数据结构
-     *
      * @param type      需要解析的PSI类型对象（如基本类型/集合/自定义类等）
      * @param processed 已处理类型的集合，用于防止循环解析和重复处理
      * @return {@link Object}
@@ -118,29 +112,29 @@ public class TypeResolver {
      *         - 随机生成的字符串
      *         - 自定义类型的递归解析结果
      *         当遇到无法解析的类型时返回null
-     *
      * @implNote 方法通过ReadAction保证线程安全，适用于IntelliJ PSI模型访问。
      */
     public static Object resolve(final PsiType type, final Set<PsiClass> processed) {
         return ReadAction.compute(() -> switch (type) {
             // 基本类型，返回类型默认值
-            case PsiPrimitiveType pt -> getDefault(pt);
+            case final PsiPrimitiveType pt -> getDefault(pt);
             // 其他基础类型
-            case PsiClassType ct when DEFAULTS.containsKey(ct.getCanonicalText()) -> getDefault(ct);
+            case final PsiClassType ct when DEFAULTS.containsKey(ct.getCanonicalText()) -> getDefault(ct);
             // 数组类型，处理为包含示例元素的数组
-            case PsiArrayType at -> CollectionTypeHandler.handleArray(at, processed);
+            case final PsiArrayType at -> CollectionTypeHandler.handleArray(at, processed);
             // 枚举类型，返回枚举的第一个常量值
-            case PsiClassType ct when ct.resolve() instanceof PsiClass c && c.isEnum() -> getEnumValue(ct);
+            case final PsiClassType ct when ct.resolve() instanceof final PsiClass c && c.isEnum() -> getEnumValue(ct);
             // 时间类型（如LocalDate），返回格式化字符串（如"2023-01-01"）
-            case PsiClassType ct when ct.resolve() instanceof PsiClass c && TemporalTypeHandler.isTemporal(c) ->
+            case final PsiClassType ct when ct.resolve() instanceof final PsiClass c && TemporalTypeHandler.isTemporal(c) ->
                     TemporalTypeHandler.format(c);
             // 集合类型（List/Set），创建包含示例元素的集合
-            case PsiClassType ct when CollectionTypeHandler.isCollection(ct) ->
+            case final PsiClassType ct when CollectionTypeHandler.isCollection(ct) ->
                     CollectionTypeHandler.handleCollection(ct, processed);
             // Map类型，创建包含示例键值对的Map
-            case PsiClassType ct when CollectionTypeHandler.isMap(ct) -> CollectionTypeHandler.handleMap(ct, processed);
+            case final PsiClassType ct when CollectionTypeHandler.isMap(ct) ->
+                    CollectionTypeHandler.handleMap(ct, processed);
             // 自定义类型，递归解析类结构
-            case PsiClassType ct -> Opt.ofNullable(ct.resolve())
+            case final PsiClassType ct -> Opt.ofNullable(ct.resolve())
                     // 递归调用类解析器
                     .map(c -> ClassParser.parseInternal(c, processed))
                     // 当类无法解析时返回null

@@ -73,10 +73,8 @@ public class PathParser {
         return CompletableFuture.supplyAsync(() -> {
             try (final HttpResponse response = HttpUtil.createGet(url).execute()) {
                 // 使用响应状态码过滤，仅`>= 200 && < 300`状态码视为成功
-                return Opt.of(response.isOk())
-                        .filter(i -> i)
-                        .map(item -> response.body())
-                        .orElse("");
+                return Opt.of(response.isOk()).filter(i -> i)
+                        .map(item -> response.body()).orElse("");
             } catch (final Exception ignored) {
                 return "";
             }

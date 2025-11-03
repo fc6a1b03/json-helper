@@ -33,10 +33,8 @@ public class JwtParser {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return Opt.ofBlankAble(token)
-                        .map(JWT::decode)
-                        .filter(Objects::nonNull)
-                        .map(JwtParser::convertToJson)
-                        .filter(StrUtil::isNotEmpty)
+                        .map(JWT::decode).filter(Objects::nonNull)
+                        .map(JwtParser::convertToJson).filter(StrUtil::isNotEmpty)
                         .orElse("");
             } catch (final JWTDecodeException e) {
                 return "";
@@ -65,10 +63,7 @@ public class JwtParser {
      */
     private static Object decode(final String base64Str) {
         return Opt.ofBlankAble(base64Str)
-                .map(item -> StrUtil.utf8Str(DECODER.decode(item)))
-                .filter(JSON::isValid)
-                .map(JSON::parse)
-                .filter(Objects::nonNull)
-                .orElse("");
+                .map(item -> StrUtil.utf8Str(DECODER.decode(item))).filter(JSON::isValid)
+                .map(JSON::parse).filter(Objects::nonNull).orElse("");
     }
 }

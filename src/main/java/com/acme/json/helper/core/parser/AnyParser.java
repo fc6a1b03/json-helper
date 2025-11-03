@@ -86,7 +86,7 @@ public class AnyParser {
             final Object result = new Yaml().load(input);
             return result instanceof Map || result instanceof List<?>;
         } catch (final Exception e) {
-            return false;
+            return Boolean.FALSE;
         }
     }
 
@@ -99,7 +99,7 @@ public class AnyParser {
         try {
             return Toml.parse(input).errors().isEmpty();
         } catch (final Exception e) {
-            return false;
+            return Boolean.FALSE;
         }
     }
 

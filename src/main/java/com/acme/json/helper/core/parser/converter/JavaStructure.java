@@ -205,10 +205,14 @@ public abstract class JavaStructure implements DataFormatConverter {
     private static String getJavaType(final Object value) {
         return switch (value) {
             case final String ignored -> "String";
-            case final Integer ignored -> "int";
-            case final Long ignored -> "long";
-            case final Double ignored -> "double";
-            case final Boolean ignored -> "boolean";
+            case final Integer ignored -> "Integer";
+            case final Long ignored -> "Long";
+            case final Double ignored -> "Double";
+            case final Float ignored -> "Float";
+            case final Boolean ignored -> "Boolean";
+            case final Byte ignored -> "Byte";
+            case final Short ignored -> "Short";
+            case final Character ignored -> "Character";
             case null, default -> "Object";
         };
     }
@@ -275,15 +279,15 @@ public abstract class JavaStructure implements DataFormatConverter {
         }
 
         public String getClassName() {
-            return className;
+            return this.className;
         }
 
         public List<Field> getFields() {
-            return fields;
+            return this.fields;
         }
 
         public List<ClassStructure> getNestedClasses() {
-            return nestedClasses;
+            return this.nestedClasses;
         }
     }
 
@@ -308,7 +312,7 @@ public abstract class JavaStructure implements DataFormatConverter {
         }
 
         public String getName() {
-            return name;
+            return this.name;
         }
 
         public Field setName(final String name) {
@@ -317,7 +321,7 @@ public abstract class JavaStructure implements DataFormatConverter {
         }
 
         public String getType() {
-            return type;
+            return this.type;
         }
 
         public Field setType(final String type) {

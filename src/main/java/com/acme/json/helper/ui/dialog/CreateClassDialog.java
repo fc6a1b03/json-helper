@@ -49,10 +49,6 @@ public class CreateClassDialog extends DialogWrapper {
      */
     private final Project project;
     /**
-     * 目标目录
-     */
-    private final PsiDirectory targetDirectory;
-    /**
      * json文本区域
      */
     private final JBTextArea jsonTextArea;
@@ -60,6 +56,10 @@ public class CreateClassDialog extends DialogWrapper {
      * 类名字段
      */
     private final JBTextField classNameField;
+    /**
+     * 目标目录
+     */
+    private final PsiDirectory targetDirectory;
     /**
      * 实体类单选按钮
      */

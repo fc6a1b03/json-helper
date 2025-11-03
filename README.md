@@ -11,7 +11,7 @@
 # Json Helper Plugin
 
 Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON
-数据，还支持通过 JsonPath 进行高效查询和处理。[更多细节](https://deepwiki.com/fc6a1b03/json-helper)
+数据，还支持通过 JsonPath 进行高效查询和处理。
 
 ## 运行环境
 

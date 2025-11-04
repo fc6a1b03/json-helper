@@ -65,10 +65,9 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         ApplicationManager.getApplication().getMessageBus().connect()
                 .subscribe(AppLifecycleListener.TOPIC, new AppLifecycleListener() {
                     /**
-                     * 应用程序关闭时进行历史存储
+                     * 编辑器储存
                      */
-                    @Override
-                    public void appClosing() {
+                    private static void editorStore() {
                         Arrays.stream(ProjectManager.getInstance().getOpenProjects()).map(ToolWindowManager::getInstance)
                                 .map(manager -> manager.getToolWindow("Json Helper")).filter(Objects::nonNull)
                                 .forEach(window -> {
@@ -85,6 +84,22 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                                                             ).toList()
                                             ));
                                 });
+                    }
+
+                    /**
+                     * 应用关闭时进行历史存储
+                     */
+                    @Override
+                    public void appClosing() {
+                        this.editorStore();
+                    }
+
+                    /**
+                     * 项目关闭时进行历史存储
+                     */
+                    @Override
+                    public void projectFrameClosed() {
+                        this.editorStore();
                     }
                 });
     }
@@ -103,7 +118,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                             .map(EditorState::decode).filter(CollUtil::isNotEmpty).orElseGet(List::of)
             ).ifPresentOrElse(
                     // 填充编辑器历史
-                    item -> item.forEach(state -> createNewTab(project, toolWindow, state)),
+                    item -> item.forEach(state -> this.createNewTab(project, toolWindow, state)),
                     // 创建初始页签
                     () -> this.createNewTab(project, toolWindow, null)
             );

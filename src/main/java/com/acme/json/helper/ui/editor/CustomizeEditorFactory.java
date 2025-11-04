@@ -8,28 +8,18 @@ import com.intellij.ui.EditorTextField;
 
 /**
  * 编辑器工厂
+ * @param fileName 文件名
+ * @param language 编辑器语言
  * @author 拒绝者
  * @date 2025-04-22
  */
-public final class CustomizeEditorFactory implements Editor {
-    /**
-     * 文件名
-     */
-    private final String fileName;
-    /**
-     * 编辑器语言
-     */
-    private final SupportedLanguages language;
-
+public record CustomizeEditorFactory(SupportedLanguages language, String fileName) implements Editor {
     /**
      * 编辑器工厂
-     *
      * @param language 语言
      * @param fileName 文件名
      */
-    public CustomizeEditorFactory(final SupportedLanguages language, final String fileName) {
-        this.fileName = fileName;
-        this.language = language;
+    public CustomizeEditorFactory {
     }
 
     @Override

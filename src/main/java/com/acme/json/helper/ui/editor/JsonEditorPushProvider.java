@@ -22,14 +22,12 @@ import java.util.Optional;
 
 /**
  * JSON编辑器推送
- *
  * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonEditorPushProvider {
     /**
      * 将内容推送到JSON编辑器
-     *
      * @param project 项目
      * @param content 内容
      */
@@ -78,7 +76,6 @@ public class JsonEditorPushProvider {
      * - 优先复用空白编辑器，避免创建过多冗余标签页
      * - 按标签页打开顺序进行查找（从最早到最新）
      * - 仅检查直接包含在JPanel中的编辑器组件
-     *
      * @param config 编辑器配置对象，包含工具窗口引用等上下文信息
      * @return 包装在{@link Optional}中的可用编辑器实例，找不到时返回{@link Optional#empty()}
      */
@@ -105,11 +102,10 @@ public class JsonEditorPushProvider {
 
     /**
      * 深度查找编辑器组件（递归搜索容器结构）
-     *
      * @param container 容器
      * @return {@link EditorTextField }
      */
-    private static EditorTextField deepFindEditor(@NotNull final Container container) {
+    public static EditorTextField deepFindEditor(@NotNull final Container container) {
         // 遍历容器的直接子组件
         for (final Component comp : container.getComponents()) {
             // 类型匹配检查：发现目标编辑器组件时立即返回
@@ -128,9 +124,8 @@ public class JsonEditorPushProvider {
 
     /**
      * 更新编辑器内容
-     *
      * @param editor 编辑器
-     * @param text 文本
+     * @param text   文本
      */
     private static void updateEditorContent(@NotNull final EditorConfig config, @NotNull final EditorTextField editor, @NotNull final String text) {
         ApplicationManager.getApplication().invokeLater(() -> {
@@ -157,13 +152,12 @@ public class JsonEditorPushProvider {
 
     /**
      * 创建新编辑器标签页
-     *
      * @param config 编辑器配置
-     * @param text 文本
+     * @param text   文本
      */
     private static void createNewEditorTab(@NotNull final EditorConfig config, @NotNull final String text) {
         // 创建新的工具窗口标签页（该操作会触发UI更新）
-        new MainToolWindowFactory().createNewTab(config.project(), config.toolWindow());
+        new MainToolWindowFactory().createNewTab(config.project(), config.toolWindow(), null);
         ApplicationManager.getApplication().invokeLater(() -> {
             // 获取窗口所有内容管理
             final Content[] contents = config.toolWindow().getContentManager().getContents();
@@ -181,7 +175,6 @@ public class JsonEditorPushProvider {
 
     /**
      * 编辑器配置记录类
-     *
      * @param project    当前项目实例
      * @param toolWindow JSON工具窗口实例
      */

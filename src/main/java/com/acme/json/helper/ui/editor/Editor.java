@@ -65,7 +65,6 @@ public sealed interface Editor permits CustomizeEditorFactory {
 
     /**
      * 重新格式化编辑器内容
-     *
      * @param editor 编辑器对象
      */
     static void reformat(final EditorTextField editor) {

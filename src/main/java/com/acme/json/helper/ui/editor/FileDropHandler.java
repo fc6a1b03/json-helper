@@ -20,9 +20,13 @@ import java.util.ResourceBundle;
  * @date 2025-01-27
  */
 public class FileDropHandler extends DropTargetAdapter {
-    /** 加载语言资源文件 */
+    /**
+     * 加载语言资源文件
+     */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    /** 编辑器对象 */
+    /**
+     * 编辑器对象
+     */
     private final EditorTextField editor;
 
     public FileDropHandler(final EditorTextField editor) {
@@ -57,7 +61,7 @@ public class FileDropHandler extends DropTargetAdapter {
             } else {
                 e.rejectDrop();
             }
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
             e.rejectDrop();
             Notifier.notifyError(BUNDLE.getString("file.to.path.warn"), editor.getProject());
         }

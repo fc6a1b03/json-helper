@@ -113,7 +113,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     public void createToolWindowContent(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
         ApplicationManager.getApplication().invokeLater(() -> {
             // 加载编辑器历史
-            Opt.ofBlankAble(
+            Opt.ofEmptyAble(
                     Opt.ofNullable(PropertiesComponent.getInstance(project).getValue("jsonhelper.state"))
                             .map(EditorState::decode).filter(CollUtil::isNotEmpty).orElseGet(List::of)
             ).ifPresentOrElse(

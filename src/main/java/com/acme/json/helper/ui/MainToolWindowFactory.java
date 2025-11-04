@@ -1,12 +1,18 @@
 package com.acme.json.helper.ui;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.ui.editor.CustomizeEditorFactory;
 import com.acme.json.helper.ui.editor.Editor;
+import com.acme.json.helper.ui.editor.JsonEditorPushProvider;
 import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
+import com.acme.json.helper.ui.editor.record.EditorState;
 import com.acme.json.helper.ui.panel.JsonTreePanel;
 import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.AppLifecycleListener;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -14,8 +20,10 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
@@ -32,6 +40,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * json-helper工具窗口
@@ -39,10 +49,45 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025-01-18
  */
 public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
-    /** 标签计数器 */
+    /**
+     * 标签计数器
+     */
     private static final AtomicInteger tabCounter = new AtomicInteger(0);
-    /** 加载资源文件 */
+    /**
+     * 加载资源文件
+     */
     private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
+
+    /**
+     * 全局窗口监视器
+     */
+    private static void globalWindowMonitor() {
+        ApplicationManager.getApplication().getMessageBus().connect()
+                .subscribe(AppLifecycleListener.TOPIC, new AppLifecycleListener() {
+                    /**
+                     * 应用程序关闭时进行历史存储
+                     */
+                    @Override
+                    public void appClosing() {
+                        Arrays.stream(ProjectManager.getInstance().getOpenProjects()).map(ToolWindowManager::getInstance)
+                                .map(manager -> manager.getToolWindow("Json Helper")).filter(Objects::nonNull)
+                                .forEach(window -> {
+                                    final Content[] contents = window.getContentManager().getContents();
+                                    PropertiesComponent.getInstance(window.getProject())
+                                            .setValue("jsonhelper.state", EditorState.encode(
+                                                    IntStream.range(0, contents.length).boxed()
+                                                            .flatMap(number ->
+                                                                    Opt.ofNullable(JsonEditorPushProvider.deepFindEditor(contents[number].getComponent()))
+                                                                            .filter(Objects::nonNull)
+                                                                            .map(field ->
+                                                                                    Stream.of(new EditorState(Convert.toInt(contents[number].getTabName()), field.getText()))
+                                                                            ).orElseGet(Stream::empty)
+                                                            ).toList()
+                                            ));
+                                });
+                    }
+                });
+    }
 
     /**
      * 创建工具窗口内容
@@ -52,8 +97,18 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     @Override
     public void createToolWindowContent(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
         ApplicationManager.getApplication().invokeLater(() -> {
-            // 创建初始页签
-            this.createNewTab(project, toolWindow);
+            // 加载编辑器历史
+            Opt.ofBlankAble(
+                    Opt.ofNullable(PropertiesComponent.getInstance(project).getValue("jsonhelper.state"))
+                            .map(EditorState::decode).filter(CollUtil::isNotEmpty).orElseGet(List::of)
+            ).ifPresentOrElse(
+                    // 填充编辑器历史
+                    item -> item.forEach(state -> createNewTab(project, toolWindow, state)),
+                    // 创建初始页签
+                    () -> this.createNewTab(project, toolWindow, null)
+            );
+            // 全局窗口监视器
+            globalWindowMonitor();
             // 绑定活动分组到窗口
             toolWindow.setTitleActions(List.of(this.createActionGroup(project, toolWindow)));
         });
@@ -63,29 +118,28 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      * 创建新的页签
      * @param project    项目
      * @param toolWindow 工具窗口
+     * @param restore    恢复内容
      */
-    public void createNewTab(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
+    public void createNewTab(@NotNull final Project project, @NotNull final ToolWindow toolWindow, final EditorState restore) {
         // 增加页签号数
-        final int number = tabCounter.incrementAndGet();
+        final int number = Opt.ofNullable(restore).map(EditorState::editorId).peek(tabCounter::set).orElseGet(tabCounter::incrementAndGet);
         // 创建页签内容面板
-        final JPanel contentPanel = this.createWindowContent(project, number);
+        final JPanel contentPanel = this.createWindowContent(project, number, Opt.ofNullable(restore).map(EditorState::content).orElse(null));
         // 创建页签内容
         final Content content = ContentFactory.getInstance().createContent(contentPanel, String.valueOf(number), Boolean.FALSE);
+        // 可关闭设置
         content.setCloseable(Boolean.TRUE);
         // 页签关闭时释放资源
         content.setDisposer(() -> {
             // 销毁所有窗口组件
-            Arrays.stream(contentPanel.getComponents())
-                    .filter(Objects::nonNull)
-                    .filter(EditorTextField.class::isInstance)
-                    .map(EditorTextField.class::cast)
+            Arrays.stream(contentPanel.getComponents()).filter(Objects::nonNull)
+                    .filter(EditorTextField.class::isInstance).map(EditorTextField.class::cast)
                     .map(EditorTextField::getEditor).filter(Objects::nonNull)
                     .forEach(editor -> EditorFactory.getInstance().releaseEditor(editor));
             // 所有页签关闭后重置计数器
             ApplicationManager.getApplication().invokeLater(() ->
                     Opt.of(toolWindow.getContentManager().getContentCount() == 0)
-                            .filter(i -> i)
-                            .ifPresent(item -> tabCounter.set(0))
+                            .filter(i -> i).ifPresent(item -> tabCounter.set(0))
             );
         });
         // 将页签内容添加到工具窗口
@@ -108,7 +162,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                 // 检查项目和窗口是否有效
                 if (project.isDisposed() || toolWindow.isDisposed()) return;
                 // 创建新页签
-                MainToolWindowFactory.this.createNewTab(project, toolWindow);
+                MainToolWindowFactory.this.createNewTab(project, toolWindow, null);
             }
         });
         return actionGroup;
@@ -118,13 +172,16 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      * 创建窗口内容
      * @param project 项目
      * @param number  页签号数
+     * @param content 内容
      * @return {@link JPanel }
      */
-    private JPanel createWindowContent(@NotNull final Project project, final int number) {
+    private JPanel createWindowContent(@NotNull final Project project, final int number, final String content) {
         // 窗口工具
         final JPanel toolWindow = new JPanel(new BorderLayout(0, 0));
         // 创建JSON编辑器
         final EditorTextField editor = new CustomizeEditorFactory(SupportedLanguages.JSON, "Dummy_%d.json".formatted(number)).create(project);
+        // 填充内容
+        Opt.ofBlankAble(content).ifPresent(editor::setText);
         // 等待编辑器初始化后，挂载面板功能
         ApplicationManager.getApplication().invokeLater(() -> {
             // JSON编辑框绑定拖放监听
@@ -141,7 +198,6 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     /**
      * 创建合成面板
-     *
      * @param editor 编辑器
      * @return {@link JPanel }
      */
@@ -200,7 +256,6 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     /**
      * 初始化分割窗格布局
-     *
      * @param splitPane 拆分窗格
      */
     private void initSplitPaneLayout(final JSplitPane splitPane) {

@@ -10,6 +10,7 @@ import com.acme.json.helper.core.parser.JsonParser;
 import com.acme.json.helper.ui.editor.CustomizeEditorFactory;
 import com.acme.json.helper.ui.editor.Editor;
 import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
+import com.acme.json.helper.ui.notice.Notifier;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.intellij.icons.AllIcons;
@@ -21,7 +22,6 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.components.JBScrollPane;
@@ -386,7 +386,7 @@ public class ConvertAnyDialog extends DialogWrapper {
                     workbook.write(fileOut);
                 }
             } catch (final Exception e) {
-                Messages.showErrorDialog("%s: %s".formatted(BUNDLE.getString("export.xlsx.error.msg"), e.getMessage()), BUNDLE.getString("export.xlsx.error.title"));
+                Notifier.notifyError("%s: %s".formatted(BUNDLE.getString("export.xlsx.error.msg"), e.getMessage()), this.project);
             }
         }
     }

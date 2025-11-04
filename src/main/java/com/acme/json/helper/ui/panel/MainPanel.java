@@ -53,13 +53,13 @@ public class MainPanel {
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
     /**
-     * 撤销历史堆栈
-     */
-    private final Deque<String> undoStack = new ArrayDeque<>();
-    /**
      * 重做历史堆栈
      */
     private final Deque<String> redoStack = new ArrayDeque<>();
+    /**
+     * 撤销历史堆栈
+     */
+    private final Deque<String> undoStack = new ArrayDeque<>();
     /**
      * 原始记录`用于JSON搜索`
      */

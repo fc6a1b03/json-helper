@@ -6,10 +6,8 @@ import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +24,14 @@ public record EditorState(Integer editorId, String content) {
      * ASCII Record Separator 分隔符（内）
      */
     private static final String SEP_INTERNAL = "\u001F";
+    /**
+     * JsonHelper 状态密钥
+     */
+    public static final String JSON_HELPER_STATE_KEY = "json:helper:state";
+    /**
+     * 存储幂等
+     */
+    public static final Set<String> SAVED_MARK = ConcurrentHashMap.newKeySet();
 
     /**
      * 编码

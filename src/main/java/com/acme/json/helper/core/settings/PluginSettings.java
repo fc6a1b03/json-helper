@@ -15,21 +15,25 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
+import static com.acme.json.helper.ui.MainToolWindowFactory.PROJECT_NAME;
+
 /**
  * 插件设置
- *
  * @author 拒绝者
  * @date 2025-02-02
  */
 public class PluginSettings implements Configurable {
-    /** 加载语言资源文件 */
+    /**
+     * 加载语言资源文件
+     */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    /** 设置组件 */
+    /**
+     * 设置组件
+     */
     private PluginSettingsComponent component;
 
     /**
      * 获取设置
-     *
      * @return {@link PluginSettingsState }
      */
     public static PluginSettingsState of() {
@@ -38,7 +42,7 @@ public class PluginSettings implements Configurable {
 
     @Override
     public @NlsContexts.ConfigurableName String getDisplayName() {
-        return "Json Helper";
+        return PROJECT_NAME;
     }
 
     @NotNull
@@ -86,7 +90,6 @@ public class PluginSettings implements Configurable {
 
     /**
      * 设置组件详细
-     *
      * @author 拒绝者
      * @date 2025-02-02
      */
@@ -105,8 +108,7 @@ public class PluginSettings implements Configurable {
 
         /**
          * 组合设置
-         *
-         * @param title 标题
+         * @param title      标题
          * @param components 组件
          * @return {@link JPanel }
          */
@@ -119,7 +121,6 @@ public class PluginSettings implements Configurable {
 
         /**
          * 获取面板
-         *
          * @param callback 返回组件本体
          * @return {@link JPanel }
          */

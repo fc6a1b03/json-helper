@@ -1,6 +1,7 @@
 package com.acme.json.helper.ui.action;
 
 import cn.hutool.core.lang.Opt;
+import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.ActionEventCheck;
 import com.acme.json.helper.common.UastSupported;
 import com.acme.json.helper.core.json.JsonFormatter;
@@ -20,6 +21,9 @@ import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.ResourceBundle;
+
+import static com.acme.json.helper.ui.MainToolWindowFactory.PROJECT_NAME;
 
 /**
  * 统一JSON处理操作，整合Java类转JSON和JSON文本处理功能
@@ -27,12 +31,15 @@ import java.util.Objects;
  * 功能逻辑：
  * 1. 在Java文件上下文：生成类结构对应的JSON并推送到JSON编辑器
  * 2. 在JSON文本选区上下文：发送到JSON辅助工具窗口进行可视化处理
- *
- *
  * @author 拒绝者
  * @since 2025-01-28
  */
 public class JsonHelperAction extends AnAction {
+    /**
+     * 加载资源文件
+     */
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
+
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
         return ActionUpdateThread.BGT;
@@ -44,7 +51,6 @@ public class JsonHelperAction extends AnAction {
      * 判断逻辑：
      * 1. 当前为支持UAST解析的Java文件（光标位于类定义内）
      * 2. 或存在有效的JSON文本选区
-     *
      * @param e 行动事件
      */
     @Override
@@ -58,8 +64,8 @@ public class JsonHelperAction extends AnAction {
                     this.checkJavaContextValidity(e) || this.checkJsonSelectionValidity(e)
             );
         }
-        e.getPresentation().setText("Json Helper");
-        e.getPresentation().setDescription("Send JSON to json helper editor toolwindow");
+        e.getPresentation().setText(PROJECT_NAME);
+        e.getPresentation().setDescription(bundle.getString("send.json.editor.toolwindow.text"));
     }
 
     /**
@@ -68,7 +74,6 @@ public class JsonHelperAction extends AnAction {
      * 执行优先级：
      * 1. 优先处理Java文件上下文
      * 2. 其次处理JSON文本选区
-     *
      * @param e 行动事件
      */
     @Override
@@ -91,7 +96,6 @@ public class JsonHelperAction extends AnAction {
      * 3. 是UAST语言支持
      * 4. 是有效的`PsiFile`
      * 5. 是`Java`文件
-     *
      * @param e 行动事件
      * @return true表示当前处于有效的Java类上下文
      */
@@ -116,7 +120,6 @@ public class JsonHelperAction extends AnAction {
      * 3. 存在有效的编辑器实例
      * 4. 编辑器存在文本选区
      * 5. 选中文本内容符合JSON语法规范
-     *
      * @param e 动作事件上下文，包含编辑器、项目等运行时数据
      * @return 验证结果：
      *         - true:  当前存在有效JSON选区
@@ -137,9 +140,8 @@ public class JsonHelperAction extends AnAction {
 
     /**
      * 处理Java类到JSON的转换逻辑
-     *
      * @param project 项目
-     * @param editor 编辑器
+     * @param editor  编辑器
      * @param psiFile psi文件
      */
     private void handleJavaClassContext(final Project project, final Editor editor, final PsiFile psiFile) {
@@ -156,7 +158,6 @@ public class JsonHelperAction extends AnAction {
 
     /**
      * 生成类结构JSON
-     *
      * @param psiClass psi等级
      * @return {@link String }
      */
@@ -166,7 +167,6 @@ public class JsonHelperAction extends AnAction {
 
     /**
      * 处理JSON文本选区逻辑
-     *
      * @param e 行动事件
      */
     private void handleJsonSelection(@NotNull final AnActionEvent e) {
@@ -182,7 +182,6 @@ public class JsonHelperAction extends AnAction {
      * 1. 从编辑器事件中获取当前选区文本
      * 2. 对多行文本执行公共缩进去除（适用于格式化后的JSON）
      * 3. 移除文本首尾的空白字符
-     *
      * @param e 动作事件上下文，包含编辑器实例等运行时数据
      * @return 处理后的标准化文本：
      *         - 当存在有效选区时：返回经缩进清理和修剪的文本
@@ -197,7 +196,7 @@ public class JsonHelperAction extends AnAction {
                 // 获取原始选区内容（可能为null）
                 .map(SelectionModel::getSelectedText)
                 // 消除多行文本的公共缩进
-                .map(text -> text.stripIndent().trim())
+                .map(text -> StrUtil.emptyIfNull(text).stripIndent().trim())
                 // 默认返回空字符串（任何环节为空时）
                 .orElse("");
     }

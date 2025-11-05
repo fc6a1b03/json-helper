@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.acme.json.helper.ui.MainToolWindowFactory.PROJECT_NAME;
+
 /**
  * JSON编辑器推送
  * @author 拒绝者
@@ -37,7 +39,7 @@ public class JsonEditorPushProvider {
                 project,
                 Opt.ofNullable(project)
                         // 获取项目关联的`Json Helper`工具窗口实例
-                        .map(p -> ToolWindowManager.getInstance(p).getToolWindow("Json Helper"))
+                        .map(p -> ToolWindowManager.getInstance(p).getToolWindow(PROJECT_NAME))
                         .orElse(null)
         );
         // 工具窗口对象

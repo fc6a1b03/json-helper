@@ -49,6 +49,12 @@
             <add-to-group group-id="NewGroup" anchor="first"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
         </action>
+        <!-- 注册项目搜索 -->
+        <action id="com.acme.json.helper.ui.search.ProjectSearchAction"
+                class="com.acme.json.helper.ui.search.ProjectSearchAction" text="_Project..."
+                description="Switch project">
+            <add-to-group group-id="GoToTargetEx"/>
+        </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <!-- 注册窗口 -->
@@ -68,5 +74,7 @@
         <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON"/>
         <!-- 控制台过滤器 -->
         <!--<consoleFilterProvider implementation="com.acme.json.helper.core.console.JsonFilterProvider"/>-->
+        <!-- 项目搜索器 -->
+        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ProjectSearchFactory"/>
     </extensions>
 </idea-plugin>

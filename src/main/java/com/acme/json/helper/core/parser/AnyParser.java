@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 /**
  * 任意解析器<br/>
  * 目前支持：xml、yaml、toml、properties
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-05-05
  * @see AnyFile
  */

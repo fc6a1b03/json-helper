@@ -4,11 +4,11 @@ plugins {
     id 'java'
     // https://github.com/JetBrains/intellij-platform-gradle-plugin
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-    id 'org.jetbrains.intellij.platform' version '2.10.3'
+    id 'org.jetbrains.intellij.platform' version '2.10.4'
 }
 
 group 'com.acme'
-version '0.9.6'
+version '0.9.7'
 
 repositories {
     mavenCentral()

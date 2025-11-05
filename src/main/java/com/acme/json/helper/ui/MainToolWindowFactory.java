@@ -11,7 +11,6 @@ import com.acme.json.helper.ui.editor.record.EditorState;
 import com.acme.json.helper.ui.panel.JsonTreePanel;
 import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;
-import com.intellij.ide.AppLifecycleListener;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -21,6 +20,7 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -43,12 +43,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.acme.json.helper.ui.editor.record.EditorState.JSON_HELPER_STATE_KEY;
+
 /**
  * json-helper工具窗口
  * @author 拒绝者
  * @date 2025-01-18
  */
 public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
+    /**
+     * 项目名称
+     */
+    public static final String PROJECT_NAME = "Json Helper";
     /**
      * 标签计数器
      */
@@ -60,47 +66,46 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     /**
      * 全局窗口监视器
+     * @param project 项目
      */
-    private static void globalWindowMonitor() {
-        ApplicationManager.getApplication().getMessageBus().connect()
-                .subscribe(AppLifecycleListener.TOPIC, new AppLifecycleListener() {
-                    /**
-                     * 编辑器储存
-                     */
-                    private static void editorStore() {
-                        Arrays.stream(ProjectManager.getInstance().getOpenProjects()).map(ToolWindowManager::getInstance)
-                                .map(manager -> manager.getToolWindow("Json Helper")).filter(Objects::nonNull)
-                                .forEach(window -> {
-                                    final Content[] contents = window.getContentManager().getContents();
-                                    PropertiesComponent.getInstance(window.getProject())
-                                            .setValue("jsonhelper.state", EditorState.encode(
-                                                    IntStream.range(0, contents.length).boxed()
-                                                            .flatMap(number ->
-                                                                    Opt.ofNullable(JsonEditorPushProvider.deepFindEditor(contents[number].getComponent()))
-                                                                            .filter(Objects::nonNull)
-                                                                            .map(field ->
-                                                                                    Stream.of(new EditorState(Convert.toInt(contents[number].getTabName()), field.getText()))
-                                                                            ).orElseGet(Stream::empty)
-                                                            ).toList()
-                                            ));
-                                });
-                    }
+    private static void globalWindowMonitor(@NotNull final Project project) {
+        // 清理幂等
+        EditorState.SAVED_MARK.remove(project.getLocationHash());
+        // 激活监听
+        ProjectManager.getInstance().addProjectManagerListener(project, new ProjectManagerListener() {
+            /**
+             * 项目关闭时进行历史存储
+             * @param p 项目对象（非工具窗口项目对象）
+             */
+            @Override
+            public void projectClosingBeforeSave(@NotNull final Project p) {
+                editorStore(project);
+            }
+        });
+    }
 
-                    /**
-                     * 应用关闭时进行历史存储
-                     */
-                    @Override
-                    public void appClosing() {
-                        this.editorStore();
-                    }
-
-                    /**
-                     * 项目关闭时进行历史存储
-                     */
-                    @Override
-                    public void projectFrameClosed() {
-                        this.editorStore();
-                    }
+    /**
+     * 编辑器储存
+     * @param project 项目
+     */
+    private static void editorStore(@NotNull final Project project) {
+        Opt.ofNullable(project).filter(p -> EditorState.SAVED_MARK.add(p.getLocationHash())).map(ToolWindowManager::getInstance)
+                .map(manager -> manager.getToolWindow(PROJECT_NAME)).filter(Objects::nonNull)
+                .ifPresent(window -> {
+                    final Content[] contents = window.getContentManager().getContents();
+                    PropertiesComponent.getInstance(project).setValue(
+                            JSON_HELPER_STATE_KEY,
+                            EditorState.encode(
+                                    IntStream.range(0, contents.length).boxed()
+                                            .flatMap(number ->
+                                                    Opt.ofNullable(JsonEditorPushProvider.deepFindEditor(contents[number].getComponent()))
+                                                            .filter(Objects::nonNull)
+                                                            .map(field ->
+                                                                    Stream.of(new EditorState(Convert.toInt(contents[number].getTabName()), field.getText()))
+                                                            ).orElseGet(Stream::empty)
+                                            ).toList()
+                            )
+                    );
                 });
     }
 
@@ -113,8 +118,8 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     public void createToolWindowContent(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
         ApplicationManager.getApplication().invokeLater(() -> {
             // 加载编辑器历史
-            Opt.ofBlankAble(
-                    Opt.ofNullable(PropertiesComponent.getInstance(project).getValue("jsonhelper.state"))
+            Opt.ofEmptyAble(
+                    Opt.ofNullable(PropertiesComponent.getInstance(project).getValue(JSON_HELPER_STATE_KEY))
                             .map(EditorState::decode).filter(CollUtil::isNotEmpty).orElseGet(List::of)
             ).ifPresentOrElse(
                     // 填充编辑器历史
@@ -123,7 +128,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                     () -> this.createNewTab(project, toolWindow, null)
             );
             // 全局窗口监视器
-            globalWindowMonitor();
+            globalWindowMonitor(project);
             // 绑定活动分组到窗口
             toolWindow.setTitleActions(List.of(this.createActionGroup(project, toolWindow)));
         });

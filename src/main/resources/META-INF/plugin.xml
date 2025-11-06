@@ -50,13 +50,13 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
         </action>
         <!-- 注册项目搜索 -->
-        <action id="com.acme.json.helper.ui.action.search.ProjectSearchAction"
+        <action id="ProjectSearchAction"
                 class="com.acme.json.helper.ui.action.search.ProjectSearchAction" text="_Project..."
                 description="Switch project">
             <add-to-group group-id="GoToTargetEx"/>
         </action>
         <!-- 代码截图 -->
-        <action id="com.acme.json.helper.ui.action.screenshot.CodeScreenshot"
+        <action id="CodeScreenshot"
                 class="com.acme.json.helper.ui.action.screenshot.CodeScreenshot"
                 text="Screenshot Selected Code" description="Screenshots the selected code snippet">
             <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl s"/>

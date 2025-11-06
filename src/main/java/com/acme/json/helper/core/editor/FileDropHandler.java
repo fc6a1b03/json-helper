@@ -1,7 +1,7 @@
-package com.acme.json.helper.ui.editor;
+package com.acme.json.helper.core.editor;
 
 import cn.hutool.core.util.StrUtil;
-import com.acme.json.helper.ui.notice.Notifier;
+import com.acme.json.helper.core.notice.Notifier;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.EditorTextField;
 

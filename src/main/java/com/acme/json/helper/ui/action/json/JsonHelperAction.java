@@ -1,13 +1,13 @@
-package com.acme.json.helper.ui.action;
+package com.acme.json.helper.ui.action.json;
 
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.ActionEventCheck;
 import com.acme.json.helper.common.UastSupported;
+import com.acme.json.helper.core.editor.JsonEditorPushProvider;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.parser.ClassParser;
 import com.acme.json.helper.core.settings.PluginSettings;
-import com.acme.json.helper.ui.editor.JsonEditorPushProvider;
 import com.alibaba.fastjson2.JSON;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;

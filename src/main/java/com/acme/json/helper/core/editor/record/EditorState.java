@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.editor.record;
+package com.acme.json.helper.core.editor.record;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
@@ -53,7 +53,7 @@ public record EditorState(Integer editorId, String content) {
      */
     public static List<EditorState> decode(final String raw) {
         return Arrays.stream(StrUtil.emptyIfNull(raw).split(SEP_OUTSIDE)).filter(StrUtil::isNotBlank)
-                .map(str -> str.split(SEP_INTERNAL)).filter(ArrayUtil::isNotEmpty)
+                .map(str -> str.split(SEP_INTERNAL)).filter(ArrayUtil::isNotEmpty).filter(array -> array.length == 2)
                 .map(strs -> new EditorState(Convert.toInt(strs[0]), StrUtil.utf8Str(Base64.getDecoder().decode(strs[1])))).toList();
     }
 }

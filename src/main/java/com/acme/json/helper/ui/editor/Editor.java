@@ -1,5 +1,6 @@
 package com.acme.json.helper.ui.editor;
 
+import com.acme.json.helper.core.editor.FileDropHandler;
 import com.intellij.openapi.actionSystem.IdeActions;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;

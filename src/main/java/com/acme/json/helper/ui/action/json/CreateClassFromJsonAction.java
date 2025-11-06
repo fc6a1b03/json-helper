@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.action;
+package com.acme.json.helper.ui.action.json;
 
 import com.acme.json.helper.ui.dialog.CreateClassDialog;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;

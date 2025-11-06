@@ -3,11 +3,11 @@ package com.acme.json.helper.ui;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Opt;
+import com.acme.json.helper.common.enums.SupportedLanguages;
+import com.acme.json.helper.core.editor.JsonEditorPushProvider;
+import com.acme.json.helper.core.editor.record.EditorState;
 import com.acme.json.helper.ui.editor.CustomizeEditorFactory;
 import com.acme.json.helper.ui.editor.Editor;
-import com.acme.json.helper.ui.editor.JsonEditorPushProvider;
-import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
-import com.acme.json.helper.ui.editor.record.EditorState;
 import com.acme.json.helper.ui.panel.JsonTreePanel;
 import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.acme.json.helper.ui.editor.record.EditorState.JSON_HELPER_STATE_KEY;
+import static com.acme.json.helper.core.editor.record.EditorState.JSON_HELPER_STATE_KEY;
 
 /**
  * json-helper工具窗口

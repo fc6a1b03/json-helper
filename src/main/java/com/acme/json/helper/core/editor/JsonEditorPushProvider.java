@@ -1,10 +1,11 @@
-package com.acme.json.helper.ui.editor;
+package com.acme.json.helper.core.editor;
 
 import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.ui.MainToolWindowFactory;
+import com.acme.json.helper.ui.editor.Editor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
@@ -134,7 +135,7 @@ public class JsonEditorPushProvider {
             // 将内容写入编辑器
             editor.setText(text);
             // 激活编辑器文本格式化
-            com.acme.json.helper.ui.editor.Editor.reformat(editor);
+            Editor.reformat(editor);
             // 激活对应页签
             Opt.ofNullable(Opt.ofNullable(editor.getParent())
                             .map(Component::getParent).filter(Objects::nonNull)

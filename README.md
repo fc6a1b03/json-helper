@@ -41,6 +41,43 @@ Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 J
    ```
    这将生成一个 `.zip` 文件，包含插件的所有资源和代码，直接选择本地安装即可。
 
+## 项目结构
+
+```
+.
+├── src/main
+│   ├── java/com/acme/json/helper
+│   │   ├── common                  # 通用工具类和枚举
+│   │   ├── core                    # 核心功能模块
+│   │   │   ├── console             # 控制台相关功能
+│   │   │   ├── editor              # 编辑器相关功能
+│   │   │   ├── json                # JSON处理核心功能
+│   │   │   ├── notice              # 通知相关功能
+│   │   │   ├── parser              # 解析器核心功能
+│   │   │   │   └── converter       # 各种格式转换器
+│   │   │   ├── search              # 搜索相关功能
+│   │   │   └── settings            # 插件设置相关功能
+│   │   └── ui                      # 用户界面模块
+│   │       ├── action              # 各种操作动作
+│   │       │   ├── json            # JSON相关的操作
+│   │       │   └── search          # 搜索相关的操作
+│   │       ├── dialog              # 对话框界面
+│   │       ├── editor              # 编辑器界面组件
+│   │       ├── panel               # 面板界面组件
+│   │       ├── search              # 搜索界面组件
+│   │       └── MainToolWindowFactory.java  # 主工具窗口工厂类
+│   └── resources
+│       ├── META-INF                # 插件配置文件
+│       ├── icons                   # 图标资源
+│       └── messages                # 国际化消息文件
+├── doc                             # 文档和截图
+├── wrapper                         # Gradle包装器
+├── build.gradle                    # Gradle构建脚本
+├── gradle.properties               # Gradle属性配置
+├── settings.gradle                 # Gradle设置文件
+└── LICENSE                         # 许可证文件
+```
+
 ## 其他
 
 [IDEA插件图标库](https://intellij-icons.jetbrains.design)

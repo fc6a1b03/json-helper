@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.search;
+package com.acme.json.helper.ui.action.search;
 
 import com.intellij.ide.actions.SearchEverywhereBaseAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

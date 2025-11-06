@@ -1,7 +1,7 @@
-package com.acme.json.helper.ui.search.cache;
+package com.acme.json.helper.core.search.cache;
 
 import cn.hutool.core.util.StrUtil;
-import com.acme.json.helper.ui.search.item.ProjectNavigationItem;
+import com.acme.json.helper.core.search.item.ProjectNavigationItem;
 import com.intellij.ide.RecentProjectsManager;
 import com.intellij.ide.RecentProjectsManagerBase;
 import com.intellij.openapi.project.Project;

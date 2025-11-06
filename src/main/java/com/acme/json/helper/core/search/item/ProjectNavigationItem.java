@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.search.item;
+package com.acme.json.helper.core.search.item;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.navigation.ItemPresentation;

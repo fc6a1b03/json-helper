@@ -8,12 +8,9 @@ import com.intellij.codeInsight.hint.EditorFragmentComponent;
 import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
-import com.intellij.openapi.editor.colors.EditorColorsManager;
-import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.fileChooser.FileChooserFactory;
 import com.intellij.openapi.fileChooser.FileSaverDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -21,7 +18,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
-import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.FileOutputStream;
 import java.time.LocalDateTime;
@@ -30,12 +26,14 @@ import java.util.ResourceBundle;
 
 /**
  * 代码截图供应商
+ * 提供代码截图功能，支持主题适配和文件保存
  * @author xuhaifeng
  * @date 2025-11-06
  */
 public class CodeScreenshotSupplier {
     /**
      * 加载资源文件
+     * 用于获取国际化字符串
      */
     private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
@@ -61,88 +59,21 @@ public class CodeScreenshotSupplier {
                             item.offsetToLogicalPosition(end).line,
                             Boolean.TRUE, Boolean.FALSE
                     );
-                    // 设置组件尺寸
-                    component.setSize(component.getPreferredSize());
-                    // 清空组件边框
+                    // 清空组件边框并设置内边距
                     component.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
-                    // 截图装载组件
+                    // 截图组件
                     final JWindow window = new JWindow();
                     window.getContentPane().add(component);
                     window.pack();
                     window.setLocation(-9999, -9999);
                     window.setSize(component.getPreferredSize());
                     window.setVisible(Boolean.TRUE);
-                    // 整体尺寸
-                    final int SHADOW = 8;
-                    final int HEADER = 36;
-                    final int RADIUS = 12;
-                    final int CONTENT_W = component.getWidth();
-                    final int CONTENT_H = component.getHeight();
-                    final int TOTAL_W = CONTENT_W + SHADOW * 2;
-                    final int TOTAL_H = HEADER + CONTENT_H + SHADOW * 2;
-                    // 画布
-                    final BufferedImage image = new BufferedImage(TOTAL_W, TOTAL_H, BufferedImage.TYPE_INT_ARGB);
+                    // 绘制截图
+                    final BufferedImage image = new BufferedImage(component.getWidth(), component.getHeight(), BufferedImage.TYPE_INT_ARGB);
                     final Graphics2D graphics = image.createGraphics();
-                    // 绘制抗锯齿
-                    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    // 主题色
-                    final EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
-                    final Color background = scheme.getDefaultBackground();
-                    final Color foreground = scheme.getDefaultForeground();
-                    final boolean isDark = (background.getRed() + background.getGreen() + background.getBlue()) < 3 * 128;
-                    final Color windowBg = isDark ? background.brighter() : background.darker();
-                    final Color border = new Color(foreground.getRed(), foreground.getGreen(), foreground.getBlue(), 40);
-                    // 阴影
-                    final RadialGradientPaint shadowPaint = new RadialGradientPaint(
-                            TOTAL_W / 2f, TOTAL_H / 2f,
-                            Math.max(TOTAL_W, TOTAL_H) / 2f,
-                            new float[]{0.75f, 1f},
-                            new Color[]{new Color(0, 0, 0, isDark ? 120 : 80), new Color(0, true)}
-                    );
-                    graphics.setPaint(shadowPaint);
-                    graphics.fill(new RoundRectangle2D.Float(SHADOW, SHADOW, TOTAL_W - SHADOW * 2, TOTAL_H - SHADOW * 2, RADIUS, RADIUS));
-                    // 窗口背景
-                    graphics.setColor(windowBg);
-                    graphics.fill(new RoundRectangle2D.Float(SHADOW, SHADOW, TOTAL_W - SHADOW * 2, TOTAL_H - SHADOW * 2, RADIUS, RADIUS));
-                    // 标题栏
-                    final int pad = 8;
-                    final int iconSize = 16;
-                    // 图标
-                    graphics.setColor(foreground);
-                    graphics.fillOval(SHADOW + pad, SHADOW + (HEADER - iconSize) / 2, iconSize, iconSize);
-                    // 文件名
-                    graphics.setFont(graphics.getFont().deriveFont(13f));
-                    graphics.drawString(
-                            Opt.ofNullable(item.getVirtualFile()).map(VirtualFile::getName).orElse(""),
-                            SHADOW + pad + iconSize + pad, SHADOW + HEADER / 2 + graphics.getFontMetrics().getAscent() / 2 - 2
-                    );
-                    // 三个控制点
-                    final int dot = 4, gap = 6;
-                    final int x0 = TOTAL_W - SHADOW - pad - dot * 3 - gap * 2;
-                    final int y0 = SHADOW + HEADER / 2;
-                    graphics.setColor(new Color(foreground.getRed(), foreground.getGreen(), foreground.getBlue(), 100));
-                    graphics.fillOval(x0, y0 - dot / 2, dot, dot);
-                    graphics.fillOval(x0 + dot + gap, y0 - dot / 2, dot, dot);
-                    graphics.fillOval(x0 + dot * 2 + gap * 2, y0 - dot / 2, dot, dot);
-                    // 内容区
-                    final Graphics2D graphics2 = (Graphics2D) graphics.create(SHADOW, SHADOW + HEADER, CONTENT_W, CONTENT_H);
-                    // 绘制内容
-                    component.paint(graphics2);
-                    // 销毁内容组件
-                    graphics2.dispose();
-                    window.dispose();
-                    // 1 px 描边
-                    graphics.setColor(border);
-                    graphics.setStroke(new BasicStroke(1));
-                    graphics.draw(new RoundRectangle2D.Float(
-                            SHADOW + 0.5f, SHADOW + 0.5f,
-                            TOTAL_W - SHADOW * 2 - 1,
-                            TOTAL_H - SHADOW * 2 - 1,
-                            RADIUS, RADIUS
-                    ));
-                    // 销毁窗口组件
+                    component.paint(graphics);
                     graphics.dispose();
-                    // 还原选区
+                    window.dispose();
                     selection.setSelection(start, end);
                     return image;
                 })
@@ -150,9 +81,10 @@ public class CodeScreenshotSupplier {
     }
 
     /**
-     * 尝试复制到剪贴板
-     * @param image 图像
-     * @return boolean
+     * 尝试复制图像到剪贴板
+     * 将BufferedImage对象复制到系统剪贴板
+     * @param image 要复制的图像
+     * @return 复制是否成功
      */
     public static boolean tryCopyToClipboard(final BufferedImage image) {
         if (!SwingUtilities.isEventDispatchThread()) {
@@ -184,6 +116,7 @@ public class CodeScreenshotSupplier {
 
     /**
      * 剪贴板失败时提示用户保存文件
+     * 当复制到剪贴板失败时，显示通知并提供保存文件的选项
      * @param image   图像
      * @param project 项目
      */
@@ -196,6 +129,7 @@ public class CodeScreenshotSupplier {
 
     /**
      * 剪贴板成功时提示用户保存文件
+     * 当成功复制到剪贴板时，显示通知并提供保存文件的选项
      * @param image   图像
      * @param project 项目
      */
@@ -207,7 +141,8 @@ public class CodeScreenshotSupplier {
     }
 
     /**
-     * 保存到文件
+     * 保存图像到文件
+     * 提供文件保存对话框，将图像保存为PNG格式
      * @param image   图像
      * @param project 项目
      */
@@ -228,8 +163,9 @@ public class CodeScreenshotSupplier {
     }
 
     /**
-     * 生成默认文件名: screenshot-{fileName}-{yyyyMMddHHmmss}.png
-     * @return {@link String }
+     * 生成默认文件名
+     * 创建格式为 screenshot-{yyyyMMddHHmmss}.png 的文件名
+     * @return 默认文件名字符串
      */
     private static String buildDefaultFileName() {
         return StrUtil.format("screenshot-{}.png", DatePattern.PURE_DATETIME_FORMATTER.format(LocalDateTime.now()));

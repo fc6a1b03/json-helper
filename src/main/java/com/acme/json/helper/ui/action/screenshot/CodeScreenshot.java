@@ -37,7 +37,7 @@ public final class CodeScreenshot extends AnAction {
                 .flatMap(project ->
                         Opt.ofNullable(PlatformDataKeys.EDITOR.getData(event.getDataContext()))
                                 .filter(editor -> editor.getSelectionModel().hasSelection())
-                                .map(editor -> takeSnapshot(editor, project))
+                                .map(editor -> this.takeSnapshot(editor, project))
                 ).orElseGet(() -> {
                     Notifier.notifyError(bundle.getString("show.clipboard.select.failed.notification"), event.getProject());
                     return Opt.empty();

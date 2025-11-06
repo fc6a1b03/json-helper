@@ -6,8 +6,9 @@ import com.acme.json.helper.core.screenshot.CodeScreenshotSupplier;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,14 +29,14 @@ public final class CodeScreenshot extends AnAction {
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return ActionUpdateThread.EDT;
+        return ActionUpdateThread.BGT;
     }
 
     @Override
     public void actionPerformed(@NotNull final AnActionEvent event) {
         Opt.ofNullable(event.getProject())
                 .flatMap(project ->
-                        Opt.ofNullable(PlatformDataKeys.EDITOR.getData(event.getDataContext()))
+                        Opt.ofNullable(event.getData(CommonDataKeys.EDITOR))
                                 .filter(editor -> editor.getSelectionModel().hasSelection())
                                 .map(editor -> this.takeSnapshot(editor, project))
                 ).orElseGet(() -> {
@@ -65,9 +66,9 @@ public final class CodeScreenshot extends AnAction {
     @Override
     public void update(@NotNull final AnActionEvent event) {
         event.getPresentation().setEnabled(
-                Opt.ofNullable(event.getProject())
-                        .flatMap(project -> Opt.ofNullable(PlatformDataKeys.EDITOR.getData(event.getDataContext())))
-                        .map(editor -> editor.getSelectionModel().hasSelection()).orElse(Boolean.FALSE)
+                Opt.ofNullable(event)
+                        .map(e -> e.getData(CommonDataKeys.EDITOR)).filter(Objects::nonNull)
+                        .map(Editor::getSelectionModel).map(SelectionModel::hasSelection).orElse(Boolean.FALSE)
         );
     }
 }

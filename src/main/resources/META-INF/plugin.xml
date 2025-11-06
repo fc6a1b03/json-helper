@@ -34,24 +34,24 @@
         <!-- 注册右键菜单 -->
         <action id="CopyJsonAction"
                 icon="AllIcons.General.Copy"
-                class="com.acme.json.helper.ui.action.CopyJsonAction">
+                class="com.acme.json.helper.ui.action.json.CopyJsonAction">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
         <action id="JsonHelperAction"
                 icon="AllIcons.Duplicates.SendToTheRight"
-                class="com.acme.json.helper.ui.action.JsonHelperAction">
+                class="com.acme.json.helper.ui.action.json.JsonHelperAction">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="ConsoleEditorPopupMenu" anchor="first"/>
         </action>
         <action id="CreateClassFromJsonAction"
                 icon="AllIcons.FileTypes.JsonSchema"
-                class="com.acme.json.helper.ui.action.CreateClassFromJsonAction">
+                class="com.acme.json.helper.ui.action.json.CreateClassFromJsonAction">
             <add-to-group group-id="NewGroup" anchor="first"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
         </action>
         <!-- 注册项目搜索 -->
-        <action id="com.acme.json.helper.ui.search.ProjectSearchAction"
-                class="com.acme.json.helper.ui.search.ProjectSearchAction" text="_Project..."
+        <action id="com.acme.json.helper.ui.action.search.ProjectSearchAction"
+                class="com.acme.json.helper.ui.action.search.ProjectSearchAction" text="_Project..."
                 description="Switch project">
             <add-to-group group-id="GoToTargetEx"/>
         </action>

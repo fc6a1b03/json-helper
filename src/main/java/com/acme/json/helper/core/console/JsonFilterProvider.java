@@ -7,14 +7,12 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * JSON日志监听器
- *
  * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonFilterProvider implements ConsoleFilterProvider {
     /**
      * 获取默认筛选器
-     *
      * @param project 项目
      * @return {@link Filter } {@link @NotNull } {@link [] }
      */

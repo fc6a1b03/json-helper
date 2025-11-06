@@ -1,7 +1,7 @@
 package com.acme.json.helper.core.console;
 
 import cn.hutool.core.convert.Convert;
-import com.acme.json.helper.ui.editor.JsonEditorPushProvider;
+import com.acme.json.helper.core.editor.JsonEditorPushProvider;
 import com.intellij.execution.filters.Filter;
 import com.intellij.execution.filters.HyperlinkInfo;
 import com.intellij.openapi.project.Project;
@@ -11,25 +11,29 @@ import java.util.regex.Pattern;
 
 /**
  * JSON控制台过滤器
- *
  * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonConsoleFilter implements Filter {
-    /** JSON匹配模式 */
+    /**
+     * JSON匹配模式
+     */
     private static final Pattern JSON_PATTERN = Pattern.compile(
             "^\\s*\\{[\\s\\S]*?}\\s*$",
             Pattern.DOTALL | Pattern.MULTILINE
     );
-    /** JSON缓冲区 */
+    /**
+     * JSON缓冲区
+     */
     private final StringBuilder jsonBuffer = new StringBuilder();
-    /** JSON块中 */
+    /**
+     * JSON块中
+     */
     private boolean inJsonBlock = Boolean.FALSE;
 
     /**
      * 筛选器
-     *
-     * @param line 线
+     * @param line         线
      * @param entireLength 全长
      * @return {@link Result }
      */
@@ -66,7 +70,6 @@ public class JsonConsoleFilter implements Filter {
 
     /**
      * JSON超链接信息
-     *
      * @author 拒绝者
      * @date 2025-04-23
      */

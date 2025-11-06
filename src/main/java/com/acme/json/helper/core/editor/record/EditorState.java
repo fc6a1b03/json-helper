@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.editor.record;
+package com.acme.json.helper.core.editor.record;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;

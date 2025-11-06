@@ -1,6 +1,6 @@
 package com.acme.json.helper.ui.editor;
 
-import com.acme.json.helper.ui.editor.enums.SupportedLanguages;
+import com.acme.json.helper.common.enums.SupportedLanguages;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFileFactory;

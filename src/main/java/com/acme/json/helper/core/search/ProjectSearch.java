@@ -1,9 +1,9 @@
-package com.acme.json.helper.ui.search;
+package com.acme.json.helper.core.search;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Opt;
-import com.acme.json.helper.ui.search.cache.SearchCache;
-import com.acme.json.helper.ui.search.item.ProjectNavigationItem;
+import com.acme.json.helper.core.search.cache.SearchCache;
+import com.acme.json.helper.core.search.item.ProjectNavigationItem;
 import com.intellij.execution.runners.ExecutionUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
@@ -34,7 +34,7 @@ public final class ProjectSearch implements WeightedSearchEverywhereContributor<
      */
     private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
     /**
-     * 缓存
+     * 项目缓存
      */
     private final Supplier<SequencedCollection<ProjectNavigationItem>> cache;
 

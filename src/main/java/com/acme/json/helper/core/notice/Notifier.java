@@ -1,4 +1,4 @@
-package com.acme.json.helper.ui.notice;
+package com.acme.json.helper.core.notice;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationGroupManager;

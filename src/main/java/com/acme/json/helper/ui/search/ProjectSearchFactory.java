@@ -1,6 +1,7 @@
 package com.acme.json.helper.ui.search;
 
-import com.acme.json.helper.ui.search.item.ProjectNavigationItem;
+import com.acme.json.helper.core.search.ProjectSearch;
+import com.acme.json.helper.core.search.item.ProjectNavigationItem;
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor;
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributorFactory;
 import com.intellij.openapi.actionSystem.AnActionEvent;

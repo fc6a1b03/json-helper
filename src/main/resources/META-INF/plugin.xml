@@ -59,7 +59,7 @@
         <action id="com.acme.json.helper.ui.action.screenshot.CodeScreenshot"
                 class="com.acme.json.helper.ui.action.screenshot.CodeScreenshot"
                 text="Screenshot Selected Code" description="Screenshots the selected code snippet">
-            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl S"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl s"/>
         </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
@@ -82,7 +82,5 @@
         <!--<consoleFilterProvider implementation="com.acme.json.helper.core.console.JsonFilterProvider"/>-->
         <!-- 项目搜索器 -->
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ProjectSearchFactory"/>
-        <!-- 代码截图设置 -->
-        <applicationService serviceImplementation="com.acme.json.helper.core.screenshot.CodeScreenshotState"/>
     </extensions>
 </idea-plugin>

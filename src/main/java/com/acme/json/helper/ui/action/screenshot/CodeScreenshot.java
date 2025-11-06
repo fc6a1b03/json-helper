@@ -8,11 +8,9 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.image.BufferedImage;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
@@ -34,41 +32,31 @@ public final class CodeScreenshot extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull final AnActionEvent event) {
-        Opt.ofNullable(event.getProject())
-                .flatMap(project ->
-                        Opt.ofNullable(event.getData(CommonDataKeys.EDITOR))
+        Opt.ofNullable(event).map(AnActionEvent::getProject).filter(Objects::nonNull)
+                .ifPresentOrElse(
+                        project -> Opt.ofNullable(event.getData(CommonDataKeys.EDITOR))
                                 .filter(editor -> editor.getSelectionModel().hasSelection())
-                                .map(editor -> this.takeSnapshot(editor, project))
-                ).orElseGet(() -> {
-                    Notifier.notifyError(bundle.getString("show.clipboard.select.failed.notification"), event.getProject());
-                    return Opt.empty();
-                });
+                                .ifPresent(editor -> this.takeSnapshot(editor, project)),
+                        () -> Notifier.notifyError(bundle.getString("show.clipboard.select.failed.notification"), event.getProject())
+                );
     }
 
     /**
      * 拍快照
      * @param editor  编辑器
      * @param project 项目
-     * @return {@link Opt}<{@link BufferedImage}>
      */
-    private Opt<BufferedImage> takeSnapshot(final Editor editor, final Project project) {
-        return Opt.ofNullable(CodeScreenshotSupplier.createImage(editor)).filter(Objects::nonNull)
-                .map(image -> {
+    private void takeSnapshot(final Editor editor, final Project project) {
+        if (Objects.isNull(editor) || Objects.isNull(project)) {
+            return;
+        }
+        Opt.ofNullable(CodeScreenshotSupplier.createImage(editor)).filter(Objects::nonNull)
+                .ifPresent(image -> {
                     if (CodeScreenshotSupplier.tryCopyToClipboard(image)) {
                         CodeScreenshotSupplier.showCopySuccessNotification(image, project);
                     } else {
                         CodeScreenshotSupplier.showClipboardFailedNotification(image, project);
                     }
-                    return image;
                 });
-    }
-
-    @Override
-    public void update(@NotNull final AnActionEvent event) {
-        event.getPresentation().setEnabled(
-                Opt.ofNullable(event)
-                        .map(e -> e.getData(CommonDataKeys.EDITOR)).filter(Objects::nonNull)
-                        .map(Editor::getSelectionModel).map(SelectionModel::hasSelection).orElse(Boolean.FALSE)
-        );
     }
 }

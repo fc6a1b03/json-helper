@@ -38,7 +38,8 @@ public class JsonHelperAction extends AnAction {
     /**
      * 加载资源文件
      */
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    private static final ResourceBundle BUNDLE
+            = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
@@ -51,21 +52,21 @@ public class JsonHelperAction extends AnAction {
      * 判断逻辑：
      * 1. 当前为支持UAST解析的Java文件（光标位于类定义内）
      * 2. 或存在有效的JSON文本选区
-     * @param e 行动事件
+     * @param event 行动事件
      */
     @Override
-    public void update(@NotNull final AnActionEvent e) {
+    public void update(@NotNull final AnActionEvent event) {
         // 分步检查
-        switch (ActionEventCheck.stepByStepInspection(e, PluginSettings.of().jsonHelper)) {
+        switch (ActionEventCheck.stepByStepInspection(event, PluginSettings.of().jsonHelper)) {
             // 执行错误状态
             case final ActionEventCheck.Check.Failed failed -> failed.action().run();
             // 确认最终状态
-            case final ActionEventCheck.Check.Success ignored -> e.getPresentation().setEnabledAndVisible(
-                    this.checkJavaContextValidity(e) || this.checkJsonSelectionValidity(e)
+            case final ActionEventCheck.Check.Success ignored -> event.getPresentation().setEnabledAndVisible(
+                    this.checkJavaContextValidity(event) || this.checkJsonSelectionValidity(event)
             );
         }
-        e.getPresentation().setText(PROJECT_NAME);
-        e.getPresentation().setDescription(bundle.getString("send.json.editor.toolwindow.text"));
+        event.getPresentation().setText(PROJECT_NAME);
+        event.getPresentation().setDescription(BUNDLE.getString("send.json.editor.toolwindow.text"));
     }
 
     /**

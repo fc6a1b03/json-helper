@@ -35,7 +35,7 @@ public class CodeScreenshotSupplier {
      * 加载资源文件
      * 用于获取国际化字符串
      */
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     /**
      * 创建图像
@@ -122,8 +122,8 @@ public class CodeScreenshotSupplier {
      */
     public static void showClipboardFailedNotification(final BufferedImage image, final Project project) {
         Notifier.notifyWarn(
-                bundle.getString("show.clipboard.failed.notification"), project,
-                NotificationAction.create(bundle.getString("show.clipboard.notification.action"), (e, n) -> saveToFile(image, project))
+                BUNDLE.getString("show.clipboard.failed.notification"), project,
+                NotificationAction.create(BUNDLE.getString("show.clipboard.notification.action"), (e, n) -> saveToFile(image, project))
         );
     }
 
@@ -135,8 +135,8 @@ public class CodeScreenshotSupplier {
      */
     public static void showCopySuccessNotification(final BufferedImage image, final Project project) {
         Notifier.notifyInfo(
-                bundle.getString("show.copy.success.notification"), project,
-                NotificationAction.create(bundle.getString("show.clipboard.notification.action"), (e, n) -> saveToFile(image, project))
+                BUNDLE.getString("show.copy.success.notification"), project,
+                NotificationAction.create(BUNDLE.getString("show.clipboard.notification.action"), (e, n) -> saveToFile(image, project))
         );
     }
 
@@ -150,7 +150,7 @@ public class CodeScreenshotSupplier {
         Opt.ofNullable(
                         FileChooserFactory.getInstance()
                                 .createSaveFileDialog(
-                                        new FileSaverDescriptor(bundle.getString("show.clipboard.file.saver.descriptor"), "", "png"), project
+                                        new FileSaverDescriptor(BUNDLE.getString("show.clipboard.file.saver.descriptor"), "", "png"), project
                                 ).save(buildDefaultFileName())
                 ).map(wrapper -> Objects.requireNonNull(wrapper).getFile())
                 .ifPresent(file -> {

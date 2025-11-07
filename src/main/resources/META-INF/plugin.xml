@@ -59,9 +59,7 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
         </action>
         <!-- 注册项目搜索 -->
-        <action id="ProjectSearchAction"
-                class="com.acme.json.helper.ui.action.search.ProjectSearchAction" text="_Project..."
-                description="Switch project">
+        <action id="ProjectSearchAction" class="com.acme.json.helper.ui.action.search.ProjectSearchAction">
             <add-to-group group-id="GoToTargetEx"/>
         </action>
     </actions>
@@ -74,15 +72,15 @@
                     icon="/icons/pluginIcon.svg"
                     factoryClass="com.acme.json.helper.ui.MainToolWindowFactory"/>
         <!-- 注册插件配置 -->
-        <applicationConfigurable parentId="tools" displayName="Json Helper"
+        <applicationConfigurable parentId="tools"
+                                 key="plugin.setting.json.helper"
                                  id="com.acme.json.helper.core.settings.PluginSettings"
                                  instance="com.acme.json.helper.core.settings.PluginSettings"/>
         <!-- 设置状态 -->
         <applicationService serviceImplementation="com.acme.json.helper.core.settings.PluginSettingsState"/>
         <!-- 注册通知 -->
-        <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON"/>
-        <!-- 控制台过滤器 -->
-        <!--<consoleFilterProvider implementation="com.acme.json.helper.core.console.JsonFilterProvider"/>-->
+        <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON" bundle="messages.JsonHelperBundle"
+                           key="notification.group.JSONGenerator.NotificationGroup"/>
         <!-- 项目搜索器 -->
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ProjectSearchFactory"/>
     </extensions>

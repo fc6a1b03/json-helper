@@ -36,7 +36,7 @@
                 icon="AllIcons.General.Copy"
                 class="com.acme.json.helper.ui.action.screenshot.CodeScreenshot">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl s"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl S"/>
         </action>
         <!-- 复制JSON -->
         <action id="CopyJsonAction"

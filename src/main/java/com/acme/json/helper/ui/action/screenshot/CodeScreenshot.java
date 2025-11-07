@@ -5,7 +5,7 @@ import com.acme.json.helper.core.notice.Notifier;
 import com.acme.json.helper.core.screenshot.CodeScreenshotSupplier;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
@@ -33,7 +33,7 @@ public final class CodeScreenshot extends DumbAwareAction {
     @Override
     public void update(@NotNull final AnActionEvent event) {
         final Project project = event.getProject();
-        final Editor editor = event.getData(CommonDataKeys.EDITOR);
+        final Editor editor = PlatformDataKeys.EDITOR.getData(event.getDataContext());
         event.getPresentation().setText(BUNDLE.getString("action.class.copy.image.text"));
         event.getPresentation().setDescription(BUNDLE.getString("action.class.copy.image.description"));
         event.getPresentation().setEnabledAndVisible(Objects.nonNull(project) && Objects.nonNull(editor) && editor.getSelectionModel().hasSelection());
@@ -43,7 +43,7 @@ public final class CodeScreenshot extends DumbAwareAction {
     public void actionPerformed(@NotNull final AnActionEvent event) {
         final Project project = event.getProject();
         if (Objects.isNull(project)) return;
-        final Editor editor = event.getData(CommonDataKeys.EDITOR);
+        final Editor editor = PlatformDataKeys.EDITOR.getData(event.getDataContext());
         if (Objects.isNull(editor)) {
             Notifier.notifyError(BUNDLE.getString("show.clipboard.select.failed.notification"), project);
             return;

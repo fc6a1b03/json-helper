@@ -31,18 +31,27 @@
     <depends>org.jetbrains.plugins.yaml</depends>
     <resource-bundle>messages.JsonHelperBundle</resource-bundle>
     <actions>
-        <!-- 注册右键菜单 -->
+        <!-- 代码截图 -->
+        <action id="CodeScreenshot"
+                icon="AllIcons.General.Copy"
+                class="com.acme.json.helper.ui.action.screenshot.CodeScreenshot">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl s"/>
+        </action>
+        <!-- 复制JSON -->
         <action id="CopyJsonAction"
                 icon="AllIcons.General.Copy"
                 class="com.acme.json.helper.ui.action.json.CopyJsonAction">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
+        <!-- 复制JSON并推到面板 -->
         <action id="JsonHelperAction"
                 icon="AllIcons.Duplicates.SendToTheRight"
                 class="com.acme.json.helper.ui.action.json.JsonHelperAction">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="ConsoleEditorPopupMenu" anchor="first"/>
         </action>
+        <!-- JSON创建类 -->
         <action id="CreateClassFromJsonAction"
                 icon="AllIcons.FileTypes.JsonSchema"
                 class="com.acme.json.helper.ui.action.json.CreateClassFromJsonAction">
@@ -54,12 +63,6 @@
                 class="com.acme.json.helper.ui.action.search.ProjectSearchAction" text="_Project..."
                 description="Switch project">
             <add-to-group group-id="GoToTargetEx"/>
-        </action>
-        <!-- 代码截图 -->
-        <action id="CodeScreenshot"
-                class="com.acme.json.helper.ui.action.screenshot.CodeScreenshot"
-                text="Screenshot Selected Code" description="Screenshots the selected code snippet">
-            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl s"/>
         </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">

@@ -32,7 +32,7 @@ public final class ProjectSearch implements WeightedSearchEverywhereContributor<
     /**
      * 加载资源文件
      */
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
     /**
      * 项目缓存
      */
@@ -59,7 +59,7 @@ public final class ProjectSearch implements WeightedSearchEverywhereContributor<
      */
     @Override
     public @NotNull String getGroupName() {
-        return bundle.getString("project.search.group.name");
+        return BUNDLE.getString("project.search.group.name");
     }
 
     /**

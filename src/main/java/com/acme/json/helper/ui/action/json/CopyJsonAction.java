@@ -27,7 +27,9 @@ import java.util.ResourceBundle;
  * @date 2025-01-25
  */
 public class CopyJsonAction extends AnAction {
-    /** 加载语言资源文件 */
+    /**
+     * 加载语言资源文件
+     */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     @Override
@@ -37,7 +39,6 @@ public class CopyJsonAction extends AnAction {
 
     /**
      * 更新动作可见性状态
-     *
      * @param e 行动事件
      */
     @Override
@@ -64,13 +65,12 @@ public class CopyJsonAction extends AnAction {
                 );
             }
         }
-        e.getPresentation().setText("Copy JSON");
-        e.getPresentation().setDescription("Generate JSON structure from class fields");
+        e.getPresentation().setText(BUNDLE.getString("action.class.copy.json.text"));
+        e.getPresentation().setDescription(BUNDLE.getString("action.class.copy.json.description"));
     }
 
     /**
      * 主执行逻辑
-     *
      * @param e 行动事件
      */
     @Override

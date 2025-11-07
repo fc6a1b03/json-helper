@@ -62,7 +62,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     /**
      * 加载资源文件
      */
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
 
     /**
      * 全局窗口监视器
@@ -176,7 +176,7 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     private DefaultActionGroup createActionGroup(@NotNull final Project project, @NotNull final ToolWindow toolWindow) {
         final DefaultActionGroup actionGroup = new DefaultActionGroup();
-        actionGroup.add(new AnAction(bundle.getString("json.new.tab"), bundle.getString("json.new.tab.desc"), AllIcons.General.Add) {
+        actionGroup.add(new AnAction(BUNDLE.getString("json.new.tab"), BUNDLE.getString("json.new.tab.desc"), AllIcons.General.Add) {
             @Override
             public void actionPerformed(@NotNull final AnActionEvent e) {
                 // 检查项目和窗口是否有效

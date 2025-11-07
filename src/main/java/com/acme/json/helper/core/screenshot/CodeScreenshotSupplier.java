@@ -27,7 +27,7 @@ import java.util.ResourceBundle;
 /**
  * 代码截图供应商
  * 提供代码截图功能，支持主题适配和文件保存
- * @author xuhaifeng
+ * @author 拒绝者
  * @date 2025-11-06
  */
 public class CodeScreenshotSupplier {

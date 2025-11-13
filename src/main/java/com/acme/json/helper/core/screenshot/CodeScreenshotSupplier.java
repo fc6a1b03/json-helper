@@ -52,11 +52,13 @@ public class CodeScreenshotSupplier {
                     final int start = selection.getSelectionStart();
                     // 移除选区高亮
                     selection.removeSelection();
+                    // 结束行
+                    final int endLine = item.offsetToLogicalPosition(end).line;
                     // 编辑器片段组件
                     final EditorFragmentComponent component = EditorFragmentComponent.createEditorFragmentComponent(
                             item,
                             item.offsetToLogicalPosition(start).line,
-                            item.offsetToLogicalPosition(end).line,
+                            (start != end) ? endLine + 1 : endLine,
                             Boolean.TRUE, Boolean.FALSE
                     );
                     // 清空组件边框并设置内边距

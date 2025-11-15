@@ -25,6 +25,7 @@ public class JsonParser {
             new XlsxConverter(),
             new ClassConverter(),
             new RecordConverter(),
+            new Base64Converter(),
             new UrlParamsConverter(),
             new PropertiesConverter()
     );

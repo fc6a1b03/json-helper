@@ -26,6 +26,7 @@ public enum SupportedLanguages {
     CSV(PlainTextFileType.INSTANCE, AnyFile.CSV),
     RECORD(JavaFileType.INSTANCE, AnyFile.RECORD),
     Text(PlainTextFileType.INSTANCE, AnyFile.Text),
+    BASE64(PlainTextFileType.INSTANCE, AnyFile.BASE64),
     URL_PARAMS(PlainTextFileType.INSTANCE, AnyFile.URL_PARAMS),
     PROPERTIES(PropertiesFileType.INSTANCE, AnyFile.PROPERTIES);
     private final AnyFile extension;

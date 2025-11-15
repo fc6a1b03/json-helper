@@ -4,7 +4,6 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
-import com.felipestanzani.jtoon.DecodeOptions;
 import com.felipestanzani.jtoon.JToon;
 import org.gradle.internal.impldep.org.tomlj.Toml;
 import org.xml.sax.InputSource;
@@ -17,6 +16,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
+
+import static cn.hutool.core.codec.Base64.isBase64;
 
 /**
  * 通用解析器类
@@ -59,10 +60,12 @@ public class AnyParser {
      */
     private static AnyFile detectType(final String input) {
         if (isXml(input)) return AnyFile.XML;
-        if (isToon(input)) return AnyFile.TOON;
         if (isYaml(input)) return AnyFile.YAML;
         if (isToml(input)) return AnyFile.TOML;
+        if (isBase64(input)) return AnyFile.BASE64;
+        if (isUrlParams(input)) return AnyFile.URL_PARAMS;
         if (isProperties(input)) return AnyFile.PROPERTIES;
+        if (isToon(input)) return AnyFile.TOON;
         return null;
     }
 
@@ -89,11 +92,40 @@ public class AnyParser {
      */
     private static boolean isToon(final String input) {
         try {
-            JToon.decode(input, DecodeOptions.DEFAULT);
+            JToon.decode(input);
             return Boolean.TRUE;
         } catch (final Exception e) {
             return Boolean.FALSE;
         }
+    }
+
+    /**
+     * 判断字符串是否为URL参数格式
+     * @param input 待判断的字符串
+     * @return 如果是URL参数格式返回true，否则返回false
+     */
+    public static boolean isUrlParams(final String input) {
+        // 快速检查：URL参数必须包含=或&符号
+        if (input.indexOf('=') == -1 && input.indexOf('&') == -1) {
+            return Boolean.FALSE;
+        }
+        // 更精确的检查：验证基本格式
+        final String[] pairs = input.split("&", -1);
+        boolean hasValidPair = Boolean.FALSE;
+        for (final String pair : pairs) {
+            if (StrUtil.isEmpty(pair)) continue;
+            // 允许没有值的参数（如"key"）
+            if (pair.indexOf('=') == -1) {
+                hasValidPair = Boolean.TRUE;
+                continue;
+            }
+            // 检查键值对格式
+            final String[] keyValue = pair.split("=", 2);
+            if (keyValue.length > 0 && !StrUtil.isEmpty(keyValue[0])) {
+                hasValidPair = Boolean.TRUE;
+            }
+        }
+        return hasValidPair;
     }
 
     /**

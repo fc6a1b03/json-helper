@@ -4,6 +4,8 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
+import com.felipestanzani.jtoon.DecodeOptions;
+import com.felipestanzani.jtoon.JToon;
 import org.gradle.internal.impldep.org.tomlj.Toml;
 import org.xml.sax.InputSource;
 import org.yaml.snakeyaml.Yaml;
@@ -17,8 +19,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 /**
- * 任意解析器<br/>
- * 目前支持：xml、yaml、toml、properties
+ * 通用解析器类
+ * <p>
+ * 提供对多种数据格式 (如 JSON,XML,TOON,YAML,TOML,Properties 等) 的自动识别与转换功能.<br/>
+ * 该类通过检测输入字符串的内容类型, 决定其格式并进行相应的反向转换处理.
  * @author 拒绝者
  * @date 2025-05-05
  * @see AnyFile
@@ -26,12 +30,13 @@ import java.util.regex.Pattern;
 @SuppressWarnings({"RegExpRedundantClassElement", "UnnecessaryUnicodeEscape", "RegExpSimplifiable"})
 public class AnyParser {
     /**
-     * properties模式
+     * 属性配置文件的正则表达式模式
+     * <p>
+     * 用于匹配属性文件中的键值对行, 排除以 # 或空白字符开头的注释行和空行<br/>
+     * 格式为:key=value, 其中 key 和 value 可以包含任意字符 (除换行符)
+     * @see java.util.regex.Pattern
      */
-    private static final Pattern PROPERTIES_PATTERN = Pattern.compile(
-            // 非空行、非注释、键=值（键和值均非空）
-            "^(?!\\s*(?:#|$)).+?=.+$", Pattern.MULTILINE
-    );
+    private static final Pattern PROPERTIES_PATTERN = Pattern.compile("^(?!\\s*(?:#|$)).+?=.+$", Pattern.MULTILINE);
 
     /**
      * 任意转换
@@ -54,6 +59,7 @@ public class AnyParser {
      */
     private static AnyFile detectType(final String input) {
         if (isXml(input)) return AnyFile.XML;
+        if (isToon(input)) return AnyFile.TOON;
         if (isYaml(input)) return AnyFile.YAML;
         if (isToml(input)) return AnyFile.TOML;
         if (isProperties(input)) return AnyFile.PROPERTIES;
@@ -70,6 +76,20 @@ public class AnyParser {
         if (!trimmed.startsWith("<")) return Boolean.FALSE;
         try {
             DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new StringReader(trimmed)));
+            return Boolean.TRUE;
+        } catch (final Exception e) {
+            return Boolean.FALSE;
+        }
+    }
+
+    /**
+     * 检测字符串是否为 TOON 格式
+     * @param input 输入字符串
+     * @return boolean 是否为 TOON 格式
+     */
+    private static boolean isToon(final String input) {
+        try {
+            JToon.decode(input, DecodeOptions.DEFAULT);
             return Boolean.TRUE;
         } catch (final Exception e) {
             return Boolean.FALSE;

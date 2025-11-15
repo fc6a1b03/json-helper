@@ -51,6 +51,10 @@ public enum AnyFile {
      */
     TOON,
     /**
+     * Base64编码
+     */
+    BASE64,
+    /**
      * 单文本
      */
     Text;
@@ -62,7 +66,7 @@ public enum AnyFile {
     public String extension() {
         return switch (this) {
             case CLASS, RECORD -> "java";
-            case JSON, XML, YAML, TOML, CSV, XLSX, PROPERTIES -> this.name().toLowerCase();
+            case JSON, XML, YAML, TOML, CSV, XLSX, TOON, PROPERTIES -> this.name().toLowerCase();
             default -> "txt";
         };
     }

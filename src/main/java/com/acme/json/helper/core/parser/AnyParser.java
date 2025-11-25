@@ -6,6 +6,7 @@ import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.felipestanzani.jtoon.JToon;
 import org.gradle.internal.impldep.org.tomlj.Toml;
+import org.jetbrains.annotations.NotNull;
 import org.xml.sax.InputSource;
 import org.yaml.snakeyaml.Yaml;
 
@@ -48,8 +49,7 @@ public class AnyParser {
         return CompletableFuture.supplyAsync(() ->
                 JSON.isValid(any) ? "" : Opt.ofBlankAble(any)
                         .map(item -> JsonParser.reverseConvert(item, detectType(any)))
-                        .filter(StrUtil::isNotEmpty)
-                        .orElse("")
+                        .filter(StrUtil::isNotEmpty).orElse("")
         );
     }
 
@@ -59,14 +59,42 @@ public class AnyParser {
      * @return {@link AnyFile }
      */
     private static AnyFile detectType(final String input) {
+        if (isSkippable(input)) return null;
         if (isXml(input)) return AnyFile.XML;
-        if (isYaml(input)) return AnyFile.YAML;
+        // TODO: Yaml 存在自动转换问题（待修复）
+        // if (isYaml(input)) return AnyFile.YAML;
         if (isToml(input)) return AnyFile.TOML;
         if (isBase64(input)) return AnyFile.BASE64;
         if (isUrlParams(input)) return AnyFile.URL_PARAMS;
         if (isProperties(input)) return AnyFile.PROPERTIES;
-        if (isToon(input)) return AnyFile.TOON;
+        // TODO: Toon 存在自动转换问题（待修复）
+        // if (isToon(input)) return AnyFile.TOON;
         return null;
+    }
+
+    /**
+     * 判断字符串是否为可跳过的特殊格式
+     * <p>
+     * 该方法用于检测传入的字符串是否符合特定的跳过条件,<br/>
+     * 严格匹配以下7种情况（去空格后）: {, {}, [, [], ["], {""}, {"":}
+     * @param text 待检测的字符串, 不能为空
+     * @return 如果字符串符合可跳过格式则返回 true, 否则返回 false
+     */
+    private static boolean isSkippable(@NotNull final String text) {
+        // 去除所有空白字符（包括空格、换行、制表符等）
+        final String t = StrUtil.emptyIfNull(text).trim().replaceAll("\\s+", "");
+        // 精确匹配指定格式
+        return "{".equals(t) ||
+                "{}".equals(t) ||
+                "[".equals(t) ||
+                "[]".equals(t) ||
+                "[\"]".equals(t) ||
+                "{\"}".equals(t) ||
+                "{\"\"}".equals(t) ||
+                "{\"\":}".equals(t) ||
+                "{\"\":\"}".equals(t) ||
+                "{\"\":\"\"}".equals(t) ||
+                "{\"\":\"\",}".equals(t);
     }
 
     /**

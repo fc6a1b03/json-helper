@@ -8,7 +8,7 @@ plugins {
 }
 
 group 'com.acme'
-version '0.10.7'
+version '0.11'
 
 repositories {
     mavenCentral()
@@ -31,7 +31,7 @@ ext {
     auth0Version = '4.5.0'
     hutoolVersion = '5.8.41'
     jacksonVersion = '3.0.2'
-    apachePoiVersion = '5.4.1'
+    apachePoiVersion = '5.5.0'
     fastjson2Version = '2.0.60'
     jsonRepairVersion = '0.3.1'
 }
@@ -47,6 +47,7 @@ dependencies {
     implementation platform("cn.hutool:hutool-bom:${hutoolVersion}")
     implementation platform("tools.jackson:jackson-bom:${jacksonVersion}")
     /* IntelliJ 平台依赖 */
+    // https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html
     intellijPlatform {
         intellijIdeaCommunity '2025.2'
         bundledPlugin 'org.toml.lang'

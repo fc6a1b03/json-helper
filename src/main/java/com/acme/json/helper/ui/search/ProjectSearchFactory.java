@@ -14,12 +14,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ProjectSearchFactory implements SearchEverywhereContributorFactory<ProjectNavigationItem> {
     /**
-     * 创建搜索提供者
-     * @param initEvent init事件
-     * @return {@link SearchEverywhereContributor }<{@link ProjectNavigationItem }>
+     * 创建项目导航搜索贡献者
+     * <p>
+     * 根据传入的动作事件创建一个项目搜索贡献者实例
+     * @param event 动作事件, 用于获取项目信息
+     * @return 返回一个新的项目搜索贡献者实例
      */
     @Override
-    public @NotNull SearchEverywhereContributor<ProjectNavigationItem> createContributor(@NotNull final AnActionEvent initEvent) {
-        return new ProjectSearch();
+    public @NotNull SearchEverywhereContributor<ProjectNavigationItem> createContributor(@NotNull final AnActionEvent event) {
+        return new ProjectSearch(event.getProject());
     }
 }

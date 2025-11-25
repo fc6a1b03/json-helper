@@ -1,7 +1,5 @@
 package com.acme.json.helper.ui.panel;
 
-import cn.hutool.core.convert.Convert;
-import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.json.*;
@@ -29,6 +27,8 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -52,6 +52,7 @@ public class MainPanel {
      * 加载语言资源文件
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    private static final Logger log = LoggerFactory.getLogger(MainPanel.class);
     /**
      * 重做历史堆栈
      */
@@ -372,11 +373,11 @@ public class MainPanel {
                     return;
                 }
                 // 内容无变化时直接跳过 - 忽略空白差异
-                if (Convert.toStr(oldText).stripTrailing().trim().equals(Convert.toStr(newText).stripTrailing().trim())) {
+                if (StrUtil.emptyIfNull(oldText).stripTrailing().trim().equals(StrUtil.emptyIfNull(newText).stripTrailing().trim())) {
                     return;
                 }
                 // 文档内容
-                final String text = Opt.ofBlankAble(e.getDocument().getText()).orElse("");
+                final String text = StrUtil.emptyIfNull(e.getDocument().getText());
                 // 根据文档内容调整清空按钮的状态
                 clearButton.setEnabled(!StrUtil.isEmpty(text));
                 // 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器
@@ -446,7 +447,7 @@ public class MainPanel {
                     .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
                         if (JSON.isValid(processedText)) {
                             this.originalJson.set("");
-                            editor.setText(new JsonFormatter().process(processedText));
+                            editor.setText(processedText);
                         }
                     }));
         } finally {

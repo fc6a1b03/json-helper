@@ -91,18 +91,15 @@ public class CreateClassDialog extends DialogWrapper {
              * 更新JSON
              */
             private void updateJson() {
-                try {
-                    if (JSON.isValid(CreateClassDialog.this.jsonTextArea.getText())) {
-                        final String formattedJson = new JsonFormatter().process(CreateClassDialog.this.jsonTextArea.getText());
-                        if (!StrUtil.equals(formattedJson, CreateClassDialog.this.jsonTextArea.getText())) {
-                            ApplicationManager.getApplication().invokeLater(() -> {
-                                if (JSON.isValid(CreateClassDialog.this.jsonTextArea.getText())) {
-                                    CreateClassDialog.this.jsonTextArea.setText(formattedJson);
-                                }
-                            });
-                        }
+                if (JSON.isValid(CreateClassDialog.this.jsonTextArea.getText())) {
+                    final String formattedJson = new JsonFormatter().process(CreateClassDialog.this.jsonTextArea.getText());
+                    if (!StrUtil.equals(formattedJson, CreateClassDialog.this.jsonTextArea.getText())) {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            if (JSON.isValid(CreateClassDialog.this.jsonTextArea.getText())) {
+                                CreateClassDialog.this.jsonTextArea.setText(formattedJson);
+                            }
+                        });
                     }
-                } catch (final Exception ignored) {
                 }
             }
 

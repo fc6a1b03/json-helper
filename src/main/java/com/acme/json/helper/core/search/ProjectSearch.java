@@ -12,7 +12,10 @@ import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
 import com.intellij.ide.impl.ProjectUtil;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.psi.codeStyle.MinusculeMatcher;
@@ -23,8 +26,11 @@ import com.intellij.util.Processor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.acme.json.helper.core.search.item.ProjectNavigationItem.GIT_URL_PATTERN;
@@ -39,6 +45,12 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * 搜索缓存实例
      */
     private static final SearchCache CACHE = new SearchCache();
+    /**
+     * 用于存储正在克隆的仓库信息的并发哈希表
+     * <p>
+     * 键为仓库名称, 值表示该仓库是否正在被克隆
+     */
+    private static final ConcurrentHashMap<String, Boolean> CLONING_REPOS = new ConcurrentHashMap<>();
     /**
      * 加载语言资源文件
      */
@@ -132,34 +144,95 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
     }
 
     /**
-     * 如果目标路径不存在, 则克隆指定 URL 的 Git 仓库
+     * 如果仓库未存在则克隆指定 URL 的 Git 仓库
      * <p>
-     * 该方法首先检查指定 URL 的仓库是否已存在本地缓存中. 如果存在, 则直接打开或导入该项目;<br/>
-     * 否则, 会在后台线程中执行 Git 克隆操作. 克隆成功后会将仓库信息添加到缓存中,<br/>
-     * 并在 UI 线程中打开或导入该项目; 如果克隆失败, 则显示警告通知.
+     * 该方法首先检查仓库是否正在克隆中, 如果是则显示提示信息. 如果目标目录已存在, 则直接打开该项目.<br/>
+     * 否则, 启动一个后台任务来执行 Git 克隆操作, 并在完成后通知用户.<br/>
+     * 克隆过程中会显示进度条, 并处理克隆过程中的各种异常情况.
      * @param url Git 仓库的 URL 地址
      */
     private void cloneIfNotExist(final String url) {
-        final File target = FileUtil.file(calculateClonePath(url));
-        if (target.exists()) {
-            ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
+        // 项目名称
+        final String projectName = extractProjectName(url);
+        // 检查是否已经在克隆
+        if (Boolean.TRUE.equals(CLONING_REPOS.putIfAbsent(url, Boolean.TRUE))) {
+            ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyInfo("%s: %s".formatted(BUNDLE.getString("clone.repository.already.info"), projectName), this.project));
             return;
         }
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-                final int exitCode = new ProcessBuilder("git", "clone", url, target.getName())
-                        .directory(FileUtil.mkdir(FileUtil.mkdir(target.getParentFile()))).redirectErrorStream(Boolean.TRUE).start().waitFor();
-                if (exitCode == 0) {
-                    CACHE.addGitRepository(url);
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
-                        CACHE.removeGitRepository(url);
-                    });
+        final File target = FileUtil.file(calculateClonePath(url));
+        // 存在直接打开项目
+        if (target.exists()) {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
+                CLONING_REPOS.remove(url);
+            });
+            return;
+        }
+        // 启动进度对话框
+        ApplicationManager.getApplication().invokeLater(() -> ProgressManager.getInstance().run(new Task.Backgroundable(this.project, projectName, Boolean.TRUE) {
+            @Override
+            public void run(@NotNull final ProgressIndicator indicator) {
+                indicator.setIndeterminate(Boolean.TRUE);
+                indicator.setText(target.getAbsolutePath());
+                try {
+                    // 命令流程构建器
+                    final Process process = new ProcessBuilder("git", "clone", "--recurse-submodules", "--progress", url, target.getName())
+                            .directory(FileUtil.mkdir(FileUtil.mkdir(target.getParentFile()))).redirectErrorStream(Boolean.TRUE).start();
+                    // 读取进程输出以提供详细进度
+                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                        String line;
+                        while (Objects.nonNull(line = reader.readLine())) {
+                            indicator.setText2(line);
+                            if (indicator.isCanceled()) {
+                                process.descendants().forEach(ProcessHandle::destroyForcibly);
+                                process.destroyForcibly();
+                                throw new ProcessCanceledException();
+                            }
+                        }
+                    }
+                    // 等待命令流程
+                    final int exitCode = process.waitFor();
+                    if (exitCode != 0) {
+                        throw new RuntimeException("%s: %d".formatted(BUNDLE.getString("clone.repository.progress.exception.info"), exitCode));
+                    }
+                } catch (final ProcessCanceledException e) {
+                    // 重新抛出以正确处理取消
+                    throw e;
+                } catch (final Exception e) {
+                    throw new RuntimeException("%s: %s".formatted(BUNDLE.getString("clone.repository.progress.exception.info2"), e.getMessage()), e);
                 }
-            } catch (final Exception e) {
-                ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyWarn(e.getMessage(), this.project));
             }
-        });
+
+            @Override
+            public void onCancel() {
+                super.onCancel();
+                CLONING_REPOS.remove(url);
+            }
+
+            @Override
+            public void onSuccess() {
+                try {
+                    CACHE.addGitRepository(url);
+                    CACHE.removeGitRepository(url);
+                    ApplicationManager.getApplication().invokeLater(() -> ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE));
+                } finally {
+                    CLONING_REPOS.remove(url);
+                }
+            }
+
+            @Override
+            public void onThrowable(@NotNull final Throwable error) {
+                super.onThrowable(error);
+                final String errorMessage;
+                if (error instanceof ProcessCanceledException) {
+                    errorMessage = BUNDLE.getString("clone.repository.progress.exception.info3");
+                } else {
+                    errorMessage = error.getMessage();
+                }
+                ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyWarn(errorMessage, ProjectSearch.this.project));
+                CLONING_REPOS.remove(url);
+            }
+        }));
     }
 
     /**
@@ -180,7 +253,7 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
                 });
                 this.append(value.projectName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                 this.append(switch (value) {
-                    case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectName());
+                    case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectPath());
                     case final ProjectNavigationItem.Recent recent -> "  %s".formatted(recent.projectPath());
                     case final ProjectNavigationItem.GitRepository gitRepo -> "  %s".formatted(gitRepo.repositoryUrl());
                 }, SimpleTextAttributes.GRAYED_ATTRIBUTES);
@@ -222,7 +295,7 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
         final MinusculeMatcher matcher = NameUtil.buildMatcher("*" + pattern, NameUtil.MatchingCaseSensitivity.NONE);
         src.stream().filter(Objects::nonNull)
                 .map(item -> new FoundItemDescriptor<>(item, matcher.matchingDegree(switch (item) {
-                    case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectName());
+                    case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectPath());
                     case final ProjectNavigationItem.Recent recent -> "  %s".formatted(recent.projectPath());
                     case final ProjectNavigationItem.GitRepository repository ->
                             "  %s".formatted(repository.repositoryUrl());

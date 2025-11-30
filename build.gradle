@@ -4,11 +4,11 @@ plugins {
     id 'java'
     // https://github.com/JetBrains/intellij-platform-gradle-plugin
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-    id 'org.jetbrains.intellij.platform' version '2.10.4'
+    id 'org.jetbrains.intellij.platform' version '2.10.5'
 }
 
 group 'com.acme'
-version '0.11.2'
+version '0.11.5'
 
 repositories {
     mavenCentral()
@@ -30,7 +30,7 @@ ext {
     toonVersion = '0.1.3'
     auth0Version = '4.5.0'
     hutoolVersion = '5.8.41'
-    jacksonVersion = '3.0.2'
+    jacksonVersion = '3.0.3'
     apachePoiVersion = '5.5.0'
     fastjson2Version = '2.0.60'
     jsonRepairVersion = '0.3.1'

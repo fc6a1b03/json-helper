@@ -62,6 +62,10 @@
         <action id="ProjectSearchAction" class="com.acme.json.helper.ui.action.search.ProjectSearchAction">
             <add-to-group group-id="GoToTargetEx"/>
         </action>
+        <!-- 注册HTTP搜索 -->
+        <action id="HttpRequestSearch" class="com.acme.json.helper.ui.action.search.HttpRequestSearchAction">
+            <add-to-group group-id="GoToTargetEx"/>
+        </action>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <!-- 注册窗口 -->
@@ -83,5 +87,7 @@
                            key="notification.group.JSONGenerator.NotificationGroup"/>
         <!-- 项目搜索器 -->
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ProjectSearchFactory"/>
+        <!-- HTTP搜索器 -->
+        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.HttpRequestSearchFactory"/>
     </extensions>
 </idea-plugin>

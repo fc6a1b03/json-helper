@@ -292,7 +292,7 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
             ));
             return;
         }
-        final MinusculeMatcher matcher = NameUtil.buildMatcher("*" + pattern, NameUtil.MatchingCaseSensitivity.NONE);
+        final MinusculeMatcher matcher = NameUtil.buildMatcher("*%s".formatted(pattern), NameUtil.MatchingCaseSensitivity.NONE);
         src.stream().filter(Objects::nonNull)
                 .map(item -> new FoundItemDescriptor<>(item, matcher.matchingDegree(switch (item) {
                     case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectPath());

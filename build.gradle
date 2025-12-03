@@ -1,14 +1,12 @@
 //file:noinspection SpellCheckingInspection
 //file:noinspection DependencyNotationArgument
 plugins {
-    id 'java'
-    // https://github.com/JetBrains/intellij-platform-gradle-plugin
-    // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-    id 'org.jetbrains.intellij.platform' version '2.10.5'
+    id "java"
+    id "org.jetbrains.intellij.platform"
 }
 
-group 'com.acme'
-version '0.11.5'
+group "com.acme"
+version "${gradle.ext.versions.ver}"
 
 repositories {
     mavenCentral()
@@ -26,36 +24,26 @@ java {
     }
 }
 
-ext {
-    toonVersion = '0.1.3'
-    auth0Version = '4.5.0'
-    hutoolVersion = '5.8.41'
-    jacksonVersion = '3.0.3'
-    apachePoiVersion = '5.5.0'
-    fastjson2Version = '2.0.60'
-    jsonRepairVersion = '0.3.1'
-}
-
 configurations.configureEach {
     resolutionStrategy {
-        force 'org.apache.commons:commons-lang3:3.19.0'
+        force "org.apache.commons:commons-lang3:${gradle.ext.versions.commonsLang3}"
     }
 }
 
 dependencies {
     /* BOM依赖 */
-    implementation platform("cn.hutool:hutool-bom:${hutoolVersion}")
-    implementation platform("tools.jackson:jackson-bom:${jacksonVersion}")
+    implementation platform("cn.hutool:hutool-bom:${gradle.ext.versions.hutool}")
+    implementation platform("tools.jackson:jackson-bom:${gradle.ext.versions.jackson}")
     /* IntelliJ 平台依赖 */
     // https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html
     intellijPlatform {
-        intellijIdeaCommunity '2025.2'
-        bundledPlugin 'org.toml.lang'
-        bundledPlugin 'com.intellij.java'
-        bundledPlugin 'com.intellij.gradle'
-        bundledPlugin 'com.intellij.properties'
-        bundledPlugin 'com.intellij.modules.json'
-        bundledPlugin 'org.jetbrains.plugins.yaml'
+        intellijIdeaCommunity "2025.2"
+        bundledPlugin "org.toml.lang"
+        bundledPlugin "com.intellij.java"
+        bundledPlugin "com.intellij.gradle"
+        bundledPlugin "com.intellij.properties"
+        bundledPlugin "com.intellij.modules.json"
+        bundledPlugin "org.jetbrains.plugins.yaml"
     }
     /* hutool */
     implementation "cn.hutool:hutool-core"
@@ -68,11 +56,11 @@ dependencies {
     implementation "tools.jackson.dataformat:jackson-dataformat-yaml"
     implementation "tools.jackson.dataformat:jackson-dataformat-properties"
     /* 非BOM依赖 */
-    implementation "com.auth0:java-jwt:${auth0Version}"
-    implementation "com.felipestanzani:jtoon:${toonVersion}"
-    implementation "org.apache.poi:poi-ooxml:${apachePoiVersion}"
-    implementation "io.github.haibiiin:json-repair:${jsonRepairVersion}"
-    implementation "com.alibaba.fastjson2:fastjson2:${fastjson2Version}"
+    implementation "com.auth0:java-jwt:${gradle.ext.versions.auth0}"
+    implementation "com.felipestanzani:jtoon:${gradle.ext.versions.toon}"
+    implementation "org.apache.poi:poi-ooxml:${gradle.ext.versions.apachePoi}"
+    implementation "io.github.haibiiin:json-repair:${gradle.ext.versions.jsonRepair}"
+    implementation "com.alibaba.fastjson2:fastjson2:${gradle.ext.versions.fastjson2}"
 }
 
 runIde {
@@ -94,40 +82,40 @@ runIde {
             "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED"
     ]
     // 设置主题
-    systemProperty 'idea.ui.themes', 'Darcula'
+    systemProperty "idea.ui.themes", "Darcula"
     // 设置编码
-    systemProperty 'file.encoding', 'UTF-8'
-    systemProperty 'idea.encoding.charset', 'UTF-8'
+    systemProperty "file.encoding", "UTF-8"
+    systemProperty "idea.encoding.charset", "UTF-8"
     // 设置插件开发模式
-    systemProperty 'idea.is.internal', 'true'
-    systemProperty 'idea.auto.update', 'false'
-    systemProperty 'idea.dynamic.classpath', 'true'
-    systemProperty 'idea.accelerator.manager', 'true'
-    systemProperty 'idea.cwm.station.enabled', 'false'
-    systemProperty 'idea.inspections.enabled', 'false'
-    systemProperty 'idea.plugins.developer.mode', 'true'
-    systemProperty 'idea.plugins.developer.mode.debug', 'true'
+    systemProperty "idea.is.internal", "true"
+    systemProperty "idea.auto.update", "false"
+    systemProperty "idea.dynamic.classpath", "true"
+    systemProperty "idea.accelerator.manager", "true"
+    systemProperty "idea.cwm.station.enabled", "false"
+    systemProperty "idea.inspections.enabled", "false"
+    systemProperty "idea.plugins.developer.mode", "true"
+    systemProperty "idea.plugins.developer.mode.debug", "true"
 }
 
-tasks.register('printVersion') {
+tasks.register("printVersion") {
     doLast {
         println project.version
     }
 }
 
-tasks.register('printJavaVersion') {
+tasks.register("printJavaVersion") {
     doLast {
         println java.sourceCompatibility
     }
 }
 
-tasks.register('printGradleVersion') {
+tasks.register("printGradleVersion") {
     doLast {
         println gradle.gradleVersion
     }
 }
 
-tasks.register('printAllVersions') {
+tasks.register("printAllVersions") {
     doLast {
         println "Project Version: ${project.version}"
         println "Java Version: ${java.sourceCompatibility}"
@@ -138,5 +126,5 @@ tasks.register('printAllVersions') {
 tasks.withType(JavaCompile).configureEach {
     options.fork = true
     options.incremental = true
-    options.compilerArgs += ['-Xdoclint:none', '-Xlint:none', '-nowarn']
+    options.compilerArgs += ["-Xdoclint:none", "-Xlint:none", "-nowarn"]
 }

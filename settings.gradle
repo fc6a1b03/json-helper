@@ -1,1 +1,21 @@
-rootProject.name = 'json-helper'
+pluginManagement {
+    plugins {
+        // https://github.com/JetBrains/intellij-platform-gradle-plugin
+        // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
+        id "org.jetbrains.intellij.platform" version "2.10.5"
+    }
+}
+
+gradle.ext.versions = [
+        ver         : "0.11.6",
+        toon        : "0.1.3",
+        auth0       : "4.5.0",
+        hutool      : "5.8.42",
+        jackson     : "3.0.3",
+        apachePoi   : "5.5.1",
+        fastjson2   : "2.0.60",
+        jsonRepair  : "0.3.1",
+        commonsLang3: "3.19.0"
+]
+
+rootProject.name = "json-helper"

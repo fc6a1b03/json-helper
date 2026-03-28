@@ -44,15 +44,17 @@ public class FileDropHandler extends DropTargetAdapter {
                 final Object data = transferable.getTransferData(DataFlavor.javaFileListFlavor);
                 if (data instanceof final List<?> rawList) {
                     // 读取获得的第一个文件并获取该文件的绝对路径
-                    final String path = rawList.stream()
-                            .filter(File.class::isInstance)
-                            .map(File.class::cast)
-                            .findFirst()
-                            .map(File::getAbsolutePath)
-                            .orElse(null);
+                    String path = null;
+                    for (final Object item : rawList) {
+                        if (item instanceof final File file) {
+                            path = file.getAbsolutePath();
+                            break;
+                        }
+                    }
                     if (StrUtil.isNotEmpty(path)) {
+                        final String droppedPath = path;
                         // 将正确的路径写回编辑器
-                        ApplicationManager.getApplication().invokeLater(() -> editor.setText(path));
+                        ApplicationManager.getApplication().invokeLater(() -> editor.setText(droppedPath));
                     }
                     e.dropComplete(Boolean.TRUE);
                 } else {

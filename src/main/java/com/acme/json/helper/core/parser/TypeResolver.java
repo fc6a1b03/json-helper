@@ -5,13 +5,13 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.RandomUtil;
 import com.acme.json.helper.common.CollectionTypeHandler;
 import com.acme.json.helper.common.TemporalTypeHandler;
-import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import kotlin.jvm.functions.Function0;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -20,6 +20,7 @@ import static java.util.Map.entry;
 
 /**
  * 类型解析器
+ *
  * @author 拒绝者
  * @date 2025-01-25
  */
@@ -33,11 +34,12 @@ public class TypeResolver {
      *   <li>对象反序列化时的默认值填充</li>
      *   <li>动态创建示例对象时的字段初始化</li>
      * </ul>
+     *
      * @implNote 使用不可变Map保证线程安全，Map.ofEntries创建的映射表具有如下特性：
-     *         <li>键集合包含基本类型名称和String全限定名</li>
-     *         <li>所有数值类型使用绝对值保证非负</li>
-     *         <li>short类型通过Convert.toShort进行范围适配</li>
-     *         <li>虽然String不是基本类型，但因其高频使用特性特别包含在此映射表中</li>
+     * <li>键集合包含基本类型名称和String全限定名</li>
+     * <li>所有数值类型使用绝对值保证非负</li>
+     * <li>short类型通过Convert.toShort进行范围适配</li>
+     * <li>虽然String不是基本类型，但因其高频使用特性特别包含在此映射表中</li>
      */
     private static final Map<String, Function0<Object>> DEFAULTS = Map.ofEntries(
             // 原始类型
@@ -78,6 +80,7 @@ public class TypeResolver {
 
     /**
      * 合并后的获取默认值方法，支持PsiType类型
+     *
      * @param type 类型
      * @return {@link Object }
      */
@@ -89,33 +92,40 @@ public class TypeResolver {
 
     /**
      * 获取枚举值
+     *
      * @param type 需要解析的 PSI 类
      * @return {@link String }
      */
     public static String getEnumValue(final PsiClassType type) {
-        return Opt.ofNullable(type.resolve())
-                .stream().filter(Objects::nonNull)
-                .flatMap(c -> Arrays.stream(c.getAllFields()))
-                .filter(Objects::nonNull).filter(PsiEnumConstant.class::isInstance)
-                .findFirst().map(PsiField::getName).orElse("");
+        final PsiClass resolvedClass = type.resolve();
+        if (Objects.isNull(resolvedClass)) {
+            return "";
+        }
+        for (final PsiField field : resolvedClass.getAllFields()) {
+            if (field instanceof PsiEnumConstant) {
+                return field.getName();
+            }
+        }
+        return "";
     }
 
     /**
      * 解析类型并生成对应的默认值或数据结构
+     *
      * @param type      需要解析的PSI类型对象（如基本类型/集合/自定义类等）
      * @param processed 已处理类型的集合，用于防止循环解析和重复处理
      * @return {@link Object}
-     *         返回与类型对应的默认值或数据结构，可能的返回值包括：
-     *         - 基本类型默认值（如int返回0）
-     *         - 数组/集合的示例数据结构
-     *         - 时间类型的格式化字符串
-     *         - 随机生成的字符串
-     *         - 自定义类型的递归解析结果
-     *         当遇到无法解析的类型时返回null
+     * 返回与类型对应的默认值或数据结构，可能的返回值包括：
+     * - 基本类型默认值（如int返回0）
+     * - 数组/集合的示例数据结构
+     * - 时间类型的格式化字符串
+     * - 随机生成的字符串
+     * - 自定义类型的递归解析结果
+     * 当遇到无法解析的类型时返回null
      * @implNote 方法通过ReadAction保证线程安全，适用于IntelliJ PSI模型访问。
      */
     public static Object resolve(final PsiType type, final Set<PsiClass> processed) {
-        return ReadAction.compute(() -> switch (type) {
+        return ApplicationManager.getApplication().runReadAction((Computable<Object>) () -> switch (type) {
             // 基本类型，返回类型默认值
             case final PsiPrimitiveType pt -> getDefault(pt);
             // 其他基础类型

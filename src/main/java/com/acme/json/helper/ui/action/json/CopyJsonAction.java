@@ -12,6 +12,8 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
@@ -86,9 +88,19 @@ public class CopyJsonAction extends AnAction {
         if (Objects.isNull(psiClass)) {
             return;
         }
-        // 将 JSON 字符串放入剪贴板
-        Clipboard.copy(new JsonFormatter().process(ClassParser.classToMap(psiClass)));
-        // 提示用户
-        Notifier.notifyInfo(BUNDLE.getString("bean.copy.json.success"), project);
+        new Task.Backgroundable(project, BUNDLE.getString("action.class.copy.json.text"), Boolean.FALSE) {
+            private String generatedJson;
+
+            @Override
+            public void run(@NotNull final ProgressIndicator indicator) {
+                this.generatedJson = new JsonFormatter().process(ClassParser.classToMap(psiClass));
+            }
+
+            @Override
+            public void onSuccess() {
+                Clipboard.copy(this.generatedJson);
+                Notifier.notifyInfo(BUNDLE.getString("bean.copy.json.success"), project);
+            }
+        }.queue();
     }
 }

@@ -1,5 +1,4 @@
-//file:noinspection SpellCheckingInspection
-//file:noinspection DependencyNotationArgument
+//file:noinspection GroovyAssignabilityCheck
 plugins {
     id "java"
     id "org.jetbrains.intellij.platform"
@@ -12,18 +11,12 @@ repositories {
     mavenCentral()
     intellijPlatform {
         defaultRepositories()
-        marketplace()
     }
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    sourceSets.configureEach {
-        compileClasspath += configurations.compileClasspath
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -38,36 +31,66 @@ dependencies {
     implementation platform("cn.hutool:hutool-bom:${gradle.ext.versions.hutool}")
     implementation platform("tools.jackson:jackson-bom:${gradle.ext.versions.jackson}")
     /* IntelliJ 平台依赖 */
-    // https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html
     intellijPlatform {
-        intellijIdea "2025.3"
-        bundledPlugin "org.toml.lang"
-        bundledPlugin "com.intellij.java"
-        bundledPlugin "com.intellij.gradle"
-        bundledPlugin "com.intellij.properties"
-        bundledPlugin "com.intellij.modules.json"
-        bundledPlugin "org.jetbrains.plugins.yaml"
+        intellijIdea(gradle.ext.versions.idea) {
+            useInstaller = true
+        }
+        bundledPlugins([
+                "org.toml.lang",
+                "com.intellij.java",
+                "com.intellij.gradle",
+                "com.intellij.properties",
+                "com.intellij.modules.json",
+                "org.jetbrains.plugins.yaml"
+        ])
     }
-    /* hutool */
+    /* 业务依赖 */
     implementation "cn.hutool:hutool-core"
     implementation "cn.hutool:hutool-http"
-    /* jackson */
     implementation "tools.jackson.core:jackson-databind"
     implementation "tools.jackson.dataformat:jackson-dataformat-csv"
     implementation "tools.jackson.dataformat:jackson-dataformat-xml"
     implementation "tools.jackson.dataformat:jackson-dataformat-toml"
     implementation "tools.jackson.dataformat:jackson-dataformat-yaml"
     implementation "tools.jackson.dataformat:jackson-dataformat-properties"
-    /* 非BOM依赖 */
     implementation "com.auth0:java-jwt:${gradle.ext.versions.auth0}"
-    implementation "com.felipestanzani:jtoon:${gradle.ext.versions.toon}"
+    implementation "dev.toonformat:jtoon:${gradle.ext.versions.toon}"
     implementation "org.apache.poi:poi-ooxml:${gradle.ext.versions.apachePoi}"
     implementation "io.github.haibiiin:json-repair:${gradle.ext.versions.jsonRepair}"
     implementation "com.alibaba.fastjson2:fastjson2:${gradle.ext.versions.fastjson2}"
 }
 
+intellijPlatform {
+    pluginConfiguration {
+        id = "com.acme.json.helper"
+        name = "Json Helper"
+        version = project.version.toString()
+        ideaVersion {
+            sinceBuild = gradle.ext.versions.sinceBuild
+        }
+        vendor {
+            name = "拒绝者"
+            email = "asd1161575755@outlook.com"
+            url = "https://github.com/fc6a1b03/json-helper"
+        }
+        description = """
+            Json Helper is an IntelliJ IDEA plugin for editing, repairing, querying, and converting JSON,
+            with Java model generation, tree navigation, structure copy, JWT and path parsing, plus export
+            to XML, YAML, TOML, Properties, CSV, and XLSX.
+        """.stripIndent().trim()
+        changeNotes = """
+            <ul>
+                <li>Upgrade the build baseline to IntelliJ IDEA 2026.1, Java 25, and Gradle 9.4.1.</li>
+                <li>Harden editor, search, dialog, and screenshot flows to reduce UI freezes and host-side impact.</li>
+            </ul>
+        """.stripIndent()
+    }
+}
+
 runIde {
-    // jvm参数优化
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
     jvmArgs += [
             "-Xms1g",
             "-Xmx4g",
@@ -75,21 +98,16 @@ runIde {
             "-Xshare:off",
             "-Dfile.encoding=UTF-8",
             "-Duser.timezone=GMT+8",
-            // 其他优化
             "-Didea.wsl.disable=true",
             "-XX:ReduceInitialCardSetAllocation=10",
-            // 启用模块拓展
             "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED"
     ]
-    // 设置主题
     systemProperty "idea.ui.themes", "Darcula"
-    // 设置编码
     systemProperty "file.encoding", "UTF-8"
     systemProperty "idea.encoding.charset", "UTF-8"
-    // 设置插件开发模式
     systemProperty "idea.is.internal", "true"
     systemProperty "idea.auto.update", "false"
     systemProperty "idea.dynamic.classpath", "true"
@@ -108,7 +126,7 @@ tasks.register("printVersion") {
 
 tasks.register("printJavaVersion") {
     doLast {
-        println java.sourceCompatibility
+        println java.toolchain.languageVersion.get()
     }
 }
 
@@ -118,16 +136,32 @@ tasks.register("printGradleVersion") {
     }
 }
 
+tasks.register("printIdeaVersion") {
+    doLast {
+        println gradle.ext.versions.idea
+    }
+}
+
 tasks.register("printAllVersions") {
     doLast {
         println "Project Version: ${project.version}"
-        println "Java Version: ${java.sourceCompatibility}"
+        println "Platform Version: ${gradle.ext.versions.idea}"
+        println "Java Version: ${java.toolchain.languageVersion.get()}"
         println "Gradle Version: ${gradle.gradleVersion}"
     }
 }
 
+tasks.register("cleanIntellijPlatformSandbox", Delete) {
+    delete layout.projectDirectory.dir(".intellijPlatform/sandbox")
+}
+
+tasks.named("prepareSandbox").configure {
+    dependsOn("cleanIntellijPlatformSandbox")
+}
+
 tasks.withType(JavaCompile).configureEach {
-    options.fork = true
+    options.release = 25
+    options.encoding = "UTF-8"
     options.incremental = true
-    options.compilerArgs += ["-Xdoclint:none", "-Xlint:none", "-nowarn"]
+    options.compilerArgs += ["-Xdoclint:none"]
 }

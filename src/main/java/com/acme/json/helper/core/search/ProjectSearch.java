@@ -11,7 +11,6 @@ import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
 import com.intellij.ide.impl.ProjectUtil;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -31,20 +30,16 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import static com.acme.json.helper.core.search.item.ProjectNavigationItem.GIT_URL_PATTERN;
 
 /**
  * 项目搜索
+ *
  * @author 拒绝者
  * @since 2025-11-05
  */
 public record ProjectSearch(Project project) implements WeightedSearchEverywhereContributor<ProjectNavigationItem> {
-    /**
-     * 搜索缓存实例
-     */
-    private static final SearchCache CACHE = new SearchCache();
     /**
      * 用于存储正在克隆的仓库信息的并发哈希表
      * <p>
@@ -55,6 +50,47 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * 加载语言资源文件
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+
+    /**
+     * 计算克隆项目的路径
+     * <p>
+     * 根据给定的 URL 地址, 生成适用于项目克隆的本地路径. 该方法会从已打开的项目中获取基础路径,<br/>
+     * 并对 URL 进行一系列正则替换操作以标准化路径格式.
+     *
+     * @param url 远程仓库的 URL 地址, 支持多种协议格式 (http,https,git,ssh 等)
+     * @return 标准化后的本地克隆路径, 格式为 "基础路径 / 处理后的 URL"
+     */
+    private static String calculateClonePath(final String url) {
+        String basePath = System.getProperty("user.home");
+        for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
+            if (StrUtil.isEmpty(openProject.getBasePath())) {
+                continue;
+            }
+            final File projectDir = FileUtil.file(openProject.getBasePath());
+            if (!projectDir.exists()) {
+                continue;
+            }
+            final File firstParent = projectDir.getParentFile();
+            if (Objects.isNull(firstParent) || !firstParent.exists()) {
+                continue;
+            }
+            final File secondParent = firstParent.getParentFile();
+            if (Objects.nonNull(secondParent) && secondParent.exists()) {
+                basePath = secondParent.getAbsolutePath();
+                break;
+            }
+            basePath = firstParent.getAbsolutePath();
+            break;
+        }
+        return "%s/%s".formatted(
+                basePath,
+                url.replaceFirst("^https?://[^/]+/", "")
+                        .replaceFirst("^git@[^:/]+[:/]", "")
+                        .replaceFirst("^ssh://[^/]+/", "")
+                        .replaceFirst("^git://[^/]+/", "")
+                        .replaceFirst("\\.git$", "")
+        );
+    }
 
     @Override
     public @NotNull String getSearchProviderId() {
@@ -87,34 +123,11 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
     }
 
     /**
-     * 计算克隆项目的路径
-     * <p>
-     * 根据给定的 URL 地址, 生成适用于项目克隆的本地路径. 该方法会从已打开的项目中获取基础路径,<br/>
-     * 并对 URL 进行一系列正则替换操作以标准化路径格式.
-     * @param url 远程仓库的 URL 地址, 支持多种协议格式 (http,https,git,ssh 等)
-     * @return 标准化后的本地克隆路径, 格式为 "基础路径 / 处理后的 URL"
-     */
-    private static String calculateClonePath(final String url) {
-        return "%s/%s".formatted(
-                Arrays.stream(ProjectManager.getInstance().getOpenProjects())
-                        .findFirst().filter(project -> StrUtil.isNotEmpty(project.getBasePath()))
-                        .map(Project::getBasePath).filter(StrUtil::isNotEmpty)
-                        .map(FileUtil::file).filter(File::exists).map(File::getParentFile)
-                        .filter(File::exists).map(File::getParentFile).filter(File::exists)
-                        .map(File::getAbsolutePath).orElseGet(() -> System.getProperty("user.home")),
-                url.replaceFirst("^https?://[^/]+/", "")
-                        .replaceFirst("^git@[^:/]+[:/]", "")
-                        .replaceFirst("^ssh://[^/]+/", "")
-                        .replaceFirst("^git://[^/]+/", "")
-                        .replaceFirst("\\.git$", "")
-        );
-    }
-
-    /**
      * 从 Git 仓库 URL 中提取项目名称
      * <p>
      * 该方法会移除 URL 末尾的.git 后缀, 然后根据最后一个斜杠的位置提取项目名称.<br/>
      * 如果没有找到斜杠, 则返回 "unknown"
+     *
      * @param url Git 仓库的完整 URL 地址
      * @return 提取到的项目名称, 如果无法提取则返回 "unknown"
      */
@@ -124,11 +137,16 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
         return lastSlash >= 0 ? path.substring(lastSlash + 1) : "unknown";
     }
 
+    private SearchCache cache() {
+        return SearchCache.getInstance(Objects.requireNonNull(this.project));
+    }
+
     /**
      * 处理选中的项目导航项
      * <p>
      * 根据不同的项目导航项类型执行相应的处理操作. 如果是 Git 仓库, 则克隆仓库;<br/>
      * 否则打开或导入指定的项目路径.
+     *
      * @param item       要处理的项目导航项
      * @param modifiers  键盘修饰符
      * @param searchText 搜索文本
@@ -136,9 +154,10 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      */
     @Override
     public boolean processSelectedItem(@NotNull final ProjectNavigationItem item, final int modifiers, @NotNull final String searchText) {
-        switch (item) {
-            case final ProjectNavigationItem.GitRepository git -> this.cloneIfNotExist(git.repositoryUrl());
-            default -> ProjectUtil.openOrImport(item.projectPath(), null, Boolean.FALSE);
+        if (item instanceof ProjectNavigationItem.GitRepository git) {
+            this.cloneIfNotExist(git.repositoryUrl());
+        } else {
+            ProjectUtil.openOrImport(item.projectPath(), null, Boolean.FALSE);
         }
         return Boolean.TRUE;
     }
@@ -149,6 +168,7 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * 该方法首先检查仓库是否正在克隆中, 如果是则显示提示信息. 如果目标目录已存在, 则直接打开该项目.<br/>
      * 否则, 启动一个后台任务来执行 Git 克隆操作, 并在完成后通知用户.<br/>
      * 克隆过程中会显示进度条, 并处理克隆过程中的各种异常情况.
+     *
      * @param url Git 仓库的 URL 地址
      */
     private void cloneIfNotExist(final String url) {
@@ -156,20 +176,18 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
         final String projectName = extractProjectName(url);
         // 检查是否已经在克隆
         if (Boolean.TRUE.equals(CLONING_REPOS.putIfAbsent(url, Boolean.TRUE))) {
-            ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyInfo("%s: %s".formatted(BUNDLE.getString("clone.repository.already.info"), projectName), this.project));
+            Notifier.notifyInfo("%s: %s".formatted(BUNDLE.getString("clone.repository.already.info"), projectName), this.project);
             return;
         }
         final File target = FileUtil.file(calculateClonePath(url));
         // 存在直接打开项目
         if (target.exists()) {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
-                CLONING_REPOS.remove(url);
-            });
+            ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
+            CLONING_REPOS.remove(url);
             return;
         }
         // 启动进度对话框
-        ApplicationManager.getApplication().invokeLater(() -> ProgressManager.getInstance().run(new Task.Backgroundable(this.project, projectName, Boolean.TRUE) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(this.project, projectName, Boolean.TRUE) {
             @Override
             public void run(@NotNull final ProgressIndicator indicator) {
                 indicator.setIndeterminate(Boolean.TRUE);
@@ -212,9 +230,9 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
             @Override
             public void onSuccess() {
                 try {
-                    CACHE.addGitRepository(url);
-                    CACHE.removeGitRepository(url);
-                    ApplicationManager.getApplication().invokeLater(() -> ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE));
+                    ProjectSearch.this.cache().addGitRepository(url);
+                    ProjectSearch.this.cache().removeGitRepository(url);
+                    ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
                 } finally {
                     CLONING_REPOS.remove(url);
                 }
@@ -229,16 +247,17 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
                 } else {
                     errorMessage = error.getMessage();
                 }
-                ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyWarn(errorMessage, ProjectSearch.this.project));
+                Notifier.notifyWarn(errorMessage, ProjectSearch.this.project);
                 CLONING_REPOS.remove(url);
             }
-        }));
+        });
     }
 
     /**
      * 获取项目导航项的渲染器
      * <p>
      * 返回一个用于渲染项目导航项的列表单元格渲染器, 该渲染器根据不同的项目类型显示相应的图标和文本信息
+     *
      * @return 项目导航项的列表单元格渲染器
      */
     @Override
@@ -268,40 +287,57 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * 该方法根据给定的搜索模式过滤缓存中的项目导航项, 并通过匹配器计算权重,<br/>
      * 最终将匹配结果传递给消费者处理器进行处理. 如果模式匹配 Git URL 模式,<br/>
      * 则会创建对应的 Git 仓库或最近打开的项目条目.
+     *
      * @param pattern   用于匹配项目名称的模式字符串, 不能为空
      * @param indicator 进度指示器, 用于监控操作进度, 不能为空
      * @param consumer  用于处理匹配结果的处理器, 不能为空
      */
     @Override
     public void fetchWeightedElements(@NotNull final String pattern, @NotNull final ProgressIndicator indicator, @NotNull final Processor<? super FoundItemDescriptor<ProjectNavigationItem>> consumer) {
-        final SequencedCollection<ProjectNavigationItem> src = CACHE.get().stream().filter(Objects::nonNull)
-                .filter(item -> switch (item) {
-                    case final ProjectNavigationItem.GitRepository git ->
-                            !FileUtil.exist(calculateClonePath(git.repositoryUrl()));
-                    default -> Boolean.TRUE;
-                }).collect(Collectors.toCollection(LinkedHashSet::new));
+        final SequencedCollection<ProjectNavigationItem> cachedItems = this.cache().get();
+        final LinkedHashSet<ProjectNavigationItem> src = new LinkedHashSet<>();
+        for (final ProjectNavigationItem item : cachedItems) {
+            if (Objects.isNull(item)) {
+                continue;
+            }
+            if (item instanceof final ProjectNavigationItem.GitRepository git
+                    && FileUtil.exist(calculateClonePath(git.repositoryUrl()))) {
+                continue;
+            }
+            src.add(item);
+        }
         if (CollUtil.isEmpty(src)) return;
         if (StrUtil.isNotBlank(pattern) && GIT_URL_PATTERN.matcher(pattern).matches()) {
             final String targetPath = calculateClonePath(pattern);
+            boolean projectExists = false;
+            for (final ProjectNavigationItem item : src) {
+                if (targetPath.equals(item.projectPath())) {
+                    projectExists = true;
+                    break;
+                }
+            }
             consumer.process(new FoundItemDescriptor<>(
-                    src.stream().filter(Objects::nonNull)
-                            .anyMatch(item -> targetPath.equals(item.projectPath())) ?
-                            ProjectNavigationItem.recent(FileUtil.file(targetPath).getName(), targetPath, System.currentTimeMillis()) :
-                            ProjectNavigationItem.gitRepository(pattern, extractProjectName(pattern), System.currentTimeMillis()),
+                    projectExists
+                            ? ProjectNavigationItem.recent(FileUtil.file(targetPath).getName(), targetPath, System.currentTimeMillis())
+                            : ProjectNavigationItem.gitRepository(pattern, extractProjectName(pattern), System.currentTimeMillis()),
                     Integer.MAX_VALUE
             ));
             return;
         }
-        final MinusculeMatcher matcher = NameUtil.buildMatcher("*%s".formatted(pattern), NameUtil.MatchingCaseSensitivity.NONE);
-        src.stream().filter(Objects::nonNull)
-                .map(item -> new FoundItemDescriptor<>(item, matcher.matchingDegree(switch (item) {
-                    case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectPath());
-                    case final ProjectNavigationItem.Recent recent -> "  %s".formatted(recent.projectPath());
-                    case final ProjectNavigationItem.GitRepository repository ->
-                            "  %s".formatted(repository.repositoryUrl());
-                })))
-                .filter(descriptor -> pattern.isBlank() || descriptor.getWeight() > 0)
-                .sorted((a, b) -> Integer.compare(b.getWeight(), a.getWeight()))
-                .forEach(consumer::process);
+        final MinusculeMatcher matcher = NameUtil.buildMatcher("*%s".formatted(pattern)).build();
+        final List<FoundItemDescriptor<ProjectNavigationItem>> descriptors = new ArrayList<>(src.size());
+        for (final ProjectNavigationItem item : src) {
+            final int weight = matcher.matchingDegree(switch (item) {
+                case final ProjectNavigationItem.Opened opened -> "  %s".formatted(opened.projectPath());
+                case final ProjectNavigationItem.Recent recent -> "  %s".formatted(recent.projectPath());
+                case final ProjectNavigationItem.GitRepository repository ->
+                        "  %s".formatted(repository.repositoryUrl());
+            });
+            if (pattern.isBlank() || weight > 0) {
+                descriptors.add(new FoundItemDescriptor<>(item, weight));
+            }
+        }
+        descriptors.sort((left, right) -> Integer.compare(right.getWeight(), left.getWeight()));
+        descriptors.forEach(consumer::process);
     }
 }

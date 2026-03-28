@@ -4,18 +4,17 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
-import com.felipestanzani.jtoon.JToon;
-import org.gradle.internal.impldep.org.tomlj.Toml;
+import dev.toonformat.jtoon.JToon;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.InputSource;
 import org.yaml.snakeyaml.Yaml;
+import tools.jackson.dataformat.toml.TomlMapper;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import static cn.hutool.core.codec.Base64.isBase64;
@@ -25,36 +24,43 @@ import static cn.hutool.core.codec.Base64.isBase64;
  * <p>
  * 提供对多种数据格式 (如 JSON,XML,TOON,YAML,TOML,Properties 等) 的自动识别与转换功能.<br/>
  * 该类通过检测输入字符串的内容类型, 决定其格式并进行相应的反向转换处理.
+ *
  * @author 拒绝者
  * @date 2025-05-05
  * @see AnyFile
  */
-@SuppressWarnings({"RegExpRedundantClassElement", "UnnecessaryUnicodeEscape", "RegExpSimplifiable"})
+@SuppressWarnings({"RegExpRedundantClassElement", "RegExpSimplifiable"})
 public class AnyParser {
     /**
      * 属性配置文件的正则表达式模式
      * <p>
      * 用于匹配属性文件中的键值对行, 排除以 # 或空白字符开头的注释行和空行<br/>
      * 格式为:key=value, 其中 key 和 value 可以包含任意字符 (除换行符)
+     *
      * @see java.util.regex.Pattern
      */
     private static final Pattern PROPERTIES_PATTERN = Pattern.compile("^(?!\\s*(?:#|$)).+?=.+$", Pattern.MULTILINE);
+    private static final TomlMapper TOML_MAPPER = new TomlMapper();
 
     /**
      * 任意转换
+     *
      * @param any 任何
      * @return 异步JSON结果
      */
-    public static CompletableFuture<String> convert(final String any) {
-        return CompletableFuture.supplyAsync(() ->
-                JSON.isValid(any) ? "" : Opt.ofBlankAble(any)
-                        .map(item -> JsonParser.reverseConvert(item, detectType(any)))
-                        .filter(StrUtil::isNotEmpty).orElse("")
-        );
+    public static String convert(final String any) {
+        if (JSON.isValid(any)) {
+            return "";
+        }
+        return Opt.ofBlankAble(any)
+                .map(item -> JsonParser.reverseConvert(item, detectType(item)))
+                .filter(StrUtil::isNotEmpty)
+                .orElse("");
     }
 
     /**
      * 检测类型
+     *
      * @param input 输入
      * @return {@link AnyFile }
      */
@@ -77,6 +83,7 @@ public class AnyParser {
      * <p>
      * 该方法用于检测传入的字符串是否符合特定的跳过条件,<br/>
      * 严格匹配以下7种情况（去空格后）: {, {}, [, [], ["], {""}, {"":}
+     *
      * @param text 待检测的字符串, 不能为空
      * @return 如果字符串符合可跳过格式则返回 true, 否则返回 false
      */
@@ -99,6 +106,7 @@ public class AnyParser {
 
     /**
      * 是xml
+     *
      * @param input 输入
      * @return boolean
      */
@@ -115,6 +123,7 @@ public class AnyParser {
 
     /**
      * 检测字符串是否为 TOON 格式
+     *
      * @param input 输入字符串
      * @return boolean 是否为 TOON 格式
      */
@@ -129,6 +138,7 @@ public class AnyParser {
 
     /**
      * 判断字符串是否为URL参数格式
+     *
      * @param input 待判断的字符串
      * @return 如果是URL参数格式返回true，否则返回false
      */
@@ -158,6 +168,7 @@ public class AnyParser {
 
     /**
      * 是yaml
+     *
      * @param input 输入
      * @return boolean
      */
@@ -172,12 +183,14 @@ public class AnyParser {
 
     /**
      * 是toml
+     *
      * @param input 输入
      * @return boolean
      */
     private static boolean isToml(final String input) {
         try {
-            return Toml.parse(input).errors().isEmpty();
+            TOML_MAPPER.readTree(input);
+            return Boolean.TRUE;
         } catch (final Exception e) {
             return Boolean.FALSE;
         }
@@ -185,6 +198,7 @@ public class AnyParser {
 
     /**
      * 是properties
+     *
      * @param input 输入
      * @return boolean
      */

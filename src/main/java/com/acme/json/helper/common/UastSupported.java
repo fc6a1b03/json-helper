@@ -24,16 +24,21 @@ public class UastSupported {
      */
     public static boolean of(final PsiFile psiFile) {
         return Opt.ofNullable(psiFile)
-                .map(file -> UastLanguagePlugin.Companion.getInstances()
-                        .stream()
-                        .anyMatch(plugin -> plugin.isFileSupported(file.getName())))
+                .map(file -> {
+                    for (final UastLanguagePlugin plugin : UastLanguagePlugin.Companion.getInstances()) {
+                        if (plugin.isFileSupported(file.getName())) {
+                            return Boolean.TRUE;
+                        }
+                    }
+                    return Boolean.FALSE;
+                })
                 .orElse(Boolean.FALSE);
     }
 
     /**
      * 检查是否存在有效的类上下文
      *
-     * @param editor 编辑器
+     * @param editor  编辑器
      * @param psiFile PSI文件
      * @return boolean
      */
@@ -44,7 +49,7 @@ public class UastSupported {
     /**
      * 定位当前光标所在的PSI类
      *
-     * @param editor 编辑器
+     * @param editor  编辑器
      * @param psiFile PSI文件
      * @return {@link PsiClass }
      */

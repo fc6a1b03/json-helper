@@ -13,11 +13,13 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.fileChooser.FileChooser;
@@ -25,10 +27,9 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.keymap.KeymapManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -40,10 +41,13 @@ import java.util.Deque;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 主面板
+ *
  * @author 拒绝者
  * @date 2025-01-19
  */
@@ -52,7 +56,6 @@ public class MainPanel {
      * 加载语言资源文件
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
-    private static final Logger log = LoggerFactory.getLogger(MainPanel.class);
     /**
      * 重做历史堆栈
      */
@@ -65,13 +68,22 @@ public class MainPanel {
      * 原始记录`用于JSON搜索`
      */
     private final AtomicReference<String> originalJson = new AtomicReference<>("");
+    /**
+     * 自动识别任务序号
+     */
+    private final AtomicLong autoDetectSequence = new AtomicLong();
+    /**
+     * 自动识别回写标记
+     */
+    private final AtomicBoolean autoDetectApplying = new AtomicBoolean(Boolean.FALSE);
 
     /**
      * 创建主面板
+     *
      * @param editor 当前编辑
      * @return {@link JPanel }
      */
-    public JPanel create(final EditorTextField editor) {
+    public JPanel create(final EditorTextField editor, final Disposable parentDisposable) {
         // 创建主面板
         final JPanel searchPanel = new JPanel(new BorderLayout(0, 0));
         searchPanel.setBorder(BorderFactory.createEmptyBorder());
@@ -92,12 +104,13 @@ public class MainPanel {
         // 编辑器动作
         this.editorAction(searchBox, redoButton, undoButton, editor);
         // 编辑器监听
-        this.listener(editor, undoButton, redoButton, clearButton);
+        this.listener(editor, undoButton, redoButton, clearButton, parentDisposable);
         return searchPanel;
     }
 
     /**
      * 创建搜索框
+     *
      * @return {@link JTextField }
      */
     private JTextField createSearchBox() {
@@ -126,6 +139,7 @@ public class MainPanel {
 
     /**
      * 创建标准化按钮
+     *
      * @param icon 按钮图标
      * @return 配置好的JButton实例
      */
@@ -157,6 +171,7 @@ public class MainPanel {
 
     /**
      * 按默认颜色创建边框`四周边框`
+     *
      * @return {@link Border }
      */
     private Border createBorderByDefaultColor() {
@@ -165,6 +180,7 @@ public class MainPanel {
 
     /**
      * 按默认颜色创建边框`自定义边框`
+     *
      * @param top    顶端
      * @param left   左边
      * @param bottom 底部
@@ -183,6 +199,7 @@ public class MainPanel {
 
     /**
      * 更新按钮可用状态
+     *
      * @param undoButton 撤销按钮
      * @param redoButton 重做按钮
      */
@@ -193,6 +210,7 @@ public class MainPanel {
 
     /**
      * 重做
+     *
      * @param redoButton 重做按钮
      * @param undoButton 撤消按钮
      * @param editor     当前编辑
@@ -209,6 +227,7 @@ public class MainPanel {
 
     /**
      * 撤消
+     *
      * @param redoButton 重做按钮
      * @param undoButton 撤消按钮
      * @param editor     当前编辑
@@ -228,6 +247,7 @@ public class MainPanel {
 
     /**
      * 清空内容
+     *
      * @param editor 当前编辑
      */
     private void clearContent(final JButton redoButton, final JButton undoButton, final EditorTextField editor) {
@@ -246,6 +266,7 @@ public class MainPanel {
 
     /**
      * 执行搜索
+     *
      * @param searchField 搜索字段
      * @param editor      当前编辑
      */
@@ -255,19 +276,28 @@ public class MainPanel {
         final String searchExpression = searchField.getText();
         if (searchExpression.isEmpty()) return;
         final Document document = editor.getDocument();
-        if (document.getText().isEmpty()) return;
-        // 储存原始记录
-        this.originalJson.compareAndSet("", document.getText());
-        // 储存撤销历史
-        this.undoStack.push(document.getText());
-        // 搜索结果写回编辑器
-        editor.setText(new JsonSearchEngine().process(this.originalJson.get(), searchExpression));
-        // 更新按钮可用状态
-        this.updateButtons(undoButton, redoButton);
+        final String snapshot = document.getText();
+        if (snapshot.isEmpty()) return;
+        final String original = this.originalJson.updateAndGet(current -> StrUtil.isEmpty(current) ? snapshot : current);
+        CompletableFuture
+                .supplyAsync(() -> new JsonSearchEngine().process(original, searchExpression), AppExecutorUtil.getAppExecutorService())
+                .thenAccept(result -> ApplicationManager.getApplication().invokeLater(() -> {
+                    if (!snapshot.equals(document.getText())) {
+                        return;
+                    }
+                    this.undoStack.push(snapshot);
+                    editor.setText(result);
+                    this.updateButtons(undoButton, redoButton);
+                }))
+                .exceptionally(error -> {
+                    Notifier.notifyError(error.getMessage(), editor.getProject());
+                    return null;
+                });
     }
 
     /**
      * 显示编辑器上下文菜单
+     *
      * @param redoButton 重做按钮
      * @param undoButton 撤消按钮
      * @param editor     编辑器
@@ -312,6 +342,7 @@ public class MainPanel {
 
     /**
      * 添加JSON处理操作
+     *
      * @param group     Action组
      * @param nameKey   名称键
      * @param descKey   描述键
@@ -331,6 +362,7 @@ public class MainPanel {
 
     /**
      * 添加JSONToAny操作
+     *
      * @param group Action组
      */
     private void addJsonToAnyAction(final DefaultActionGroup group, final EditorTextField editor) {
@@ -352,38 +384,48 @@ public class MainPanel {
 
     /**
      * 编辑器监听
+     *
      * @param editor      编辑器
      * @param undoButton  撤消按钮
      * @param redoButton  重做按钮
      * @param clearButton 清除按钮
      */
-    private void listener(final EditorTextField editor, final JButton undoButton, final JButton redoButton, final JButton clearButton) {
+    private void listener(final EditorTextField editor, final JButton undoButton, final JButton redoButton, final JButton clearButton,
+                          final Disposable parentDisposable) {
         // 编辑器事件
-        clearButton.addActionListener(e -> this.clearContent(redoButton, undoButton, editor));
-        undoButton.addActionListener(e -> this.undoLastSearch(redoButton, undoButton, editor));
-        redoButton.addActionListener(e -> this.redoLastSearch(redoButton, undoButton, editor));
-        editor.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void documentChanged(final @NotNull DocumentEvent e) {
-                // 获取新旧片段并预处理
-                final CharSequence oldText = e.getOldFragment();
-                final CharSequence newText = e.getNewFragment();
-                // 内容无变化时直接跳过
-                if (CharSequence.compare(oldText, newText) == 0) {
-                    return;
+        clearButton.addActionListener(_ -> this.clearContent(redoButton, undoButton, editor));
+        undoButton.addActionListener(_ -> this.undoLastSearch(redoButton, undoButton, editor));
+        redoButton.addActionListener(_ -> this.redoLastSearch(redoButton, undoButton, editor));
+        if (Objects.nonNull(editor.getProject())) {
+            EditorFactory.getInstance().getEventMulticaster().addDocumentListener(new DocumentListener() {
+                @Override
+                public void documentChanged(final @NotNull DocumentEvent e) {
+                    if (e.getDocument() != editor.getDocument()) {
+                        return;
+                    }
+                    // 获取新旧片段并预处理
+                    final CharSequence oldText = e.getOldFragment();
+                    final CharSequence newText = e.getNewFragment();
+                    // 内容无变化时直接跳过
+                    if (CharSequence.compare(oldText, newText) == 0) {
+                        return;
+                    }
+                    // 内容无变化时直接跳过 - 忽略空白差异
+                    if (StrUtil.emptyIfNull(oldText).stripTrailing().trim().equals(StrUtil.emptyIfNull(newText).stripTrailing().trim())) {
+                        return;
+                    }
+                    // 文档内容
+                    final String text = StrUtil.emptyIfNull(e.getDocument().getText());
+                    // 根据文档内容调整清空按钮的状态
+                    clearButton.setEnabled(!StrUtil.isEmpty(text));
+                    if (MainPanel.this.autoDetectApplying.get()) {
+                        return;
+                    }
+                    // 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器
+                    MainPanel.this.optPath(text, editor);
                 }
-                // 内容无变化时直接跳过 - 忽略空白差异
-                if (StrUtil.emptyIfNull(oldText).stripTrailing().trim().equals(StrUtil.emptyIfNull(newText).stripTrailing().trim())) {
-                    return;
-                }
-                // 文档内容
-                final String text = StrUtil.emptyIfNull(e.getDocument().getText());
-                // 根据文档内容调整清空按钮的状态
-                clearButton.setEnabled(!StrUtil.isEmpty(text));
-                // 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器
-                MainPanel.this.OptPath(text, editor, e, this);
-            }
-        });
+            }, parentDisposable);
+        }
         // 上下文菜单
         editor.addMouseListener(new MouseAdapter() {
             @Override
@@ -395,6 +437,7 @@ public class MainPanel {
 
     /**
      * 编辑器动作
+     *
      * @param redoButton 重做按钮
      * @param undoButton 撤消按钮
      * @param editor     编辑器
@@ -423,41 +466,47 @@ public class MainPanel {
     }
 
     /**
-     * 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器<br/>
-     * 处理过程采用异步方式以避免阻塞UI线程，包含完整的异常处理和用户反馈
-     * @param text     当前编辑器中的原始文本内容
-     * @param editor   目标编辑器组件，用于回写处理结果
-     * @param e        文档变更事件对象，用于操作关联的文档
-     * @param listener 文档监听器，处理过程中需要临时解除绑定避免循环触发
+     * 自动识别路径类型 (Web 或本地路径),Jwt,Any 并将其转换为格式化 JSON, 回写到编辑器
+     * <p> 处理过程采用异步方式以避免阻塞 UI 线程, 包含完整的异常处理和用户反馈
+     *
+     * @param text   当前编辑器中的原始文本内容
+     * @param editor 目标编辑器组件, 用于回写处理结果
      */
-    private void OptPath(final String text,
-                         final EditorTextField editor,
-                         final @NotNull DocumentEvent e,
-                         final @NotNull DocumentListener listener) {
-        // 清空监听，防止重复执行
-        e.getDocument().removeDocumentListener(listener);
-        try {
-            // 先进行路径解析，如不成功则再执行JWT解析，最后进行任意文件解析。都不成功则略过
-            PathParser.convert(text)
-                    // 路径 -> JWT
-                    .thenCompose(pathResult -> JSON.isValid(pathResult) ? CompletableFuture.completedFuture(pathResult) : JwtParser.convert(text))
-                    // JWT -> Any
-                    .thenCompose(jwtResult -> JSON.isValid(jwtResult) ? CompletableFuture.completedFuture(jwtResult) : AnyParser.convert(text))
-                    // 统一结果处理
-                    .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
-                        if (JSON.isValid(processedText)) {
-                            this.originalJson.set("");
-                            editor.setText(processedText);
-                        }
-                    }));
-        } finally {
-            // 转换完成后，重新添加监听
-            e.getDocument().addDocumentListener(listener);
+    private void optPath(final String text, final EditorTextField editor) {
+        final long sequence = this.autoDetectSequence.incrementAndGet();
+        CompletableFuture.supplyAsync(() -> this.resolveJson(text), AppExecutorUtil.getAppExecutorService())
+                .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
+                    if (sequence != this.autoDetectSequence.get() || !JSON.isValid(processedText)) {
+                        return;
+                    }
+                    if (processedText.equals(editor.getText())) {
+                        return;
+                    }
+                    this.originalJson.set("");
+                    this.autoDetectApplying.set(Boolean.TRUE);
+                    try {
+                        editor.setText(processedText);
+                    } finally {
+                        this.autoDetectApplying.set(Boolean.FALSE);
+                    }
+                }));
+    }
+
+    private String resolveJson(final String text) {
+        final String pathResult = PathParser.convert(text);
+        if (JSON.isValid(pathResult)) {
+            return pathResult;
         }
+        final String jwtResult = JwtParser.convert(text);
+        if (JSON.isValid(jwtResult)) {
+            return jwtResult;
+        }
+        return AnyParser.convert(text);
     }
 
     /**
      * 操作JSON
+     *
      * @param redoButton 重做按钮
      * @param undoButton 撤消按钮
      * @param editor     编辑器
@@ -467,19 +516,29 @@ public class MainPanel {
                          final Editor editor, final JsonOperation operation) {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Document document = editor.getDocument();
-        if (!operation.isValid(document.getText())) return;
-        WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
-            // 储存撤销历史
-            this.undoStack.push(document.getText());
-            // 将操作结果写回编辑器
-            document.setText(StringUtil.convertLineSeparators(operation.process(document.getText())));
-            // 更新按钮可用状态
-            this.updateButtons(undoButton, redoButton);
-        });
+        final String snapshot = document.getText();
+        if (!operation.isValid(snapshot)) return;
+        CompletableFuture
+                .supplyAsync(() -> StringUtil.convertLineSeparators(operation.process(snapshot)), AppExecutorUtil.getAppExecutorService())
+                .thenAccept(result -> ApplicationManager.getApplication().invokeLater(() -> {
+                    if (!snapshot.equals(document.getText())) {
+                        return;
+                    }
+                    WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
+                        this.undoStack.push(snapshot);
+                        document.setText(result);
+                        this.updateButtons(undoButton, redoButton);
+                    });
+                }))
+                .exceptionally(error -> {
+                    Notifier.notifyError(error.getMessage(), editor.getProject());
+                    return null;
+                });
     }
 
     /**
      * 添加打开JSON文件操作
+     *
      * @param group  默认操作组
      * @param editor 编辑器
      */
@@ -498,6 +557,7 @@ public class MainPanel {
 
     /**
      * 添加差异操作
+     *
      * @param group  组
      * @param editor 编辑
      */
@@ -516,6 +576,7 @@ public class MainPanel {
 
     /**
      * 处理文件打开操作
+     *
      * @param editor 编辑器
      */
     private void handleFileOpen(final EditorTextField editor) {
@@ -525,37 +586,38 @@ public class MainPanel {
                         .withFileFilter(virtualFile -> "json".equalsIgnoreCase(virtualFile.getExtension())),
                 editor.getProject(), null, virtualFile -> {
                     if (Objects.isNull(virtualFile)) return;
-                    try {
-                        final String content = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
-                        if (JSON.isValid(content)) {
-                            ApplicationManager.getApplication().invokeLater(() -> {
+                    CompletableFuture
+                            .supplyAsync(() -> {
+                                try {
+                                    final String content = new String(virtualFile.contentsToByteArray(), StandardCharsets.UTF_8);
+                                    return JSON.isValid(content) ? new JsonFormatter().process(content) : null;
+                                } catch (final Exception ignored) {
+                                    return null;
+                                }
+                            }, AppExecutorUtil.getAppExecutorService())
+                            .thenAccept(result -> ApplicationManager.getApplication().invokeLater(() -> {
+                                if (StrUtil.isEmpty(result)) {
+                                    Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject());
+                                    return;
+                                }
                                 WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
-                                    final String text = new JsonFormatter().process(content);
-                                    // 将文本写入编辑器
-                                    editor.getDocument().setText(text);
-                                    // 储存原始记录
-                                    this.originalJson.set(text);
-                                    // 清空撤销、重做记录
+                                    editor.getDocument().setText(result);
+                                    this.originalJson.set(result);
                                     this.undoStack.clear();
                                     this.redoStack.clear();
                                 });
                                 Notifier.notifyInfo("%s%s".formatted(BUNDLE.getString("file.load.success"), virtualFile.getPath()), editor.getProject());
+                            }))
+                            .exceptionally(error -> {
+                                Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject());
+                                return null;
                             });
-                        } else {
-                            ApplicationManager.getApplication().invokeLater(() ->
-                                    Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
-                            );
-                        }
-                    } catch (final Exception ignored) {
-                        ApplicationManager.getApplication().invokeLater(() ->
-                                Notifier.notifyError(BUNDLE.getString("file.load.failed"), editor.getProject())
-                        );
-                    }
                 });
     }
 
     /**
      * 显示差异查看器
+     *
      * @param editor 编辑
      */
     private void showDiffViewer(final EditorTextField editor) {

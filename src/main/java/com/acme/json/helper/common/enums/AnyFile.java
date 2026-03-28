@@ -2,6 +2,7 @@ package com.acme.json.helper.common.enums;
 
 /**
  * 任何文件枚举
+ *
  * @author 拒绝者
  * @date 2025-04-21
  */
@@ -61,6 +62,7 @@ public enum AnyFile {
 
     /**
      * 文件类型拓展名
+     *
      * @return {@link String }
      */
     public String extension() {
@@ -73,6 +75,7 @@ public enum AnyFile {
 
     /**
      * 是编辑
+     *
      * @return boolean
      */
     public boolean isEditor() {
@@ -81,6 +84,7 @@ public enum AnyFile {
 
     /**
      * 是表格
+     *
      * @return boolean
      */
     public boolean isTable() {
@@ -89,6 +93,7 @@ public enum AnyFile {
 
     /**
      * 是单选框
+     *
      * @return boolean
      */
     public boolean isRadio() {

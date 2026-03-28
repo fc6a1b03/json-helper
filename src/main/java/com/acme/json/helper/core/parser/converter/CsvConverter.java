@@ -10,16 +10,17 @@ import tools.jackson.dataformat.csv.CsvMapper;
 import tools.jackson.dataformat.csv.CsvSchema;
 
 import java.util.LinkedHashSet;
-import java.util.stream.Collectors;
 
 /**
  * CSV转换器
+ *
  * @author 拒绝者
  * @date 2025-04-21
  */
 public class CsvConverter extends TableStructure {
     /**
      * 标准化为数组
+     *
      * @param json 数据
      * @return {@link JSONArray }
      */
@@ -32,17 +33,21 @@ public class CsvConverter extends TableStructure {
 
     /**
      * 提取表头
+     *
      * @param jsonArray json数组
      * @return {@link LinkedHashSet }<{@link CsvSchema.Column }>
      */
     private static LinkedHashSet<CsvSchema.Column> extractColumns(final JSONArray jsonArray) {
         final LinkedHashSet<String> flatHeaders = new LinkedHashSet<>();
-        jsonArray.stream()
-                .map(JSONObject.class::cast)
-                .forEach(obj -> collectFlatHeaders(obj, "", flatHeaders));
-        return flatHeaders.stream()
-                .map(fieldName -> new CsvSchema.Column(0, fieldName, CsvSchema.ColumnType.STRING))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        for (final Object item : jsonArray) {
+            collectFlatHeaders((JSONObject) item, "", flatHeaders);
+        }
+        final LinkedHashSet<CsvSchema.Column> columns = new LinkedHashSet<>(flatHeaders.size());
+        int index = 0;
+        for (final String fieldName : flatHeaders) {
+            columns.add(new CsvSchema.Column(index++, fieldName, CsvSchema.ColumnType.STRING));
+        }
+        return columns;
     }
 
     @Override

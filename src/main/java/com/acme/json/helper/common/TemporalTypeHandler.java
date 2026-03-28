@@ -2,54 +2,42 @@ package com.acme.json.helper.common;
 
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.lang.Opt;
-import cn.hutool.core.util.StrUtil;
 import com.intellij.psi.PsiClass;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.Temporal;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * 时间类型处理
+ *
  * @author 拒绝者
  * @date 2025-01-25
  */
 public class TemporalTypeHandler {
     /**
-     * 支持处理的时间类型集合
-     */
-    private static final Set<String> TEMPORAL_TYPES = new HashSet<>();
-    /**
      * 时间类型与格式化器的映射
      */
-    private static final Map<String, DateTimeFormatter> FORMATTERS = new HashMap<>();
-
-    static {
-        final String formatConfig = """
-                # 时间类型格式化配置（格式：`ClassName`=`BuiltinFormat.Pattern`）
-                java.util.Date=NORM_DATETIME_PATTERN
-                java.time.LocalTime=NORM_TIME_PATTERN
-                java.time.LocalDate=NORM_DATE_PATTERN
-                java.time.LocalDateTime=NORM_DATETIME_PATTERN
-                java.time.OffsetDateTime=ISO_OFFSET_DATE_TIME
-                java.time.ZonedDateTime=ISO_ZONED_DATE_TIME
-                java.time.Instant=ISO_INSTANT
-                """;
-        new Scanner(formatConfig)
-                .useDelimiter("\\R").tokens()
-                .filter(StrUtil::isNotEmpty)
-                .filter(line -> !line.startsWith("#"))
-                .map(line -> line.split("=", 2))
-                .forEach(parts -> {
-                    final String className = StrUtil.trim(parts[0]);
-                    FORMATTERS.put(className, BuiltinFormat.parseBuiltinFormat(StrUtil.trim(parts[1])));
-                    TEMPORAL_TYPES.add(className);
-                });
-    }
+    private static final Map<String, DateTimeFormatter> FORMATTERS = Map.ofEntries(
+            Map.entry("java.util.Date", BuiltinFormat.NORM_DATETIME_PATTERN.formatter()),
+            Map.entry("java.time.LocalTime", BuiltinFormat.NORM_TIME_PATTERN.formatter()),
+            Map.entry("java.time.LocalDate", BuiltinFormat.NORM_DATE_PATTERN.formatter()),
+            Map.entry("java.time.LocalDateTime", BuiltinFormat.NORM_DATETIME_PATTERN.formatter()),
+            Map.entry("java.time.OffsetDateTime", BuiltinFormat.ISO_OFFSET_DATE_TIME.formatter()),
+            Map.entry("java.time.ZonedDateTime", BuiltinFormat.ISO_ZONED_DATE_TIME.formatter()),
+            Map.entry("java.time.Instant", BuiltinFormat.ISO_INSTANT.formatter())
+    );
+    /**
+     * 支持处理的时间类型集合
+     */
+    private static final Set<String> TEMPORAL_TYPES = FORMATTERS.keySet();
 
     /**
      * 判断是否为支持处理的时间类型
+     *
      * @param psiClass PSI类
      * @return boolean
      */
@@ -62,9 +50,11 @@ public class TemporalTypeHandler {
 
     /**
      * 格式化当前时间为指定类型的字符串表示
+     *
      * @param temporalClass 时态类
      * @return {@link String }
      */
+    @SuppressWarnings("DataFlowIssue")
     public static String format(final PsiClass temporalClass) {
         return Opt.ofNullable(temporalClass)
                 .map(PsiClass::getQualifiedName)
@@ -72,12 +62,12 @@ public class TemporalTypeHandler {
                     final Temporal temporal = createTemporalInstance(className);
                     final DateTimeFormatter formatter = FORMATTERS.get(className);
                     return Objects.nonNull(formatter) && Objects.nonNull(temporal) ? formatter.format(temporal) : "";
-                })
-                .orElse("");
+                }).orElse("");
     }
 
     /**
      * 创建对应时间类型的当前实例
+     *
      * @param className 类名
      * @return Temporal
      */
@@ -96,6 +86,7 @@ public class TemporalTypeHandler {
 
     /**
      * 内置格式枚举（通过组合模式包装 DateTimeFormatter）
+     *
      * @author 拒绝者
      * @date 2025-01-25
      */
@@ -115,6 +106,7 @@ public class TemporalTypeHandler {
 
         /**
          * 解析内置格式
+         *
          * @param pattern 图案
          * @return {@link DateTimeFormatter }
          */
@@ -124,6 +116,7 @@ public class TemporalTypeHandler {
 
         /**
          * 格式化程序
+         *
          * @return {@link DateTimeFormatter }
          */
         public DateTimeFormatter formatter() {

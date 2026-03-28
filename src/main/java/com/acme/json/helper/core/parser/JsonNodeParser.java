@@ -6,18 +6,20 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * JSON节点解析器
+ *
  * @author 拒绝者
  * @date 2025-01-28
  */
 public class JsonNodeParser {
     /**
      * 解析
+     *
      * @param key  钥匙
      * @param json json
      * @return {@link JsonNode }
@@ -25,32 +27,21 @@ public class JsonNodeParser {
     public static JsonNode parse(final String key, final String json) {
         return parseNode(key,
                 Opt.of(JSON.isValid(json)).filter(i -> i)
-                        .map(item -> JSON.parse(json)).orElse(json)
+                        .map(_ -> JSON.parse(json)).orElse(json)
         );
     }
 
     /**
      * 解析节点
+     *
      * @param key   钥匙
      * @param value 价值
      * @return {@link JsonNode }
      */
     private static JsonNode parseNode(final String key, final Object value) {
         return switch (value) {
-            case final JSONObject obj -> new JsonNode(
-                    key,
-                    obj,
-                    obj.keySet().stream()
-                            .map(k -> parseNode(k, obj.get(k)))
-                            .toList()
-            );
-            case final JSONArray arr -> new JsonNode(
-                    key,
-                    arr,
-                    IntStream.range(0, arr.size())
-                            .mapToObj(i -> parseNode("[%d]".formatted(i), arr.get(i)))
-                            .toList()
-            );
+            case final JSONObject obj -> new JsonNode(key, obj, parseObjectChildren(obj));
+            case final JSONArray arr -> new JsonNode(key, arr, parseArrayChildren(arr));
             case null -> new JsonNode(key, null, Collections.emptyList());
             default -> new JsonNode(
                     key,
@@ -60,8 +51,25 @@ public class JsonNodeParser {
         };
     }
 
+    private static List<JsonNode> parseObjectChildren(final JSONObject obj) {
+        final List<JsonNode> children = new ArrayList<>(obj.size());
+        for (final String childKey : obj.keySet()) {
+            children.add(parseNode(childKey, obj.get(childKey)));
+        }
+        return children;
+    }
+
+    private static List<JsonNode> parseArrayChildren(final JSONArray arr) {
+        final List<JsonNode> children = new ArrayList<>(arr.size());
+        for (int index = 0; index < arr.size(); index++) {
+            children.add(parseNode("[%d]".formatted(index), arr.get(index)));
+        }
+        return children;
+    }
+
     /**
      * JSON节点
+     *
      * @author 拒绝者
      * @date 2025-01-28
      */
@@ -69,12 +77,13 @@ public class JsonNodeParser {
         @Override
         public @NotNull String toString() {
             return Opt.ofNullable(this.value)
-                    .map(item -> "{\"%s\": %s}".formatted(this.key, this.value()))
+                    .map(_ -> "{\"%s\": %s}".formatted(this.key, this.value()))
                     .orElse("");
         }
 
         /**
          * 值
+         *
          * @return {@link String }
          */
         public Object value() {
@@ -85,6 +94,7 @@ public class JsonNodeParser {
 
         /**
          * 类型
+         *
          * @return {@link String }
          */
         public String type() {

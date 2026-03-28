@@ -7,7 +7,7 @@ pluginManagement {
 }
 
 gradle.ext.versions = [
-        ver         : "0.13.0",
+        ver         : "0.13.1",
         idea        : "2026.1",
         sinceBuild  : "261",
         toon        : "1.0.9",

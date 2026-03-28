@@ -62,13 +62,12 @@ public final class CodeScreenshot extends DumbAwareAction {
         if (Objects.isNull(editor) || Objects.isNull(project)) {
             return;
         }
-        new Task.Backgroundable(project, BUNDLE.getString("action.class.copy.image.text"), Boolean.FALSE) {
+        new Task.Backgroundable(project, BUNDLE.getString("action.class.copy.image.text"), Boolean.TRUE) {
             private java.awt.image.BufferedImage image;
 
             @Override
             public void run(@NotNull final ProgressIndicator indicator) {
-                indicator.setIndeterminate(Boolean.TRUE);
-                this.image = CodeScreenshotSupplier.createImage(editor);
+                this.image = CodeScreenshotSupplier.createImage(editor, indicator);
             }
 
             @Override

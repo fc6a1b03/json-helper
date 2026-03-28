@@ -10,7 +10,7 @@
 
 # Json Helper Plugin
 
-Json Helper 是一个面向 IntelliJ IDEA 2026.1 的 JSON 效率插件，当前版本为 `0.13.0`。  
+Json Helper 是一个面向 IntelliJ IDEA 2026.1 的 JSON 效率插件，当前版本为 `0.13.1`。  
 它支持 JSON 编辑、修复、压缩、转义、JsonPath / JMESPath 查询、Java 类与 JSON 结构互转，以及 XML / YAML / TOML / Properties / CSV / XLSX 等格式转换。
 
 ## 当前基线

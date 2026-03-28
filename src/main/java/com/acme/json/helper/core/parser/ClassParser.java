@@ -3,7 +3,8 @@ package com.acme.json.helper.core.parser;
 import cn.hutool.core.lang.Opt;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreType;
-import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiModifier;
@@ -16,17 +17,21 @@ import java.util.stream.Collectors;
 /**
  * 类解析器（支持嵌套结构和泛型类型）<br/>
  * JAVA转JSON
+ *
  * @author 拒绝者
  * @date 2025-01-25
  */
 public class ClassParser {
     /**
      * 将 PSI 类转换为 Map 结构
+     *
      * @param psiClass 需要解析的 PSI 类
      * @return 包含字段结构的 Map，忽略被 @JsonIgnoreType 标注的类
      */
     public static Map<String, Object> classToMap(final PsiClass psiClass) {
-        return ReadAction.compute(() -> parseInternal(psiClass, new HashSet<>()));
+        return ApplicationManager.getApplication().runReadAction((Computable<Map<String, Object>>) () ->
+                parseInternal(psiClass, new HashSet<>())
+        );
     }
 
     /**
@@ -39,16 +44,14 @@ public class ClassParser {
      *   <li>线程安全：强制要求在读锁环境下执行（通过 {@link ThreadingAssertions#assertReadAccess()} 验证）</li>
      * </ul>
      *
-     * @param psiClass   要解析的 PSI 类对象（不可为空）
-     * @param processed  已处理类集合（用于防止循环引用，调用方需初始化空集合）
+     * @param psiClass  要解析的 PSI 类对象（不可为空）
+     * @param processed 已处理类集合（用于防止循环引用，调用方需初始化空集合）
      * @return 有序字段映射表（LinkedHashMap 保证字段顺序）：
-     *         <ul>
-     *           <li>Key: 字段名称</li>
-     *           <li>Value: 字段类型解析结果（基础类型/嵌套对象结构）</li>
-     *         </ul>
-     *
+     * <ul>
+     *   <li>Key: 字段名称</li>
+     *   <li>Value: 字段类型解析结果（基础类型/嵌套对象结构）</li>
+     * </ul>
      * @throws IllegalStateException 如果不在读线程上下文中调用
-     *
      * @implNote 核心处理流程：
      * <ol>
      *   <li>安全性检查：
@@ -71,7 +74,7 @@ public class ClassParser {
      *     </ul>
      *   </li>
      * </ol>
-     *
+     * <p>
      * &#064;example  典型场景：
      * <pre>{@code
      * // 给定类结构
@@ -123,7 +126,7 @@ public class ClassParser {
                             Map.Entry::getKey,
                             Map.Entry::getValue,
                             // 合并策略：重复字段保留第一个
-                            (a, b) -> a,
+                            (a, _) -> a,
                             LinkedHashMap::new
                     ));
         } finally {
@@ -138,12 +141,11 @@ public class ClassParser {
      * @param field     需要处理的字段对象，包含字段类型和名称信息
      * @param processed 已处理类型的集合，用于防止循环解析和重复处理
      * @return {@link Map.Entry}<{@link String}, {@link Object}>
-     *         键为字段名称，值为解析后的类型信息。
-     *         当类型解析失败时返回null
-     *
+     * 键为字段名称，值为解析后的类型信息。
+     * 当类型解析失败时返回null
      * @implNote 该方法通过TypeResolver解析字段类型，使用Opt包装避免空指针异常。
-     *           processed集合用于记录已处理的PsiClass，确保递归解析时不会进入死循环。
-     *           当解析结果为null时（如遇到无法解析的泛型类型或循环引用），返回null值
+     * processed集合用于记录已处理的PsiClass，确保递归解析时不会进入死循环。
+     * 当解析结果为null时（如遇到无法解析的泛型类型或循环引用），返回null值
      */
     private static Map.Entry<String, Object> processField(final PsiField field, final Set<PsiClass> processed) {
         return Opt.ofNullable(TypeResolver.resolve(field.getType(), processed))

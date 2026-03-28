@@ -5,45 +5,35 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbService;
 
 import java.util.Objects;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * 动作事件检查
+ *
  * @author 拒绝者
  * @date 2025-02-03
  */
 public class ActionEventCheck {
     /**
      * 分步检查
+     *
      * @param e             行动事件
      * @param settingsState 插件状态
      * @return {@link Check }
      */
+    @SuppressWarnings({"DataFlowIssue"})
     public static Check stepByStepInspection(final AnActionEvent e, final boolean settingsState) {
-        return Stream.<Supplier<Check>>of(
-                        // 检查插件配置
-                        () -> settingsState
-                                ? new Check.Success()
-                                : new Check.Failed(() -> disabled(e)),
-                        // 检查项目有效性
-                        () -> Opt.ofNullable(e.getProject())
-                                .<Check>map(p -> new Check.Success())
-                                .orElse(new Check.Failed(() -> disabled(e))),
-                        // 检查索引状态
-                        () -> Opt.ofNullable(e.getProject())
-                                .filter(p -> !DumbService.isDumb(Objects.requireNonNull(p)))
-                                .<Check>map(p -> new Check.Success())
-                                .orElse(new Check.Failed(() -> disabled(e)))
-                )
-                .map(Supplier::get)
-                .filter(Check.Failed.class::isInstance)
-                .findFirst()
-                .orElse(new Check.Success());
+        if (!settingsState || Objects.isNull(e.getProject())) {
+            return new Check.Failed(() -> disabled(e));
+        }
+        return Opt.ofNullable(e.getProject())
+                .filter(project -> !DumbService.isDumb(project))
+                .<Check>map(_ -> new Check.Success())
+                .orElseGet(() -> new Check.Failed(() -> disabled(e)));
     }
 
     /**
      * 设置已禁用
+     *
      * @param e 行动事件
      */
     public static void disabled(final AnActionEvent e) {
@@ -52,6 +42,7 @@ public class ActionEventCheck {
 
     /**
      * 分步检查处理类
+     *
      * @author 拒绝者
      * @date 2025-02-03
      */

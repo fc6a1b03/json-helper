@@ -1,27 +1,25 @@
 package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.convert.ConvertException;
-import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Xlsx转换器
+ *
  * @author 拒绝者
  * @date 2025-04-21
  */
 public class XlsxConverter extends TableStructure {
     /**
      * 标准化为数组
+     *
      * @param json 数据
      * @return {@link JSONArray }
      */
@@ -35,21 +33,21 @@ public class XlsxConverter extends TableStructure {
         try {
             // 原始数据集合
             final List<Map<String, String>> data = flattenJsonArray(normalizeToArray(json));
-            // 表头信息
-            final String[] headers = data.stream()
-                    .<JSONObject>mapMulti((item, consumer) -> consumer.accept(JSONObject.from(item)))
-                    .flatMap(obj -> this.collectFlatHeaders(obj, ""))
-                    .collect(Collectors.toCollection(LinkedHashSet::new))
-                    .toArray(String[]::new);
+            final LinkedHashSet<String> headerSet = new LinkedHashSet<>();
+            for (final Map<String, String> row : data) {
+                headerSet.addAll(row.keySet());
+            }
+            final String[] headers = headerSet.toArray(String[]::new);
+            final Object[][] rows = new Object[data.size()][headers.length];
+            for (int rowIndex = 0; rowIndex < data.size(); rowIndex++) {
+                final Map<String, String> row = data.get(rowIndex);
+                for (int columnIndex = 0; columnIndex < headers.length; columnIndex++) {
+                    rows[rowIndex][columnIndex] = row.get(headers[columnIndex]);
+                }
+            }
             return JSONObject.of(
                     "headers", headers,
-                    "data",
-                    data.stream()
-                            .<JSONObject>mapMulti((item, consumer) -> consumer.accept(JSONObject.from(item)))
-                            .map(jsonObj -> Arrays.stream(headers)
-                                    .map(jsonObj::get)
-                                    .toArray(Object[]::new))
-                            .toArray(Object[][]::new)
+                    "data", rows
             ).toJSONString();
         } catch (final Exception e) {
             return "";
@@ -59,22 +57,5 @@ public class XlsxConverter extends TableStructure {
     @Override
     public boolean support(final AnyFile any) {
         return AnyFile.XLSX.equals(any);
-    }
-
-    /**
-     * 收集扁平表头
-     * @param obj       对象
-     * @param parentKey 父密钥
-     * @return {@link Stream }<{@link String }>
-     */
-    private Stream<String> collectFlatHeaders(final JSONObject obj, final String parentKey) {
-        return obj.keySet().stream().mapMulti((key, consumer) -> {
-            final String fullKey = StrUtil.isEmpty(parentKey) ? key : "%s_%s".formatted(parentKey, key);
-            if (obj.get(key) instanceof final JSONObject nestedObj) {
-                this.collectFlatHeaders(nestedObj, fullKey).forEach(consumer);
-            } else {
-                consumer.accept(fullKey);
-            }
-        });
     }
 }

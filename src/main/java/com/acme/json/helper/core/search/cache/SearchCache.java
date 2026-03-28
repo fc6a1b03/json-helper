@@ -13,6 +13,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.io.FileUtilRt;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,13 +21,11 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * 搜索缓存
+ *
  * @author 拒绝者
  * @date 2025-11-05
  */
@@ -50,8 +49,13 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
      */
     private SequencedCollection<ProjectNavigationItem> cached;
 
+    public static SearchCache getInstance(@NotNull final Project project) {
+        return project.getService(SearchCache.class);
+    }
+
     /**
      * 从Git URL提取组织和仓库名
+     *
      * @param url Git URL
      * @return 组织/仓库对
      */
@@ -72,6 +76,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
 
     /**
      * 获取缓存项目
+     *
      * @return {@link SequencedCollection}<{@link ProjectNavigationItem}>
      */
     @Override
@@ -81,49 +86,69 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
 
     /**
      * 加载缓存项目
+     *
      * @return {@link SequencedCollection}<{@link ProjectNavigationItem}>
      */
     public SequencedCollection<ProjectNavigationItem> load() {
-        // 已打开项目
-        final Stream<ProjectNavigationItem> opened = Arrays.stream(ProjectManager.getInstance().getOpenProjects())
-                .map(project -> ProjectNavigationItem.opened(project.getName(), project.getPresentableUrl(), 0));
-        // 最近项目（排除已打开）
-        final Set<String> openedPaths = Arrays.stream(ProjectManager.getInstance().getOpenProjects())
-                .map(Project::getPresentableUrl).filter(StrUtil::isNotEmpty).collect(Collectors.toSet());
-        final Stream<ProjectNavigationItem> recent = ((RecentProjectsManagerBase) RecentProjectsManager.getInstance())
-                .getRecentPaths().stream().filter(Objects::nonNull).filter(p -> !openedPaths.contains(p))
-                .map(path -> ProjectNavigationItem.recent(((RecentProjectsManagerBase) RecentProjectsManager.getInstance()).getProjectName(path), path, 0));
-        // Git仓库
-        final Stream<ProjectNavigationItem> gitRepositories = this.gitRepositoryCache.keySet().stream().filter(Objects::nonNull).map(this::createGitRepositoryItem);
-        // 合并去重并保持顺序
-        return Stream.of(opened, recent, gitRepositories).flatMap(Function.identity()).collect(Collectors.toCollection(LinkedHashSet::new));
+        final Project[] openProjects = ProjectManager.getInstance().getOpenProjects();
+        final LinkedHashSet<ProjectNavigationItem> result = new LinkedHashSet<>();
+        final Set<String> openedPaths = new HashSet<>(openProjects.length);
+        for (final Project openProject : openProjects) {
+            result.add(ProjectNavigationItem.opened(openProject.getName(), openProject.getPresentableUrl(), 0));
+            final String presentableUrl = openProject.getPresentableUrl();
+            if (StrUtil.isNotEmpty(presentableUrl)) {
+                openedPaths.add(presentableUrl);
+            }
+        }
+        final RecentProjectsManagerBase recentProjectsManager = (RecentProjectsManagerBase) RecentProjectsManager.getInstance();
+        for (final String recentPath : recentProjectsManager.getRecentPaths()) {
+            if (Objects.isNull(recentPath) || openedPaths.contains(recentPath)) {
+                continue;
+            }
+            result.add(ProjectNavigationItem.recent(recentProjectsManager.getProjectName(recentPath), recentPath, 0));
+        }
+        synchronized (this.gitRepositoryCache) {
+            for (final String repositoryUrl : this.gitRepositoryCache.keySet()) {
+                if (Objects.nonNull(repositoryUrl)) {
+                    result.add(this.createGitRepositoryItem(repositoryUrl));
+                }
+            }
+        }
+        return result;
     }
 
     /**
      * 获取HTTP请求文件缓存
+     *
      * @return HTTP请求文件列表
      */
     public SequencedCollection<HttpRequestItem> getHttp() {
-        return Objects.isNull(this.httpCached) ? this.httpCached = this.load(new LinkedHashSet<>()) : this.httpCached;
+        return Objects.isNull(this.httpCached) ? this.httpCached = this.loadHttp(new LinkedHashSet<>()) : this.httpCached;
     }
 
     /**
      * 收集 Scratches 目录中的 HTTP 请求文件
      * <p>
      * 遍历 Scratches 目录及其子目录, 收集所有 HTTP 请求文件, 并将它们添加到目标集合中.
+     *
      * @param httpFiles 目标集合, 用于存储收集到的 HTTP 请求文件
      * @return 收集到的 HTTP 请求文件集合
      */
-    private SequencedCollection<HttpRequestItem> load(final SequencedCollection<HttpRequestItem> httpFiles) {
-        ApplicationManager.getApplication().runReadAction(() -> {
+    @SuppressWarnings("DataFlowIssue")
+    private SequencedCollection<HttpRequestItem> loadHttp(final SequencedCollection<HttpRequestItem> httpFiles) {
+        final Path scratchPath = ApplicationManager.getApplication().runReadAction((Computable<Path>) () -> {
             try {
-                Opt.ofNullable(ScratchFileService.getInstance().getVirtualFile(ScratchRootType.getInstance()))
+                return Opt.ofNullable(ScratchFileService.getInstance().getVirtualFile(ScratchRootType.getInstance()))
                         .filter(item -> Objects.requireNonNull(item).exists())
-                        .ifPresent(item -> this.walkDirectory(Objects.requireNonNull(item).toNioPath(), httpFiles, 3));
+                        .map(item -> Objects.requireNonNull(item).toNioPath())
+                        .orElse(null);
             } catch (final Exception ignored) {
-                // 忽略任何异常，不中断执行
+                return null;
             }
         });
+        if (Objects.nonNull(scratchPath)) {
+            this.walkDirectory(scratchPath, httpFiles, 3);
+        }
         return httpFiles;
     }
 
@@ -131,6 +156,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
      * 遍历目录收集 HTTP 文件
      * <p>
      * 递归遍历指定目录及其子目录, 收集所有扩展名为 "http" 的文件, 并将它们添加到目标集合中.
+     *
      * @param directory 目录路径
      * @param httpFiles 目标集合, 用于存储找到的 HTTP 文件信息
      * @param maxDepth  最大遍历深度
@@ -148,10 +174,9 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
                  * @param file  当前访问的文件路径
                  * @param attrs 文件属性
                  * @return 继续遍历文件系统
-                 * @throws IOException 如果发生 I/O 错误
                  */
                 @Override
-                public @NotNull FileVisitResult visitFile(final @NotNull Path file, final @NotNull BasicFileAttributes attrs) throws IOException {
+                public @NotNull FileVisitResult visitFile(final @NotNull Path file, final @NotNull BasicFileAttributes attrs) {
                     if (Files.isRegularFile(file) && FileUtilRt.extensionEquals(file.toString(), "http")) {
                         httpFiles.add(new HttpRequestItem(file.getFileName().toString(), file.toString()));
                     }
@@ -178,6 +203,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
 
     /**
      * 添加Git仓库到缓存
+     *
      * @param repositoryUrl 仓库URL
      */
     public void addGitRepository(final String repositoryUrl) {
@@ -192,6 +218,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
 
     /**
      * 移除Git仓库到缓存
+     *
      * @param repositoryUrl 仓库URL
      */
     public void removeGitRepository(final String repositoryUrl) {
@@ -203,6 +230,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
 
     /**
      * 创建Git仓库导航项
+     *
      * @param url 仓库URL
      * @return 导航项
      */

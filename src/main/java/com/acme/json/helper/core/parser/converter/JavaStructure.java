@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * JAVA结构
+ *
  * @author 拒绝者
  * @date 2025-04-21
  */
@@ -25,6 +26,7 @@ public abstract class JavaStructure implements DataFormatConverter {
 
     /**
      * 处理对象
+     *
      * @param json      json串
      * @param className 类名
      * @param isRecord  是否记录
@@ -36,6 +38,7 @@ public abstract class JavaStructure implements DataFormatConverter {
 
     /**
      * 处理对象
+     *
      * @param object    json对象
      * @param className 类名类
      * @param isRecord  是否记录
@@ -58,48 +61,49 @@ public abstract class JavaStructure implements DataFormatConverter {
      *   <li>数组类型（{@link JSONArray}）：根据数组元素类型生成泛型集合类型</li>
      *   <li>基本类型：映射为对应的 Java 基础类型/包装类</li>
      * </ul>
+     *
      * @param fieldName   原始字段名称（JSON 字段名）
      * @param value       字段值（支持 JSON 对象/数组/基本类型）
      * @param parentClass 父类结构容器（用于收集嵌套类定义）
      * @param isRecord    标识父类是否为 Record 类型（影响嵌套类生成策略）
      * @return 字段定义对象，包含字段名和解析后的 Java 类型
      * @implNote 处理规则详解：
-     *         <ol>
-     *           <li>
-     *             <b>对象类型处理</b>：
-     *             <ul>
-     *               <li>将 JSON 对象转换为嵌套类，类名通过 {@link #toUpperCamelCase} 转换字段名得到</li>
-     *               <li>调用 {@link #processObject} 递归处理嵌套对象</li>
-     *               <li>字段类型直接使用生成的嵌套类名（如：{@code address} -> {@code Address}）</li>
-     *             </ul>
-     *           </li>
-     *           <li>
-     *             <b>数组类型处理</b>：
-     *             <ul>
-     *               <li>空数组：默认映射为 {@code List<Object>}</li>
-     *               <li>非空数组：取第一个元素判断类型
-     *                 <ul>
-     *                   <li>元素为对象：生成嵌套类并映射为 {@code List<ClassName>}</li>
-     *                   <li>元素为基础类型：映射为 {@code List<JavaType>}</li>
-     *                 </ul>
-     *               </li>
-     *               <li>注意：若数组中元素类型不一致，此逻辑可能不准确</li>
-     *             </ul>
-     *           </li>
-     *           <li>
-     *             <b>基础类型处理</b>：通过 {@link #getJavaType} 映射类型（如：字符串 -> {@code String}）
-     *           </li>
-     *         </ol>
-     *         <p>
-     *         &#064;example  示例：
-     *         <pre>{@code
-     *         // JSON 输入
-     *         {
-     *           "contact": { ... },          // => 生成 Contact 嵌套类，字段类型为 Contact
-     *           "tags": ["A", "B", "C"],     // => 字段类型为 List<String>
-     *           "history": [ { ... }, ... ]  // => 生成 History 嵌套类，字段类型为 List<History>
-     *         }
-     *         }</pre>
+     * <ol>
+     *   <li>
+     *     <b>对象类型处理</b>：
+     *     <ul>
+     *       <li>将 JSON 对象转换为嵌套类，类名通过 {@link #toUpperCamelCase} 转换字段名得到</li>
+     *       <li>调用 {@link #processObject} 递归处理嵌套对象</li>
+     *       <li>字段类型直接使用生成的嵌套类名（如：{@code address} -> {@code Address}）</li>
+     *     </ul>
+     *   </li>
+     *   <li>
+     *     <b>数组类型处理</b>：
+     *     <ul>
+     *       <li>空数组：默认映射为 {@code List<Object>}</li>
+     *       <li>非空数组：取第一个元素判断类型
+     *         <ul>
+     *           <li>元素为对象：生成嵌套类并映射为 {@code List<ClassName>}</li>
+     *           <li>元素为基础类型：映射为 {@code List<JavaType>}</li>
+     *         </ul>
+     *       </li>
+     *       <li>注意：若数组中元素类型不一致，此逻辑可能不准确</li>
+     *     </ul>
+     *   </li>
+     *   <li>
+     *     <b>基础类型处理</b>：通过 {@link #getJavaType} 映射类型（如：字符串 -> {@code String}）
+     *   </li>
+     * </ol>
+     * <p>
+     * &#064;example  示例：
+     * <pre>{@code
+     * // JSON 输入
+     * {
+     *   "contact": { ... },          // => 生成 Contact 嵌套类，字段类型为 Contact
+     *   "tags": ["A", "B", "C"],     // => 字段类型为 List<String>
+     *   "history": [ { ... }, ... ]  // => 生成 History 嵌套类，字段类型为 List<History>
+     * }
+     * }</pre>
      */
     private static Field determineField(
             final String fieldName,
@@ -145,39 +149,40 @@ public abstract class JavaStructure implements DataFormatConverter {
      *   <li>过滤掉纯符号部分（如：保留 "hello-world" 中的 "hello" 和 "world"，忽略中间的 "-"）</li>
      *   <li>每个单词首字母大写并拼接（如："hello_world" -> "HelloWorld"）</li>
      * </ul>
+     *
      * @param name 原始输入字符串（允许包含符号、小写/大写字母）
      * @return 转换后的大驼峰格式字符串。若输入为空，则原样返回。
      * @implNote 转换规则详解：
-     *         <ol>
-     *           <li>
-     *             <b>单词分割策略</b>：
-     *             使用正则表达式 {@code (?<=\\W)|(?=\\p{Lu})} 进行分割，其中：
-     *             <ul>
-     *               <li>{@code (?<=\\W)}：在非单词字符（即符号）的后面分割</li>
-     *               <li>{@code (?=\\p{Lu})}：在大写字母的前面分割（处理驼峰边界）</li>
-     *             </ul>
-     *             例如：
-     *             <ul>
-     *               <li>"user_name" 分割为 ["user", "name"]</li>
-     *               <li>"userName" 分割为 ["user", "Name"]</li>
-     *               <li>"UserHTTPRequest" 分割为 ["User", "HTTP", "Request"]</li>
-     *             </ul>
-     *           </li>
-     *           <li>
-     *             <b>符号处理</b>：若单词完全由符号组成（如 "---"），则被过滤掉
-     *           </li>
-     *           <li>
-     *             <b>首字母大写</b>：每个有效单词的首字母转为大写，其余字母保持原样
-     *           </li>
-     *         </ol>
-     *         <p>
-     *         &#064;example  示例：
-     *         <pre>{@code
-     *         toUpperCamelCase("user_name")     // => "UserName"
-     *         toUpperCamelCase("user-firstName")// => "UserFirstName"
-     *         toUpperCamelCase("UserHTTP")      // => "UserHTTP"
-     *         toUpperCamelCase("hello-world!")  // => "HelloWorld"（忽略感叹号）
-     *         }</pre>
+     * <ol>
+     *   <li>
+     *     <b>单词分割策略</b>：
+     *     使用正则表达式 {@code (?<=\\W)|(?=\\p{Lu})} 进行分割，其中：
+     *     <ul>
+     *       <li>{@code (?<=\\W)}：在非单词字符（即符号）的后面分割</li>
+     *       <li>{@code (?=\\p{Lu})}：在大写字母的前面分割（处理驼峰边界）</li>
+     *     </ul>
+     *     例如：
+     *     <ul>
+     *       <li>"user_name" 分割为 ["user", "name"]</li>
+     *       <li>"userName" 分割为 ["user", "Name"]</li>
+     *       <li>"UserHTTPRequest" 分割为 ["User", "HTTP", "Request"]</li>
+     *     </ul>
+     *   </li>
+     *   <li>
+     *     <b>符号处理</b>：若单词完全由符号组成（如 "---"），则被过滤掉
+     *   </li>
+     *   <li>
+     *     <b>首字母大写</b>：每个有效单词的首字母转为大写，其余字母保持原样
+     *   </li>
+     * </ol>
+     * <p>
+     * &#064;example  示例：
+     * <pre>{@code
+     * toUpperCamelCase("user_name")     // => "UserName"
+     * toUpperCamelCase("user-firstName")// => "UserFirstName"
+     * toUpperCamelCase("UserHTTP")      // => "UserHTTP"
+     * toUpperCamelCase("hello-world!")  // => "HelloWorld"（忽略感叹号）
+     * }</pre>
      */
     private static String toUpperCamelCase(final String name) {
         if (StrUtil.isEmpty(name)) {
@@ -199,6 +204,7 @@ public abstract class JavaStructure implements DataFormatConverter {
 
     /**
      * 获取JAVA类型
+     *
      * @param value 价值
      * @return {@link String }
      */
@@ -222,15 +228,16 @@ public abstract class JavaStructure implements DataFormatConverter {
      * <br/>
      * 该方法解析字段类型的泛型签名，提取原始类型（如将 {@code List<String>} 解析为 {@code List}），
      * 并根据原始类型判断是否需要添加对应的集合类导入语句（如 {@code java.util.List}）
+     *
      * @param type    字段类型，可能包含泛型（如 {@code Map<String, Object>}）
      * @param imports 用于收集需要导入的包名的集合（自动去重）
      * @implNote 当前支持的原始类型及对应导入包：
-     *         <ul>
-     *           <li>{@code List} -> {@code java.util.List}</li>
-     *           <li>{@code Map}  -> {@code java.util.Map}</li>
-     *           <li>{@code Set}  -> {@code java.util.Set}</li>
-     *         </ul>
-     *         如需支持更多类型，可在 {@code switch} 语句中扩展
+     * <ul>
+     *   <li>{@code List} -> {@code java.util.List}</li>
+     *   <li>{@code Map}  -> {@code java.util.Map}</li>
+     *   <li>{@code Set}  -> {@code java.util.Set}</li>
+     * </ul>
+     * 如需支持更多类型，可在 {@code switch} 语句中扩展
      */
     protected static void collectImports(final String type, final Set<String> imports) {
         // 提取原始类型（处理泛型场景：例如将 "List<String>" 解析为 "List"）
@@ -240,7 +247,7 @@ public abstract class JavaStructure implements DataFormatConverter {
                 Opt.of(genericIndex == -1)
                         .filter(i -> i)
                         // 无泛型：直接取完整类型
-                        .map(item -> type.trim())
+                        .map(_ -> type.trim())
                         // 有泛型：截取泛型前的基础类型
                         .orElseGet(() -> type.substring(0, genericIndex).trim())
         ) {
@@ -253,6 +260,7 @@ public abstract class JavaStructure implements DataFormatConverter {
 
     /**
      * 类结构
+     *
      * @author 拒绝者
      * @date 2025-01-26
      */
@@ -272,6 +280,7 @@ public abstract class JavaStructure implements DataFormatConverter {
 
         /**
          * 构建新的类结构对象
+         *
          * @param className 类名
          */
         public ClassStructure(final String className) {
@@ -293,6 +302,7 @@ public abstract class JavaStructure implements DataFormatConverter {
 
     /**
      * 字段信息
+     *
      * @author 拒绝者
      * @date 2025-01-26
      */

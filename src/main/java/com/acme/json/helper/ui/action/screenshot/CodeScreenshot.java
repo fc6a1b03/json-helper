@@ -7,6 +7,8 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -60,13 +62,31 @@ public final class CodeScreenshot extends DumbAwareAction {
         if (Objects.isNull(editor) || Objects.isNull(project)) {
             return;
         }
-        Opt.ofNullable(CodeScreenshotSupplier.createImage(editor)).filter(Objects::nonNull)
-                .ifPresent(image -> {
-                    if (CodeScreenshotSupplier.tryCopyToClipboard(image)) {
-                        CodeScreenshotSupplier.showCopySuccessNotification(image, project);
-                    } else {
-                        CodeScreenshotSupplier.showClipboardFailedNotification(image, project);
-                    }
-                });
+        new Task.Backgroundable(project, BUNDLE.getString("action.class.copy.image.text"), Boolean.TRUE) {
+            private java.awt.image.BufferedImage image;
+
+            @Override
+            public void run(@NotNull final ProgressIndicator indicator) {
+                this.image = CodeScreenshotSupplier.createImage(editor, indicator);
+            }
+
+            @Override
+            public void onSuccess() {
+                Opt.ofNullable(this.image).filter(Objects::nonNull)
+                        .ifPresentOrElse(image -> {
+                            if (CodeScreenshotSupplier.tryCopyToClipboard(image)) {
+                                CodeScreenshotSupplier.showCopySuccessNotification(image, project);
+                            } else {
+                                CodeScreenshotSupplier.showClipboardFailedNotification(image, project);
+                            }
+                        }, () -> Notifier.notifyError(BUNDLE.getString("show.clipboard.render.failed.notification"), project));
+            }
+
+            @Override
+            public void onThrowable(@NotNull final Throwable error) {
+                super.onThrowable(error);
+                Notifier.notifyError(BUNDLE.getString("show.clipboard.render.failed.notification"), project);
+            }
+        }.queue();
     }
 }

@@ -5,6 +5,7 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,6 +14,7 @@ import javax.swing.*;
 /**
  * 智能线程安全通知器<br/>
  * 自动检测线程环境并选择合适的执行方式
+ *
  * @author 拒绝者
  * @date 2025-01-25
  */
@@ -20,6 +22,7 @@ import javax.swing.*;
 public class Notifier {
     /**
      * 通知错误
+     *
      * @param content 内容
      * @param project 项目
      */
@@ -29,6 +32,7 @@ public class Notifier {
 
     /**
      * 通知警告
+     *
      * @param content 内容
      * @param project 项目
      * @param action  行动
@@ -39,6 +43,7 @@ public class Notifier {
 
     /**
      * 通知警告
+     *
      * @param content 内容
      * @param project 项目
      */
@@ -48,6 +53,7 @@ public class Notifier {
 
     /**
      * 通知信息
+     *
      * @param content 内容
      * @param project 项目
      */
@@ -57,6 +63,7 @@ public class Notifier {
 
     /**
      * 通知信息
+     *
      * @param content 内容
      * @param project 项目
      * @param action  行动
@@ -67,6 +74,7 @@ public class Notifier {
 
     /**
      * 通知
+     *
      * @param content 内容
      * @param project 项目
      */
@@ -76,6 +84,7 @@ public class Notifier {
 
     /**
      * 通知
+     *
      * @param content 内容
      * @param type    类型
      * @param project 项目
@@ -88,6 +97,7 @@ public class Notifier {
     /**
      * 智能执行通知<br/>
      * 根据当前线程环境自动选择最佳执行方式
+     *
      * @param notificationTask 通知任务
      */
     private static void executeNotification(final Runnable notificationTask) {
@@ -95,13 +105,14 @@ public class Notifier {
         if (SwingUtilities.isEventDispatchThread()) {
             notificationTask.run();
         } else {
-            // 在后台线程，异步切换到EDT执行
-            SwingUtilities.invokeLater(notificationTask);
+            // 在后台线程，切换到IDE的EDT执行
+            ApplicationManager.getApplication().invokeLater(notificationTask);
         }
     }
 
     /**
      * 创建基础通知
+     *
      * @param content 内容
      * @param type    类型
      * @param project 项目
@@ -126,6 +137,7 @@ public class Notifier {
     /**
      * 静默日志记录<br/>
      * 只在开发和调试阶段输出，避免污染生产环境日志
+     *
      * @param message 消息
      */
     private static void logSilently(final String message) {
@@ -137,15 +149,13 @@ public class Notifier {
 
     /**
      * 判断是否为开发环境
+     *
      * @return boolean
      */
     private static boolean isDevelopmentEnvironment() {
         try {
-            // 通过反射访问内部标志，避免直接依赖
-            final Class<?> appClass = Class.forName("com.intellij.openapi.application.ApplicationManager.ApplicationManager");
-            final var application = appClass.getMethod("getApplication").invoke(null);
-            return (Boolean) application.getClass().getMethod("isInternal").invoke(application) ||
-                    (Boolean) application.getClass().getMethod("isUnitTestMode").invoke(application);
+            final var application = ApplicationManager.getApplication();
+            return application != null && (application.isInternal() || application.isUnitTestMode());
         } catch (final Exception e) {
             return Boolean.FALSE;
         }

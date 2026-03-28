@@ -25,12 +25,14 @@ import static com.acme.json.helper.ui.MainToolWindowFactory.PROJECT_NAME;
 
 /**
  * JSON编辑器推送
+ *
  * @author 拒绝者
  * @date 2025-04-23
  */
 public class JsonEditorPushProvider {
     /**
      * 将内容推送到JSON编辑器
+     *
      * @param project 项目
      * @param content 内容
      */
@@ -45,6 +47,9 @@ public class JsonEditorPushProvider {
         );
         // 工具窗口对象
         final ToolWindow toolWindow = config.toolWindow();
+        if (Objects.isNull(toolWindow)) {
+            return;
+        }
         // 工具窗口未打开则会自动打开
         Opt.ofNullable(config.toolWindow())
                 .filter(item -> !item.isVisible())
@@ -79,6 +84,7 @@ public class JsonEditorPushProvider {
      * - 优先复用空白编辑器，避免创建过多冗余标签页
      * - 按标签页打开顺序进行查找（从最早到最新）
      * - 仅检查直接包含在JPanel中的编辑器组件
+     *
      * @param config 编辑器配置对象，包含工具窗口引用等上下文信息
      * @return 包装在{@link Optional}中的可用编辑器实例，找不到时返回{@link Optional#empty()}
      */
@@ -105,6 +111,7 @@ public class JsonEditorPushProvider {
 
     /**
      * 深度查找编辑器组件（递归搜索容器结构）
+     *
      * @param container 容器
      * @return {@link EditorTextField }
      */
@@ -127,6 +134,7 @@ public class JsonEditorPushProvider {
 
     /**
      * 更新编辑器内容
+     *
      * @param editor 编辑器
      * @param text   文本
      */
@@ -155,6 +163,7 @@ public class JsonEditorPushProvider {
 
     /**
      * 创建新编辑器标签页
+     *
      * @param config 编辑器配置
      * @param text   文本
      */
@@ -178,6 +187,7 @@ public class JsonEditorPushProvider {
 
     /**
      * 编辑器配置记录类
+     *
      * @param project    当前项目实例
      * @param toolWindow JSON工具窗口实例
      */

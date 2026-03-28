@@ -16,6 +16,7 @@ import java.util.*;
 
 /**
  * URL参数转换器
+ *
  * @author 拒绝者
  * @date 2025-04-21
  */
@@ -25,6 +26,7 @@ public class UrlParamsConverter implements DataFormatConverter {
      * <p>
      * 将 URL 参数字符串按 &amp; 分割, 并进一步按 = 分割键值对, 解码后构建成键值对映射<br/>
      * 参数值为空时将被设置为空字符串.
+     *
      * @param urlParams URL 参数字符串, 格式如 "key1=value1&amp;key2=value2"
      * @return 解析后的参数映射, 键为参数名, 值为参数值
      */
@@ -57,6 +59,7 @@ public class UrlParamsConverter implements DataFormatConverter {
      * 如果是整数格式, 则转换为 Long 类型;<br/>
      * 如果是数字格式 (包括科学计数法), 则转换为 Double 类型;<br/>
      * 否则返回原始字符串.
+     *
      * @param value 待解析的字符串值
      * @return 解析后的对象, 可能是 JSON 对象,Boolean,Long,Double 或 String 类型
      */
@@ -87,6 +90,7 @@ public class UrlParamsConverter implements DataFormatConverter {
      * 遍历 Map 中的键值对, 将每个键值对转换为 key=value 的形式,<br/>
      * 并使用 & 符号连接多个参数. 如果 Map 为空, 则返回空字符串.<br/>
      * 键和值都会被转换为字符串并进行 URL 编码.
+     *
      * @param map 待转换的 Map 对象, 键和值都可能为 null
      * @return 转换后的 URL 参数字符串, 格式为 key1=value1&key2=value2...
      */
@@ -115,6 +119,7 @@ public class UrlParamsConverter implements DataFormatConverter {
      * <p>
      * 遍历列表中的每个元素, 将其转换为形如 "item0=value0&item1=value1" 的格式,<br/>
      * 其中 value 会进行 URL 编码. 如果列表为空或 null, 则返回空字符串.
+     *
      * @param list 待转换的列表, 元素可以为任意类型
      * @return 转换后的 URL 参数字符串, 格式为 "item0=value0&item1=value1..."
      */
@@ -142,6 +147,7 @@ public class UrlParamsConverter implements DataFormatConverter {
      * 该方法将输入字符串按照 UTF-8 编码转换为字节序列,<br/>
      * 然后对每个字节进行处理: 如果是保留字符则直接追加,<br/>
      * 否则将其转换为百分号编码格式 (%XX) 追加到构建器中
+     *
      * @param builder 用于追加编码结果的字符串构建器
      * @param input   待编码的输入字符串
      */
@@ -164,6 +170,7 @@ public class UrlParamsConverter implements DataFormatConverter {
      * 判断指定字符是否为非保留字符
      * <p>
      * 非保留字符包括: 小写字母 (a-z), 大写字母(A-Z), 数字(0-9) 以及特殊字符(-._~)
+     *
      * @param c 待判断的字符
      * @return 如果字符为非保留字符则返回 true, 否则返回 false
      */

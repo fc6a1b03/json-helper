@@ -1,98 +1,109 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fc6a1b03/json-helper)
 [![GitHub Repo stars](https://img.shields.io/github/stars/fc6a1b03/json-helper?style=flat&logo=github)](https://github.com/fc6a1b03/json-helper/stargazers)
 [![GitHub total commits](https://img.shields.io/github/commit-activity/t/fc6a1b03/json-helper)](https://github.com/fc6a1b03/json-helper/commits)
-[![JDK](https://img.shields.io/badge/JDK-21-green.svg)](https://openjdk.org/projects/jdk/21/)
-[![Gradle](https://img.shields.io/badge/Gradle-9+-0076CD.svg)](https://gradle.org)
-[![IDEA](https://img.shields.io/badge/IntelliJ_IDEA-2024.1+-FF318C.svg)](https://www.jetbrains.com/idea)
+[![JDK](https://img.shields.io/badge/JDK-25-green.svg)](https://www.oracle.com/java/)
+[![Gradle](https://img.shields.io/badge/Gradle-9.4.1-02303A.svg)](https://gradle.org)
+[![IDEA](https://img.shields.io/badge/IntelliJ_IDEA-2026.1-FF318C.svg)](https://www.jetbrains.com/idea)
 [![GitHub Release](https://img.shields.io/github/v/release/fc6a1b03/json-helper)](https://github.com/fc6a1b03/json-helper/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/fc6a1b03/json-helper/build_jar.yml?branch=master)](https://github.com/fc6a1b03/json-helper/actions)
 [![License](https://img.shields.io/github/license/fc6a1b03/json-helper.svg)](LICENSE)
 
 # Json Helper Plugin
 
-Json Helper 是一款强大的 IntelliJ IDEA 插件，支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON
-数据，还支持通过 JsonPath 进行高效查询和处理。
+Json Helper 是一个面向 IntelliJ IDEA 2026.1 的 JSON 效率插件，当前版本为 `0.13.1`。  
+它支持 JSON 编辑、修复、压缩、转义、JsonPath / JMESPath 查询、Java 类与 JSON 结构互转，以及 XML / YAML / TOML / Properties / CSV / XLSX 等格式转换。
 
-## 运行环境
+## 当前基线
 
-- **JDK**: 21 (跟随IDEA主线)
-- **Gradle**: 9 或更高版本
-- **IntelliJ IDEA**: 2024.1 或更高版本
+- IntelliJ IDEA: `2026.1`
+- Java: `25`
+- Gradle: `9.4.1`
+- 安装方式: `build/distributions/*.zip` 自定义本地安装
+- 插件 ID: `com.acme.json.helper`
+
+## 主要能力
+
+- JSON 编辑、格式化、压缩、修复、转义与反转义
+- 从 JSON 生成 Java Class / Record
+- 从 Java 类复制 JSON 结构
+- JsonPath / JMESPath 查询与树形浏览
+- URL、JWT、本地文件路径、Web 路径自动解析为 JSON
+- JSON 与 XML / YAML / TOML / Properties / CSV / XLSX / Base64 / URL Params 互转
+- Search Everywhere 中的项目搜索与 HTTP 请求文件搜索
+- 代码截图复制
+
+## 安装
+
+1. 运行打包命令生成插件 ZIP。
+2. 在 IntelliJ IDEA 中打开 `Settings` -> `Plugins`。
+3. 点击右上角齿轮按钮，选择 `Install Plugin from Disk...`。
+4. 选择 `build/distributions/json-helper-*.zip` 安装。
+
+## 开发与打包
+
+本项目默认使用系统中的 `gradle` 命令，Gradle 版本固定为 `9.4.1`，Java 编译与运行环境固定为 `25`。
+
+```bash
+gradle printAllVersions
+gradle runIde
+gradle clean buildPlugin
+gradle verifyPluginProjectConfiguration verifyPluginStructure
+```
+
+打包完成后，插件 ZIP 位于：
+
+```text
+build/distributions/json-helper-x.x.x.zip
+```
 
 ## 预览
 
-![preview1.png](doc/preview1.png)
-![preview2.png](doc/preview2.png)
-![preview4.png](doc/preview4.png)
-![preview5.png](doc/preview5.png)
-![preview3.gif](doc/preview3.gif)
-
-## 调试步骤
-
-1. **运行插件**:
-   ```bash
-   ./gradle runIde
-   ```
-   这将启动一个带有插件的 IntelliJ IDEA 实例，供你测试和调试。
-
-2. **打包插件**:
-   ```bash
-   ./gradle clean buildPlugin
-   ```
-   这将生成一个 `.zip` 文件，包含插件的所有资源和代码，直接选择本地安装即可。
+![preview1](doc/preview1.png)
+![preview2](doc/preview2.png)
+![preview4](doc/preview4.png)
+![preview5](doc/preview5.png)
+![preview3](doc/preview3.gif)
 
 ## 项目结构
 
-```
-.
-├── src/main
-│   ├── java/com/acme/json/helper
-│   │   ├── common                  # 通用工具类和枚举
-│   │   ├── core                    # 核心功能模块
-│   │   │   ├── console             # 控制台相关功能
-│   │   │   ├── editor              # 编辑器相关功能
-│   │   │   ├── json                # JSON处理核心功能
-│   │   │   ├── notice              # 通知相关功能
-│   │   │   ├── parser              # 解析器核心功能
-│   │   │   │   └── converter       # 各种格式转换器
-│   │   │   ├── search              # 搜索相关功能
-│   │   │   └── settings            # 插件设置相关功能
-│   │   └── ui                      # 用户界面模块
-│   │       ├── action              # 各种操作动作
-│   │       │   ├── json            # JSON相关的操作
-│   │       │   └── search          # 搜索相关的操作
-│   │       ├── dialog              # 对话框界面
-│   │       ├── editor              # 编辑器界面组件
-│   │       ├── panel               # 面板界面组件
-│   │       ├── search              # 搜索界面组件
-│   │       └── MainToolWindowFactory.java  # 主工具窗口工厂类
-│   └── resources
-│       ├── META-INF                # 插件配置文件
-│       ├── icons                   # 图标资源
-│       └── messages                # 国际化消息文件
-├── doc                             # 文档和截图
-├── wrapper                         # Gradle包装器
-├── build.gradle                    # Gradle构建脚本
-├── gradle.properties               # Gradle属性配置
-├── settings.gradle                 # Gradle设置文件
-└── LICENSE                         # 许可证文件
+```text
+src/main/java/com/acme/json/helper
+├── common
+├── core
+│   ├── editor
+│   ├── json
+│   ├── notice
+│   ├── parser
+│   │   └── converter
+│   ├── screenshot
+│   ├── search
+│   └── settings
+└── ui
+    ├── action
+    ├── dialog
+    ├── editor
+    ├── panel
+    └── search
 ```
 
-## 其他
+## CI / Release
 
-[IDEA插件图标库](https://intellij-icons.jetbrains.design)
-[IDEA插件描述](https://plugins.jetbrains.com/docs/intellij/plugin-dependencies.html#locating-plugin-id-and-preparing-sandbox)
+GitHub Actions 工作流 [build_jar.yml](.github/workflows/build_jar.yml) 已适配当前基线：
+
+- 固定 `Java 25`
+- 固定 `Gradle 9.4.1`
+- 构建 `buildPlugin`
+- 校验 `verifyPluginProjectConfiguration` 与 `verifyPluginStructure`
+- 上传 ZIP 工件并创建 GitHub Release
 
 ## 贡献
 
-欢迎贡献代码！请遵循以下步骤：
+1. Fork 项目
+2. 创建分支 `git checkout -b feature/your-feature`
+3. 提交修改
+4. 推送分支
+5. 发起 Pull Request
 
-1. Fork 项目。
-2. 创建你的分支 (`git checkout -b feature/YourFeatureName`)。
-3. 提交你的更改 (`git commit -m 'Add some feature'`)。
-4. 推送分支 (`git push origin feature/YourFeatureName`)。
-5. 创建一个 Pull Request。
+## License
 
-## 许可证
-
-本项目采用 [MIT 许可证](LICENSE)。
+MIT

@@ -13,12 +13,14 @@ import java.util.Set;
 
 /**
  * 集合类型处理程序
+ *
  * @author 拒绝者
  * @date 2025-01-25
  */
 public class CollectionTypeHandler {
     /**
      * 是集合
+     *
      * @param type 类型
      * @return boolean
      */
@@ -30,6 +32,7 @@ public class CollectionTypeHandler {
 
     /**
      * 是`Map`
+     *
      * @param type 类型
      * @return boolean
      */
@@ -39,6 +42,7 @@ public class CollectionTypeHandler {
 
     /**
      * 处理数组
+     *
      * @param arrayType 数组类型
      * @param processed 处理
      * @return {@link Object }
@@ -56,6 +60,7 @@ public class CollectionTypeHandler {
 
     /**
      * 处理集合
+     *
      * @param type      类型
      * @param processed 处理
      * @return {@link Object }
@@ -68,6 +73,7 @@ public class CollectionTypeHandler {
 
     /**
      * 处理`Map`
+     *
      * @param type      类型
      * @param processed 处理
      * @return {@link Object }
@@ -83,6 +89,7 @@ public class CollectionTypeHandler {
 
     /**
      * 创建基本数组
+     *
      * @param type  类型
      * @param value 价值
      * @return {@link Object }
@@ -107,6 +114,7 @@ public class CollectionTypeHandler {
 
     /**
      * 是子类型
+     *
      * @param type      类型
      * @param superType 超级类型
      * @return boolean
@@ -126,6 +134,7 @@ public class CollectionTypeHandler {
 
     /**
      * 获取泛型擦除后的原始类型
+     *
      * @param type 类型
      * @return {@link PsiClassType }
      */
@@ -139,6 +148,7 @@ public class CollectionTypeHandler {
 
     /**
      * 通用信息
+     *
      * @author 拒绝者
      * @date 2025-01-25
      */
@@ -150,6 +160,7 @@ public class CollectionTypeHandler {
 
         /**
          * 将对象转为`Map`
+         *
          * @param type 类型
          * @return {@link GenericInfo }
          */

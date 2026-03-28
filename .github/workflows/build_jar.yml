@@ -1,3 +1,4 @@
+#file: noinspection UndefinedParamsPresent
 name: Build and Release
 
 on:
@@ -7,57 +8,107 @@ permissions:
   contents: write
   packages: write
 
+concurrency:
+  group: build-json-helper-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      JAVA_VERSION: "25"
+      GRADLE_VERSION: "9.4.1"
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Extract Java Version from from build.gradle
-        id: extract_java_version
-        run: |
-          VERSION=$(gradle -q printJavaVersion)
-          echo "java_version=$VERSION" >> $GITHUB_ENV
+        uses: actions/checkout@v6
 
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: ${{ env.java_version }}
+          java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Extract Gradle Version from from build.gradle
-        id: extract_gradle_version
-        run: |
-          VERSION=$(gradle -q printGradleVersion)
-          echo "gradle_version=$VERSION" >> $GITHUB_ENV
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: ${{ env.gradle_version }}
+          gradle-version: ${{ env.GRADLE_VERSION }}
 
-      - name: Build with Gradle
-        run: gradle clean buildPlugin --no-daemon
-
-      - name: Extract Version from build.gradle
+      - name: Extract plugin version
         id: extract_version
+        shell: bash
         run: |
           VERSION=$(gradle -q printVersion)
           if [ -z "$VERSION" ]; then
             echo "Version not found."
             exit 1
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create Release and Upload Asset
+      - name: Extract build metadata
+        id: extract_meta
+        shell: bash
+        run: |
+          IDEA_VERSION=$(gradle -q printIdeaVersion)
+          JAVA_VERSION=$(gradle -q printJavaVersion)
+          GRADLE_VERSION=$(gradle -q printGradleVersion)
+          if [ -z "$IDEA_VERSION" ] || [ -z "$JAVA_VERSION" ] || [ -z "$GRADLE_VERSION" ]; then
+            echo "Build metadata not found."
+            exit 1
+          fi
+          echo "idea_version=$IDEA_VERSION" >> "$GITHUB_OUTPUT"
+          echo "java_version=$JAVA_VERSION" >> "$GITHUB_OUTPUT"
+          echo "gradle_version=$GRADLE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache IntelliJ Platform artifacts
+        uses: actions/cache@v5
+        with:
+          path: |
+            .intellijPlatform
+          key: ${{ runner.os }}-intellij-platform-${{ hashFiles('build.gradle', 'settings.gradle', 'gradle.properties', 'src/main/resources/META-INF/plugin.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-intellij-platform-
+
+      - name: Print build versions
+        run: gradle printAllVersions --no-daemon --console=plain
+
+      - name: Build plugin
+        run: gradle clean buildPlugin verifyPluginStructure --no-daemon --console=plain
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: json-helper-${{ steps.extract_version.outputs.version }}
+          path: build/distributions/*.zip
+          if-no-files-found: error
+
+      - name: Create release and upload asset
         uses: softprops/action-gh-release@v2
         with:
           files: build/distributions/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.extract_version.outputs.version }}
-          release_name: Release ${{ steps.extract_version.outputs.version }}
+          release_name: Json Helper v${{ steps.extract_version.outputs.version }}
+          body: |
+            ## Release Overview
+            - IntelliJ IDEA target: ${{ steps.extract_meta.outputs.idea_version }}
+            - Java runtime baseline: ${{ steps.extract_meta.outputs.java_version }}
+            - Gradle baseline: ${{ steps.extract_meta.outputs.gradle_version }}
+
+            ## Included Artifact
+            - `json-helper-${{ steps.extract_version.outputs.version }}.zip`
+
+            ## Installation
+            1. Download the ZIP asset from this release.
+            2. Open IntelliJ IDEA.
+            3. Go to `Settings` -> `Plugins` -> `Install Plugin from Disk...`.
+            4. Select the downloaded ZIP file to install.
+
+            ## Notes
+            - This release is intended for local ZIP installation.
+            - See the generated release notes below for the detailed change summary.
           generate_release_notes: true
           draft: false
           prerelease: false

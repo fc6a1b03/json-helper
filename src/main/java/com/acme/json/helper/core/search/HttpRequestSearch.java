@@ -20,23 +20,20 @@ import com.intellij.util.Processor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.SequencedCollection;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * HTTP请求搜索实现<br/>
  * 用于搜索和管理HTTP请求文件
+ *
  * @param project 项目信息
  * @author 拒绝者
  * @date 2025-11-05
  */
 public record HttpRequestSearch(Project project) implements WeightedSearchEverywhereContributor<HttpRequestItem> {
-    /**
-     * 搜索缓存实例
-     */
-    private static final SearchCache CACHE = new SearchCache();
+    private SearchCache cache() {
+        return SearchCache.getInstance(Objects.requireNonNull(this.project));
+    }
 
     @Override
     public @NotNull String getSearchProviderId() {
@@ -72,6 +69,7 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
      * 处理选中的HTTP请求文件
      * <p>
      * 根据文件路径打开或跳转到已打开的HTTP请求文件
+     *
      * @param item       要处理的HTTP请求项
      * @param modifiers  键盘修饰符
      * @param searchText 搜索文本
@@ -89,6 +87,7 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
      * <p>
      * 返回一个用于渲染 HttpRequestItem 对象的列表单元格渲染器, 该渲染器会显示请求文件名和路径信息,<br/>
      * 并根据选中状态设置不同的背景颜色
+     *
      * @return HTTP 请求项的列表单元格渲染器
      */
     @Override
@@ -108,6 +107,7 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
      * <p>
      * 该方法根据给定的搜索模式过滤HTTP请求文件, 并通过匹配器计算权重,<br/>
      * 最终将匹配结果传递给消费者处理器进行处理
+     *
      * @param pattern   用于匹配HTTP请求文件名的模式字符串, 不能为空
      * @param indicator 进度指示器, 用于监控操作进度, 不能为空
      * @param consumer  用于处理匹配结果的处理器, 不能为空
@@ -115,24 +115,35 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
     @Override
     public void fetchWeightedElements(@NotNull final String pattern, @NotNull final ProgressIndicator indicator, @NotNull final Processor<? super FoundItemDescriptor<HttpRequestItem>> consumer) {
         // 获取缓存中的HTTP请求文件
-        final SequencedCollection<HttpRequestItem> src = CACHE.getHttp();
+        final SequencedCollection<HttpRequestItem> src = this.cache().getHttp();
         if (CollUtil.isEmpty(src)) return;
         // 过滤结果 - 可以根据需要添加过滤逻辑
-        final SequencedCollection<HttpRequestItem> filteredFiles = src.stream().filter(Objects::nonNull)
-                .filter(item -> StrUtil.isEmpty(pattern) || StrUtil.emptyIfNull(item.getFileName()).toLowerCase().contains(pattern.toLowerCase()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        final LinkedHashSet<HttpRequestItem> filteredFiles = new LinkedHashSet<>();
+        final String lowerPattern = pattern.toLowerCase();
+        for (final HttpRequestItem item : src) {
+            if (Objects.isNull(item)) {
+                continue;
+            }
+            if (StrUtil.isEmpty(pattern) || StrUtil.emptyIfNull(item.getFileName()).toLowerCase().contains(lowerPattern)) {
+                filteredFiles.add(item);
+            }
+        }
         // 如果是空模式，直接返回所有过滤后的文件
         if (StrUtil.isEmpty(pattern)) {
             filteredFiles.stream().map(item -> new FoundItemDescriptor<>(item, 100)).forEach(consumer::process);
             return;
         }
         // 使用匹配器计算权重
-        final MinusculeMatcher matcher = NameUtil.buildMatcher("*%s".formatted(pattern), NameUtil.MatchingCaseSensitivity.NONE);
+        final MinusculeMatcher matcher = NameUtil.buildMatcher("*%s".formatted(pattern)).build();
         // 计算权重并排序
-        filteredFiles.stream().filter(Objects::nonNull)
-                .map(item -> new FoundItemDescriptor<>(item, matcher.matchingDegree(item.getFileName())))
-                .filter(descriptor -> descriptor.getWeight() > 0)
-                .sorted((a, b) -> Integer.compare(b.getWeight(), a.getWeight()))
-                .forEach(consumer::process);
+        final List<FoundItemDescriptor<HttpRequestItem>> descriptors = new ArrayList<>(filteredFiles.size());
+        for (final HttpRequestItem item : filteredFiles) {
+            final int weight = matcher.matchingDegree(item.getFileName());
+            if (weight > 0) {
+                descriptors.add(new FoundItemDescriptor<>(item, weight));
+            }
+        }
+        descriptors.sort((left, right) -> Integer.compare(right.getWeight(), left.getWeight()));
+        descriptors.forEach(consumer::process);
     }
 }

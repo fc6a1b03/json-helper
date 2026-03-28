@@ -10,11 +10,11 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 
 import java.util.Base64;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * JWT解析器<br/>
  * JWT转JSON
+ *
  * @author 拒绝者
  * @date 2025-04-27
  */
@@ -26,24 +26,24 @@ public class JwtParser {
 
     /**
      * 支持多密钥的JWT转换
+     *
      * @param token 令牌
      * @return 异步JSON结果
      */
-    public static CompletableFuture<String> convert(final String token) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return Opt.ofBlankAble(token)
-                        .map(JWT::decode).filter(Objects::nonNull)
-                        .map(JwtParser::convertToJson).filter(StrUtil::isNotEmpty)
-                        .orElse("");
-            } catch (final JWTDecodeException e) {
-                return "";
-            }
-        });
+    public static String convert(final String token) {
+        try {
+            return Opt.ofBlankAble(token)
+                    .map(JWT::decode).filter(Objects::nonNull)
+                    .map(JwtParser::convertToJson).filter(StrUtil::isNotEmpty)
+                    .orElse("");
+        } catch (final JWTDecodeException e) {
+            return "";
+        }
     }
 
     /**
      * 转换为JSON
+     *
      * @param decode 解码后的JWT
      * @return JSON字符串
      */
@@ -58,6 +58,7 @@ public class JwtParser {
 
     /**
      * 解码Base64 JSON
+     *
      * @param base64Str Base64字符串
      * @return 解码后的JSON对象
      */

@@ -9,7 +9,9 @@ import com.acme.json.helper.common.Clipboard;
 import com.acme.json.helper.core.parser.JsonNodeParser;
 import com.alibaba.fastjson2.JSON;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.ui.EditorTextField;
@@ -19,6 +21,7 @@ import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.tree.ui.DefaultTreeUI;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +40,7 @@ import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,6 +48,7 @@ import java.util.stream.IntStream;
 
 /**
  * JSON树面板
+ *
  * @author 拒绝者
  * @date 2025-01-28
  */
@@ -84,6 +89,14 @@ public class JsonTreePanel extends JPanel {
      * 正在搜索
      */
     private volatile boolean isSearching = Boolean.FALSE;
+    /**
+     * 树模型更新序号
+     */
+    private final AtomicLong treeSequence = new AtomicLong();
+    /**
+     * 搜索任务序号
+     */
+    private final AtomicLong searchSequence = new AtomicLong();
 
     public JsonTreePanel() {
         super(new BorderLayout());
@@ -93,28 +106,69 @@ public class JsonTreePanel extends JPanel {
         this.configureTreeAppearance();
     }
 
+    private static String extractFirstObjectKey(final String item) {
+        if (!JSON.isValidObject(item)) {
+            return null;
+        }
+        for (final String key : JSON.parseObject(item).keySet()) {
+            if (StrUtil.isNotEmpty(key)) {
+                return key;
+            }
+        }
+        return null;
+    }
+
+    private static Object extractFirstObjectValue(final String item) {
+        if (!JSON.isValidObject(item)) {
+            return null;
+        }
+        for (final Object value : JSON.parseObject(item).values()) {
+            if (Objects.nonNull(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     /**
      * 加载JSON
+     *
      * @param txt JSON文本
      */
     public void loadJson(final String txt) {
-        this.jsonTree.setModel(new DefaultTreeModel(this.buildTreeModel(
-                JsonNodeParser.parse("root", txt)
-        )));
+        final long sequence = this.treeSequence.incrementAndGet();
+        CompletableFuture
+                .supplyAsync(() -> new DefaultTreeModel(this.buildTreeModel(JsonNodeParser.parse("root", txt))),
+                        AppExecutorUtil.getAppExecutorService())
+                .thenAccept(model -> ApplicationManager.getApplication().invokeLater(() -> {
+                    if (sequence != this.treeSequence.get()) {
+                        return;
+                    }
+                    this.matches.clear();
+                    this.currentMatchIndex = -1;
+                    this.jsonTree.setModel(model);
+                    this.jsonTree.repaint();
+                }));
     }
 
     /**
      * 创建JSON树面板
+     *
      * @param editor 编辑
      * @return {@link JPanel }
      */
-    public JPanel create(final EditorTextField editor) {
-        editor.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void documentChanged(final @NotNull DocumentEvent e) {
-                ApplicationManager.getApplication().invokeLater(() -> JsonTreePanel.this.loadJson(editor.getText()));
-            }
-        });
+    public JPanel create(final EditorTextField editor, final Disposable parentDisposable) {
+        if (Objects.nonNull(editor.getProject())) {
+            EditorFactory.getInstance().getEventMulticaster().addDocumentListener(new DocumentListener() {
+                @Override
+                public void documentChanged(final @NotNull DocumentEvent e) {
+                    if (e.getDocument() != editor.getDocument()) {
+                        return;
+                    }
+                    JsonTreePanel.this.loadJson(editor.getText());
+                }
+            }, parentDisposable);
+        }
         // 创建树面板
         final JPanel panel = new JPanel(new BorderLayout(0, 0));
         // 添加面板内容
@@ -129,40 +183,6 @@ public class JsonTreePanel extends JPanel {
         panel.add(this.createSearchField(), BorderLayout.NORTH);
         panel.setBorder(BorderFactory.createEmptyBorder());
         return panel;
-    }
-
-    /**
-     * 创建搜索框
-     * @return {@link JTextField }
-     */
-    private JTextField createSearchField() {
-        this.searchField = new JTextField();
-        // 搜索框只读
-        this.searchField.setEditable(Boolean.FALSE);
-        this.searchField.setFocusable(Boolean.FALSE);
-        // 搜索框样式
-        this.searchField.setForeground(JBColor.GRAY);
-        this.searchField.setBackground(UIUtil.getPanelBackground());
-        this.searchField.setBorder(BorderFactory.createCompoundBorder(
-                // 边框
-                BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
-                // 内边距
-                BorderFactory.createEmptyBorder(2, 8, 2, 8)
-        ));
-        this.searchField.setFont(UIUtil.getLabelFont().deriveFont(Font.PLAIN));
-        this.searchField.setPreferredSize(new Dimension(Short.MAX_VALUE, 20));
-        return this.searchField;
-    }
-
-    /**
-     * 构建树模型
-     * @param node 节点
-     * @return {@link DefaultMutableTreeNode }
-     */
-    private DefaultMutableTreeNode buildTreeModel(final JsonNodeParser.JsonNode node) {
-        final DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(node);
-        node.children().stream().map(this::buildTreeModel).forEach(treeNode::add);
-        return treeNode;
     }
 
     /**
@@ -239,7 +259,46 @@ public class JsonTreePanel extends JPanel {
     }
 
     /**
+     * 创建搜索框
+     *
+     * @return {@link JTextField }
+     */
+    private JTextField createSearchField() {
+        this.searchField = new JTextField();
+        // 搜索框只读
+        this.searchField.setEditable(Boolean.FALSE);
+        this.searchField.setFocusable(Boolean.FALSE);
+        // 搜索框样式
+        this.searchField.setForeground(JBColor.GRAY);
+        this.searchField.setBackground(UIUtil.getPanelBackground());
+        this.searchField.setBorder(BorderFactory.createCompoundBorder(
+                // 边框
+                BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
+                // 内边距
+                BorderFactory.createEmptyBorder(2, 8, 2, 8)
+        ));
+        this.searchField.setFont(UIUtil.getLabelFont().deriveFont(Font.PLAIN));
+        this.searchField.setPreferredSize(new Dimension(Short.MAX_VALUE, 20));
+        return this.searchField;
+    }
+
+    /**
+     * 构建树模型
+     *
+     * @param node 节点
+     * @return {@link DefaultMutableTreeNode }
+     */
+    private DefaultMutableTreeNode buildTreeModel(final JsonNodeParser.JsonNode node) {
+        final DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(node);
+        for (final JsonNodeParser.JsonNode child : node.children()) {
+            treeNode.add(this.buildTreeModel(child));
+        }
+        return treeNode;
+    }
+
+    /**
      * 为JSON树添加右键复制菜单
+     *
      * @param tree 树
      */
     private void addRightClickMenuToTree(final Tree tree) {
@@ -247,25 +306,25 @@ public class JsonTreePanel extends JPanel {
         final JPopupMenu popupMenu = new JPopupMenu();
         // 复制对象
         final JMenuItem copyItem = new JMenuItem(BUNDLE.getString("json.tree.copy"));
-        copyItem.addActionListener(e ->
+        copyItem.addActionListener(_ ->
                 Opt.ofNullable(tree.getSelectionPath())
                         .ifPresent(path -> Clipboard.copy(this.getNodeText(path.getLastPathComponent(), 1)))
         );
         // 复制路径
         final JMenuItem copyPath = new JMenuItem(BUNDLE.getString("json.tree.copy.path"));
-        copyPath.addActionListener(e ->
+        copyPath.addActionListener(_ ->
                 Opt.ofNullable(tree.getSelectionPath())
                         .ifPresent(path -> Clipboard.copy(this.buildJsonPath(path)))
         );
         // 复制键
         final JMenuItem copyKey = new JMenuItem(BUNDLE.getString("json.tree.copy.key"));
-        copyKey.addActionListener(e ->
+        copyKey.addActionListener(_ ->
                 Opt.ofNullable(tree.getSelectionPath())
                         .ifPresent(path -> Clipboard.copy(this.getNodeText(path.getLastPathComponent(), 2)))
         );
         // 复制值
         final JMenuItem copyVal = new JMenuItem(BUNDLE.getString("json.tree.copy.val"));
-        copyVal.addActionListener(e ->
+        copyVal.addActionListener(_ ->
                 Opt.ofNullable(tree.getSelectionPath())
                         .ifPresent(path -> Clipboard.copy(this.getNodeText(path.getLastPathComponent(), 3)))
         );
@@ -292,10 +351,12 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 从树节点提取可复制的文本
+     *
      * @param node 选择的节点
      * @param type 类型：1.object 2.key 3.value
      * @return {@link String }
      */
+    @SuppressWarnings("DataFlowIssue")
     private String getNodeText(final Object node, final Integer type) {
         return switch (node) {
             // 确认是`DefaultMutableTreeNode`才会处理节点
@@ -306,27 +367,18 @@ public class JsonTreePanel extends JPanel {
                         // 对象
                         case final Integer i when ObjectUtil.equal(i, 1) -> item;
                         // 键
-                        case final Integer i when ObjectUtil.equal(i, 2) -> Opt.of(JSON.isValidObject(item))
-                                .filter(b -> b)
-                                .map(b -> JSON.parseObject(item).keySet().stream().filter(StrUtil::isNotEmpty).findFirst().orElse(null))
-                                .orElse(null);
+                        case final Integer i when ObjectUtil.equal(i, 2) -> extractFirstObjectKey(item);
                         // 值
-                        case final Integer i when ObjectUtil.equal(i, 3) -> Opt.of(JSON.isValidObject(item))
-                                .filter(b -> b)
-                                .map(b -> JSON.parseObject(item).values().stream().filter(Objects::nonNull).findFirst().orElse(null))
-                                .orElse(null);
+                        case final Integer i when ObjectUtil.equal(i, 3) -> extractFirstObjectValue(item);
                         default -> null;
-                    })
-                    .filter(Objects::nonNull)
-                    .map(Object::toString)
-                    .filter(StrUtil::isNotEmpty)
-                    .orElseGet(() -> Convert.toStr(node));
+                    }).filter(Objects::nonNull).map(Object::toString).filter(StrUtil::isNotEmpty).orElseGet(() -> Convert.toStr(node));
             case null, default -> Convert.toStr(node);
         };
     }
 
     /**
      * 构建JSON路径
+     *
      * @param selectionPath 选择的路径
      * @return {@link String }
      */
@@ -367,27 +419,39 @@ public class JsonTreePanel extends JPanel {
      */
     private void initSearchFeature() {
         // 初始化搜索定时器（延迟300毫秒执行搜索）
-        this.searchTimer = new Timer(300, e -> {
+        this.searchTimer = new Timer(300, _ -> {
             // 如正在搜索则停止当前搜索
             if (this.isSearching) return;
             // 重置搜索相关变量
-            this.matches.clear();
             this.currentMatchIndex = -1;
             this.isSearching = Boolean.TRUE;
+            final long sequence = this.searchSequence.get();
+            final String keyword = this.searchText;
             // 执行搜索
             CompletableFuture.supplyAsync(() -> {
+                final List<TreePath> result = new ArrayList<>();
                 final DefaultMutableTreeNode root = (DefaultMutableTreeNode) this.jsonTree.getModel().getRoot();
-                this.collectMatches(root, new TreePath(root));
-                return this.matches;
-            }).thenAcceptAsync(result -> {
-                this.matches.addAll(result);
-                if (CollUtil.isNotEmpty(this.matches)) {
-                    this.currentMatchIndex = 0;
-                    this.scrollToMatch(this.currentMatchIndex);
-                }
-                this.jsonTree.repaint();
-                this.isSearching = Boolean.FALSE;
-            }, SwingUtilities::invokeLater);
+                this.collectMatches(root, new TreePath(root), keyword, result);
+                return result;
+            }, AppExecutorUtil.getAppExecutorService()).thenAccept(result ->
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        if (sequence != this.searchSequence.get()) {
+                            this.isSearching = Boolean.FALSE;
+                            return;
+                        }
+                        this.matches.clear();
+                        this.matches.addAll(result);
+                        if (CollUtil.isNotEmpty(this.matches)) {
+                            this.currentMatchIndex = 0;
+                            this.scrollToMatch(this.currentMatchIndex);
+                        }
+                        this.jsonTree.repaint();
+                        this.isSearching = Boolean.FALSE;
+                    })
+            ).exceptionally(_ -> {
+                ApplicationManager.getApplication().invokeLater(() -> this.isSearching = Boolean.FALSE);
+                return null;
+            });
         });
         this.searchTimer.setRepeats(Boolean.FALSE);
         // 添加键盘监听器
@@ -403,6 +467,8 @@ public class JsonTreePanel extends JPanel {
                     }
                     // 退出键
                     else if (keyChar == KeyEvent.VK_ESCAPE) {
+                        JsonTreePanel.this.searchSequence.incrementAndGet();
+                        JsonTreePanel.this.isSearching = Boolean.FALSE;
                         JsonTreePanel.this.searchText = "";
                         JsonTreePanel.this.matches.clear();
                         JsonTreePanel.this.jsonTree.repaint();
@@ -433,6 +499,7 @@ public class JsonTreePanel extends JPanel {
              * 重启搜索定时器
              */
             private void restartSearchTimer() {
+                JsonTreePanel.this.searchSequence.incrementAndGet();
                 if (JsonTreePanel.this.searchTimer.isRunning()) {
                     JsonTreePanel.this.searchTimer.restart();
                 } else {
@@ -456,29 +523,33 @@ public class JsonTreePanel extends JPanel {
 
     /**
      * 收集匹配的节点路径
+     *
      * @param node node
      * @param path 路径
      */
-    private void collectMatches(final DefaultMutableTreeNode node, final TreePath path) {
+    private void collectMatches(final DefaultMutableTreeNode node,
+                                final TreePath path,
+                                final String keyword,
+                                final List<TreePath> target) {
         // 判断节点是否匹配搜索条件
         if (switch (node.getUserObject()) {
             case final JsonNodeParser.JsonNode jsonNode -> ("%s:%s".formatted(jsonNode.key(), jsonNode.value()))
-                    .toLowerCase().contains(this.searchText);
-            default -> Convert.toStr(node).toLowerCase().contains(this.searchText);
+                    .toLowerCase().contains(keyword);
+            default -> Convert.toStr(node).toLowerCase().contains(keyword);
         }) {
-            this.matches.add(path);
+            target.add(path);
         }
         // 判断节点子项是否匹配搜索条件
         final Enumeration<?> children = node.children();
         while (CollUtil.isNotEmpty(children) && children.hasMoreElements()) {
             final DefaultMutableTreeNode child = (DefaultMutableTreeNode) children.nextElement();
-            this.collectMatches(child, path.pathByAddingChild(child));
+            this.collectMatches(child, path.pathByAddingChild(child), keyword, target);
         }
     }
 
-
     /**
      * 滚动到指定索引的匹配项
+     *
      * @param index 指数
      */
     private void scrollToMatch(final int index) {

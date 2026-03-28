@@ -8,7 +8,6 @@ import cn.hutool.core.util.StrUtil;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 编辑器状态
@@ -39,11 +38,22 @@ public record EditorState(Integer editorId, String content) {
      * @return {@link String }
      */
     public static String encode(final List<EditorState> stateList) {
-        return CollUtil.emptyIfNull(stateList).stream().filter(Objects::nonNull)
-                .map(s -> "%d%s%s".formatted(
-                        s.editorId, SEP_INTERNAL,
-                        Base64.getEncoder().encodeToString(StrUtil.bytes(s.content, StandardCharsets.UTF_8))
-                )).collect(Collectors.joining(SEP_OUTSIDE));
+        final List<EditorState> states = CollUtil.emptyIfNull(stateList);
+        final StringBuilder builder = new StringBuilder(states.size() * 32);
+        boolean first = true;
+        for (final EditorState state : states) {
+            if (Objects.isNull(state)) {
+                continue;
+            }
+            if (!first) {
+                builder.append(SEP_OUTSIDE);
+            }
+            builder.append(state.editorId)
+                    .append(SEP_INTERNAL)
+                    .append(Base64.getEncoder().encodeToString(StrUtil.bytes(state.content, StandardCharsets.UTF_8)));
+            first = false;
+        }
+        return builder.toString();
     }
 
     /**
@@ -52,8 +62,21 @@ public record EditorState(Integer editorId, String content) {
      * @return {@link List }<{@link EditorState }>
      */
     public static List<EditorState> decode(final String raw) {
-        return Arrays.stream(StrUtil.emptyIfNull(raw).split(SEP_OUTSIDE)).filter(StrUtil::isNotBlank)
-                .map(str -> str.split(SEP_INTERNAL)).filter(ArrayUtil::isNotEmpty).filter(array -> array.length == 2)
-                .map(strs -> new EditorState(Convert.toInt(strs[0]), StrUtil.utf8Str(Base64.getDecoder().decode(strs[1])))).toList();
+        final String[] entries = StrUtil.emptyIfNull(raw).split(SEP_OUTSIDE);
+        final List<EditorState> states = new ArrayList<>(entries.length);
+        for (final String entry : entries) {
+            if (StrUtil.isBlank(entry)) {
+                continue;
+            }
+            final String[] parts = entry.split(SEP_INTERNAL);
+            if (ArrayUtil.isEmpty(parts) || parts.length != 2) {
+                continue;
+            }
+            states.add(new EditorState(
+                    Convert.toInt(parts[0]),
+                    StrUtil.utf8Str(Base64.getDecoder().decode(parts[1]))
+            ));
+        }
+        return states;
     }
 }

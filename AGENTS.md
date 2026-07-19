@@ -14,7 +14,7 @@
 | Artifact ID | `json-helper`                                   |
 | 插件 ID     | `com.acme.json.helper`                          |
 | 作者        | 拒绝者                                          |
-| 当前版本    | `0.14.10`（定义在 `settings.gradle` 的版本表中） |
+| 当前版本    | `0.15.0`（定义在 `settings.gradle` 的版本表中） |
 | 许可证      | MIT                                             |
 | GitHub      | https://github.com/fc6a1b03/json-helper         |
 

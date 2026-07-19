@@ -100,5 +100,11 @@
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.HttpRequestSearchFactory"/>
         <!-- 端口搜索器 -->
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.PortSearchFactory"/>
+        <!-- 压缩包内容搜索器 -->
+        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ArchiveSearchFactory"/>
+        <!-- 项目树压缩包节点 -->
+        <treeStructureProvider implementation="com.acme.json.helper.core.archive.ArchiveTreeProvider"/>
+        <!-- 项目树压缩包图标 -->
+        <iconProvider implementation="com.acme.json.helper.core.archive.ArchiveIconProvider"/>
     </extensions>
 </idea-plugin>

@@ -50,7 +50,6 @@ public class JsonParser {
         register(converters, AnyFile.XML, new XmlConverter());
         register(converters, AnyFile.CSV, new CsvConverter());
         register(converters, AnyFile.YAML, new YamlConverter());
-        register(converters, AnyFile.TOON, new ToonConverter());
         register(converters, AnyFile.TOML, new TomlConverter());
         register(converters, AnyFile.XLSX, new XlsxConverter());
         register(converters, AnyFile.CLASS, new ClassConverter());

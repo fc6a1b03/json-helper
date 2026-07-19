@@ -106,6 +106,69 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
      */
     private static final String ELLIPSIS = "...";
     /**
+     * 知名端口服务映射表（IANA 与各软件官方默认端口），用于在列表中描述端口服务并支持按服务名搜索
+     */
+    private static final Map<Integer, String> WELL_KNOWN_SERVICES = Map.ofEntries(
+            Map.entry(21, "FTP"),
+            Map.entry(22, "SSH"),
+            Map.entry(23, "Telnet"),
+            Map.entry(25, "SMTP"),
+            Map.entry(53, "DNS"),
+            Map.entry(80, "HTTP"),
+            Map.entry(110, "POP3"),
+            Map.entry(143, "IMAP"),
+            Map.entry(443, "HTTPS"),
+            Map.entry(465, "SMTPS"),
+            Map.entry(587, "SMTP-Submission"),
+            Map.entry(993, "IMAPS"),
+            Map.entry(995, "POP3S"),
+            Map.entry(1080, "SOCKS"),
+            Map.entry(1433, "MSSQL"),
+            Map.entry(1521, "Oracle"),
+            Map.entry(2181, "Zookeeper"),
+            Map.entry(2375, "Docker"),
+            Map.entry(2376, "Docker-TLS"),
+            Map.entry(2379, "etcd"),
+            Map.entry(2380, "etcd-Peer"),
+            Map.entry(3000, "Node-Dev"),
+            Map.entry(3306, "MySQL"),
+            Map.entry(3389, "RDP"),
+            Map.entry(4200, "Angular-Dev"),
+            Map.entry(5000, "Flask-Dev"),
+            Map.entry(5173, "Vite-Dev"),
+            Map.entry(5432, "PostgreSQL"),
+            Map.entry(5601, "Kibana"),
+            Map.entry(5672, "RabbitMQ"),
+            Map.entry(5900, "VNC"),
+            Map.entry(6379, "Redis"),
+            Map.entry(6443, "Kubernetes-API"),
+            Map.entry(8000, "HTTP-Alt"),
+            Map.entry(8009, "AJP13"),
+            Map.entry(8080, "HTTP-Proxy"),
+            Map.entry(8086, "InfluxDB"),
+            Map.entry(8200, "Vault"),
+            Map.entry(8300, "Consul"),
+            Map.entry(8443, "HTTPS-Alt"),
+            Map.entry(8500, "Consul"),
+            Map.entry(8848, "Nacos"),
+            Map.entry(8888, "Jupyter"),
+            Map.entry(9000, "SonarQube"),
+            Map.entry(9042, "Cassandra"),
+            Map.entry(9090, "Prometheus"),
+            Map.entry(9092, "Kafka"),
+            Map.entry(9200, "Elasticsearch"),
+            Map.entry(9300, "ES-Transport"),
+            Map.entry(9411, "Zipkin"),
+            Map.entry(10000, "HiveServer2"),
+            Map.entry(10250, "Kubelet"),
+            Map.entry(11211, "Memcached"),
+            Map.entry(15672, "RabbitMQ-Mgmt"),
+            Map.entry(16379, "Redis-Sentinel"),
+            Map.entry(26379, "Redis-Sentinel"),
+            Map.entry(27017, "MongoDB"),
+            Map.entry(61616, "ActiveMQ")
+    );
+    /**
      * 按扩展名缓存的文件类型图标（渲染热路径避免重复查询 FileTypeManager）
      */
     private static final Map<String, Icon> ICON_CACHE = new ConcurrentHashMap<>();
@@ -243,6 +306,15 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
                         selected ? JBColor.CYAN : JBColor.BLUE
                 ));
 
+                // 知名服务描述（命中映射表时展示，便于一眼识别端口用途）
+                final String serviceName = WELL_KNOWN_SERVICES.get(value.port());
+                if (Objects.nonNull(serviceName)) {
+                    this.append(" " + serviceName, new SimpleTextAttributes(
+                            SimpleTextAttributes.STYLE_BOLD,
+                            JBColor.GREEN
+                    ));
+                }
+
                 // 应用路径（灰色，右对齐）
                 final String appPath = value.appPath();
                 final String pathText;
@@ -355,8 +427,9 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
                     filteredItems.add(item);
                 }
             } else {
-                // 文本模式：匹配应用名称
-                if (item.appName().toLowerCase(Locale.ROOT).contains(lowerPattern)) {
+                // 文本模式：匹配应用名称或知名服务名（如输入 mysql 可命中 3306）
+                final String serviceName = WELL_KNOWN_SERVICES.getOrDefault(item.port(), "").toLowerCase(Locale.ROOT);
+                if (item.appName().toLowerCase(Locale.ROOT).contains(lowerPattern) || serviceName.contains(lowerPattern)) {
                     filteredItems.add(item);
                 }
             }
@@ -385,8 +458,12 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
                         weight = CONTAINS_MATCH_WEIGHT + pattern.length() * 5;
                     }
                 } else {
-                    // 文本匹配
-                    weight = matcher.matchingDegree(item.appName());
+                    // 文本匹配：应用名称与知名服务名取最高匹配度
+                    final String serviceName = WELL_KNOWN_SERVICES.getOrDefault(item.port(), "");
+                    weight = Math.max(
+                            matcher.matchingDegree(item.appName()),
+                            serviceName.isEmpty() ? 0 : matcher.matchingDegree(serviceName)
+                    );
                 }
                 if (weight > 0) {
                     descriptors.add(new FoundItemDescriptor<>(item, weight));

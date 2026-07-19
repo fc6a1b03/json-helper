@@ -54,12 +54,6 @@ class JsonParserTest {
     }
 
     @Test
-    @DisplayName("正常：convert 分发到 TOON 转换器")
-    void convertsJsonToToon() {
-        assertTrue(JsonParser.convert(SAMPLE_JSON, AnyFile.TOON).contains("name"), "TOON 输出应包含字段名");
-    }
-
-    @Test
     @DisplayName("正常：convert 分发到 URL_PARAMS 转换器并按键值对输出")
     void convertsJsonToUrlParams() {
         assertEquals("name=acme&age=18", JsonParser.convert(SAMPLE_JSON, AnyFile.URL_PARAMS),

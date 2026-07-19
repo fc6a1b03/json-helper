@@ -5,10 +5,6 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
-import dev.toonformat.jtoon.DecodeOptions;
-import dev.toonformat.jtoon.Delimiter;
-import dev.toonformat.jtoon.JToon;
-import dev.toonformat.jtoon.PathExpansion;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.InputSource;
 import tools.jackson.databind.JsonNode;
@@ -42,13 +38,8 @@ public class AnyParser {
     private static final Pattern YAML_DOCUMENT_PATTERN = Pattern.compile("(?m)^\\s*(?:---|\\.\\.\\.)\\s*$");
     private static final Pattern PROPERTIES_PATTERN = Pattern.compile("^(?!\\s*(?:#|$)).+?=.+$", Pattern.MULTILINE);
     private static final Pattern YAML_MAPPING_PATTERN = Pattern.compile("(?m)^\\s*[^\\s:#][^\\r\\n]*:\\s*(?:[^\\r\\n]*)$");
-    private static final Pattern TOON_HEADER_PATTERN = Pattern.compile("(?m)^\\s*(?:-\\s+)?(?:[^\\s\\[\\]\\r\\n][^\\[\\r\\n]*)?\\[(?:#?\\d+)(?:[\\t,][^\\]\\r\\n]*)?\\]\\s*:\\s*(?:.*)$");
     private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
     private static final ThreadLocal<DocumentBuilderFactory> XML_FACTORY = ThreadLocal.withInitial(AnyParser::createXmlFactory);
-    /**
-     * TOON 判定选项（与 ToonConverter 的 RELAXED 选项一致，保证识别与转换同源）
-     */
-    private static final DecodeOptions TOON_DETECT_OPTIONS = new DecodeOptions(2, Delimiter.TAB, Boolean.FALSE, PathExpansion.SAFE);
     /**
      * 无识别价值的空白 JSON 样本集合（去除全部空白字符后进行匹配）
      */
@@ -73,7 +64,6 @@ public class AnyParser {
     private static final String FEATURE_EXTERNAL_PARAMETER_ENTITIES = "https://xml.org/sax/features/external-parameter-entities";
     private static final List<DetectRule> DETECT_RULES = List.of(
             new DetectRule(AnyFile.XML, AnyParser::looksLikeXml, AnyParser::isXml),
-            new DetectRule(AnyFile.TOON, AnyParser::looksLikeToon, AnyParser::isToon),
             new DetectRule(AnyFile.YAML, AnyParser::looksLikeYaml, AnyParser::isYaml),
             new DetectRule(AnyFile.TOML, AnyParser::looksLikeToml, AnyParser::isToml),
             new DetectRule(AnyFile.BASE64, AnyParser::looksLikeBase64, Base64::isBase64),
@@ -112,12 +102,8 @@ public class AnyParser {
         return input.startsWith("<");
     }
 
-    private static boolean looksLikeToon(final String input) {
-        return TOON_HEADER_PATTERN.matcher(input).find();
-    }
-
     private static boolean looksLikeYaml(final String input) {
-        if (URI_PATTERN.matcher(input).matches() || WINDOWS_PATH_PATTERN.matcher(input).matches() || looksLikeToon(input)) {
+        if (URI_PATTERN.matcher(input).matches() || WINDOWS_PATH_PATTERN.matcher(input).matches()) {
             return Boolean.FALSE;
         }
         return YAML_DOCUMENT_PATTERN.matcher(input).find()
@@ -149,16 +135,6 @@ public class AnyParser {
         if (!looksLikeXml(input)) return Boolean.FALSE;
         try {
             XML_FACTORY.get().newDocumentBuilder().parse(new InputSource(new StringReader(input)));
-            return Boolean.TRUE;
-        } catch (final Exception e) {
-            return Boolean.FALSE;
-        }
-    }
-
-    private static boolean isToon(final String input) {
-        try {
-            // 与 ToonConverter 使用一致的 TAB 分隔选项判定，避免"识别为 TOON 却无法转换"的割裂
-            JToon.decodeToJson(input, TOON_DETECT_OPTIONS);
             return Boolean.TRUE;
         } catch (final Exception e) {
             return Boolean.FALSE;

@@ -23,13 +23,11 @@ gradle.ext.versions = [
         // Java 语言基线：toolchain 与 options.release 共用
         jvm         : 25,
         // 第三方依赖版本
-        toon        : "1.0.9",
         auth0       : "4.5.2",
         hutool      : "5.8.47",
         jackson     : "3.2.1",
         apachePoi   : "5.5.1",
         fastjson2   : "2.0.62",
-        jsonRepair  : "0.4.0",
         junit       : "6.1.2",
         commonsLang3: "3.20.0"
 ]

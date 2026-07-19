@@ -61,7 +61,11 @@ public class PluginSettings implements Configurable {
         // 获取设置状态
         final PluginSettingsState settings = of();
         // 判断全局状态与设置组件状态
-        return component.getCopyJson() != settings.copyJson || component.getJsonHelper() != settings.jsonHelper;
+        return component.getCopyJson() != settings.copyJson
+                || component.getJsonHelper() != settings.jsonHelper
+                || component.getPortSearch() != settings.portSearchEnabled
+                || component.getProjectSearch() != settings.projectSearchEnabled
+                || component.getHttpSearch() != settings.httpSearchEnabled;
     }
 
     @Override
@@ -71,6 +75,9 @@ public class PluginSettings implements Configurable {
         // 将设置组件状态覆盖全局状态
         settings.copyJson = component.getCopyJson();
         settings.jsonHelper = component.getJsonHelper();
+        settings.portSearchEnabled = component.getPortSearch();
+        settings.projectSearchEnabled = component.getProjectSearch();
+        settings.httpSearchEnabled = component.getHttpSearch();
     }
 
     @Override
@@ -78,6 +85,9 @@ public class PluginSettings implements Configurable {
         final PluginSettingsState settings = of();
         component.setCopyJson(settings.copyJson);
         component.setJsonHelper(settings.jsonHelper);
+        component.setPortSearch(settings.portSearchEnabled);
+        component.setProjectSearch(settings.projectSearchEnabled);
+        component.setHttpSearch(settings.httpSearchEnabled);
     }
 
     @Override
@@ -96,10 +106,14 @@ public class PluginSettings implements Configurable {
         private final JPanel mainPanel;
         private final JBCheckBox copyJson = new JBCheckBox(BUNDLE.getString("plugin.setting.copy.json"));
         private final JBCheckBox jsonHelper = new JBCheckBox(BUNDLE.getString("plugin.setting.json.helper"));
+        private final JBCheckBox projectSearch = new JBCheckBox(BUNDLE.getString("project.search.group.name"));
+        private final JBCheckBox httpSearch = new JBCheckBox(BUNDLE.getString("http.search.group.name"));
+        private final JBCheckBox portSearch = new JBCheckBox(BUNDLE.getString("port.search.group.name"));
 
         public PluginSettingsComponent() {
             mainPanel = FormBuilder.createFormBuilder()
                     .addComponent(of(BUNDLE.getString("plugin.setting.title1"), copyJson, jsonHelper), 1)
+                    .addComponent(of(BUNDLE.getString("plugin.setting.title2"), projectSearch, httpSearch, portSearch), 1)
                     .addComponentFillVertically(new JPanel(), 0)
                     .getPanel();
         }
@@ -148,6 +162,30 @@ public class PluginSettings implements Configurable {
 
         public void setJsonHelper(final boolean status) {
             jsonHelper.setSelected(status);
+        }
+
+        public boolean getPortSearch() {
+            return portSearch.isSelected();
+        }
+
+        public void setPortSearch(final boolean status) {
+            portSearch.setSelected(status);
+        }
+
+        public boolean getProjectSearch() {
+            return projectSearch.isSelected();
+        }
+
+        public void setProjectSearch(final boolean status) {
+            projectSearch.setSelected(status);
+        }
+
+        public boolean getHttpSearch() {
+            return httpSearch.isSelected();
+        }
+
+        public void setHttpSearch(final boolean status) {
+            httpSearch.setSelected(status);
         }
     }
 }

@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.core.notice.Notifier;
 import com.acme.json.helper.core.search.cache.SearchCache;
 import com.acme.json.helper.core.search.item.PortSearchItem;
+import com.acme.json.helper.core.settings.PluginSettings;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
@@ -187,7 +188,8 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
 
     @Override
     public boolean isShownInSeparateTab() {
-        return Boolean.TRUE;
+        // 设置面板关闭本搜索时不显示独立页签（Search Everywhere 每次打开时重新查询）
+        return PluginSettings.of().portSearchEnabled;
     }
 
     @Override
@@ -368,6 +370,8 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
     public void fetchWeightedElements(
             @NotNull final String pattern, @NotNull final ProgressIndicator indicator, @NotNull final Processor<? super FoundItemDescriptor<PortSearchItem>> consumer
     ) {
+        // 设置面板关闭本搜索时不产出结果
+        if (!PluginSettings.of().portSearchEnabled) return;
         final String lowerPattern = pattern.toLowerCase(Locale.ROOT);
         final boolean isEmptyPattern = StrUtil.isEmpty(pattern);
         final boolean isDigitPattern = DIGIT_PATTERN.matcher(pattern).matches();

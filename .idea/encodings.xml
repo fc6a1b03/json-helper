@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <!-- 项目统一 UTF-8；properties 资源文件按 UTF-8 显示（含中文语言包，JDK 9+ 运行时同样按 UTF-8 读取） -->
+  <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
+    <file url="PROJECT" charset="UTF-8" />
+  </component>
+</project>

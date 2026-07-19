@@ -83,8 +83,11 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
     private static final int COMMAND_TIMEOUT_MS = 3000;
     /**
      * 端口缓存刷新间隔（毫秒）
+     * <p>
+     * Search Everywhere 每次输入都会触发取数，10 秒 TTL 保证连续搜索仅一次系统命令调用；
+     * 杀进程后通过 {@link #invalidatePortCache()} 强制刷新，数据时效可控
      */
-    private static final long PORT_CACHE_REFRESH_INTERVAL = 3000;
+    private static final long PORT_CACHE_REFRESH_INTERVAL = 10000;
     /**
      * Windows netstat 输出解析模式（仅匹配 LISTENING 状态的监听端口，过滤外向连接噪声）
      */
@@ -96,6 +99,11 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
      */
     private static final Pattern UNIX_NETSTAT_PATTERN = Pattern.compile(
             "^\\S+\\s+\\S+\\s+\\S+\\s+\\S+:(\\d+).*\\s+(\\d+)/", Pattern.CASE_INSENSITIVE);
+    /**
+     * Linux ss 输出解析模式（iproute2 自带，现代发行版替代 netstat 的兜底命令）
+     */
+    private static final Pattern SS_LISTEN_PATTERN = Pattern.compile(
+            "^LISTEN\\s+\\S+\\s+\\S+\\s+\\S+:(\\d+)\\s+.*users:\\(\\(\"([^\"]*)\",pid=(\\d+)", Pattern.CASE_INSENSITIVE);
     /**
      * Git URL 前缀清理模式（git@ / http(s):// / ssh:// / git://）
      */
@@ -630,7 +638,33 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
             }
         } catch (final Exception ignored) {
         }
-        // 如果 lsof 没有结果，尝试 netstat
+        // 如果 lsof 没有结果，尝试 ss（现代 Linux 发行版 iproute2 自带，比 netstat 更常见）
+        if (processMap.isEmpty()) {
+            try {
+                final GeneralCommandLine ssCmd = new GeneralCommandLine("ss", "-tlnp");
+                final ProcessOutput ssOutput = ExecUtil.execAndGetOutput(ssCmd, COMMAND_TIMEOUT_MS);
+                if (ssOutput.getExitCode() == 0) {
+                    try (final BufferedReader reader = new BufferedReader(new StringReader(ssOutput.getStdout()))) {
+                        String line;
+                        while (Objects.nonNull(line = reader.readLine())) {
+                            final Matcher matcher = SS_LISTEN_PATTERN.matcher(line);
+                            if (matcher.find()) {
+                                final int port = Integer.parseInt(matcher.group(1));
+                                final String name = matcher.group(2);
+                                final long pid = Long.parseLong(matcher.group(3));
+                                if (onlyIdeaChild && !ideaChildPids.contains(pid)) {
+                                    continue;
+                                }
+                                final String key = "%d:%d".formatted(pid, port);
+                                processMap.put(key, new ProcessInfo(pid, port, name, "", ideaChildPids.contains(pid)));
+                            }
+                        }
+                    }
+                }
+            } catch (final Exception ignored) {
+            }
+        }
+        // 如果 ss 没有结果，尝试 netstat（老旧发行版兜底）
         if (processMap.isEmpty()) {
             try {
                 final GeneralCommandLine netstatCmd = new GeneralCommandLine("netstat", "-tlnp");

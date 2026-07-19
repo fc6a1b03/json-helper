@@ -5,6 +5,7 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.core.search.cache.SearchCache;
 import com.acme.json.helper.core.search.item.HttpRequestItem;
+import com.acme.json.helper.core.settings.PluginSettings;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
@@ -80,7 +81,8 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
 
     @Override
     public boolean isShownInSeparateTab() {
-        return Boolean.TRUE;
+        // 设置面板关闭本搜索时不显示独立页签（Search Everywhere 每次打开时重新查询）
+        return PluginSettings.of().httpSearchEnabled;
     }
 
     @Override
@@ -141,6 +143,8 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
      */
     @Override
     public void fetchWeightedElements(@NotNull final String pattern, @NotNull final ProgressIndicator indicator, @NotNull final Processor<? super FoundItemDescriptor<HttpRequestItem>> consumer) {
+        // 设置面板关闭本搜索时不产出结果
+        if (!PluginSettings.of().httpSearchEnabled) return;
         // 获取缓存中的HTTP请求文件
         final SequencedCollection<HttpRequestItem> src = this.cache().getHttp();
         if (CollUtil.isEmpty(src)) return;

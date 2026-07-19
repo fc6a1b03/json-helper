@@ -14,6 +14,7 @@ import com.acme.json.helper.ui.panel.MainPanel;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -60,6 +61,14 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
      */
     public static final String PROJECT_NAME = "Json Helper";
     /**
+     * 分隔条尺寸（像素）
+     */
+    private static final int DIVIDER_SIZE = 8;
+    /**
+     * 分割窗格上部组件的缩放权重（编辑器区域优先拉伸）
+     */
+    private static final double EDITOR_RESIZE_WEIGHT = 1.0d;
+    /**
      * 标签计数器
      */
     private static final AtomicInteger tabCounter = new AtomicInteger(0);
@@ -76,15 +85,17 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static void globalWindowMonitor(@NotNull final Project project) {
         // 清理幂等
         EditorState.SAVED_MARK.remove(project.getLocationHash());
-        // 激活监听
+        // 激活监听（ProjectManager.TOPIC 为应用级广播，会收到所有项目的关闭事件，需过滤本项目）
         project.getMessageBus().connect(ProjectDisposableService.getInstance(project)).subscribe(ProjectManager.TOPIC, new ProjectManagerListener() {
             /**
-             * 项目关闭时进行历史存储
+             * 项目关闭时进行历史存储（仅响应本项目事件）
              * @param p 项目对象（非工具窗口项目对象）
              */
             @Override
             public void projectClosingBeforeSave(@NotNull final Project p) {
-                editorStore(project);
+                if (p == project) {
+                    editorStore(project);
+                }
             }
         });
     }
@@ -190,6 +201,11 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
         final DefaultActionGroup actionGroup = new DefaultActionGroup();
         actionGroup.add(new AnAction(BUNDLE.getString("json.new.tab"), BUNDLE.getString("json.new.tab.desc"), AllIcons.General.Add) {
             @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
+            @Override
             public void actionPerformed(@NotNull final AnActionEvent e) {
                 // 检查项目和窗口是否有效
                 if (project.isDisposed() || toolWindow.isDisposed()) return;
@@ -255,25 +271,22 @@ public class MainToolWindowFactory implements ToolWindowFactory, DumbAware {
                 return new BasicSplitPaneDivider(this) {
                     @Override
                     public void paint(final Graphics g) {
-                        final int height = this.getHeight();
                         if (g instanceof final Graphics2D g2d) {
-                            final Color color = UIManager.getColor("Component.borderColor");
-                            g2d.setColor(color);
-                            g2d.fillRect(0, 0, this.getWidth(), height);
-                            g2d.setPaint(new GradientPaint(0, 0, color, 0, height, color));
+                            g2d.setColor(UIManager.getColor("Component.borderColor"));
+                            g2d.fillRect(0, 0, this.getWidth(), this.getHeight());
                         }
                     }
 
                     @Override
                     public Dimension getPreferredSize() {
-                        return new Dimension(8, 8);
+                        return new Dimension(DIVIDER_SIZE, DIVIDER_SIZE);
                     }
                 };
             }
         });
         // 初始比例
-        editorTreeSplit.setDividerSize(8);
-        editorTreeSplit.setResizeWeight(1);
+        editorTreeSplit.setDividerSize(DIVIDER_SIZE);
+        editorTreeSplit.setResizeWeight(EDITOR_RESIZE_WEIGHT);
         // 拖动时实时更新
         editorTreeSplit.setContinuousLayout(Boolean.TRUE);
         editorTreeSplit.setBorder(BorderFactory.createEmptyBorder());

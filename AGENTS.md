@@ -1,19 +1,22 @@
-# Json Helper - AI Agent Guide
+# Json Helper - AI Agent 指南
 
-## Project Overview
+本文件面向 AI 编码代理，假设读者对本项目一无所知。所有内容均已与实际代码核对。
 
-**Json Helper** 是一个面向 IntelliJ IDEA 的 JSON 效率插件，提供强大的 JSON 数据操作和转换能力。
+## 项目概览
+
+**Json Helper** 是一个面向 IntelliJ IDEA 的 JSON 效率插件，提供 JSON 数据编辑、查询、生成与多格式互转能力。
 
 **项目元数据：**
 
-| 属性          | 值                                       |
-|-------------|-----------------------------------------|
-| Group ID    | `com.acme`                              |
-| Artifact ID | `json-helper`                           |
-| 插件 ID       | `com.acme.json.helper`                  |
-| 作者          | 拒绝者                                     |
-| 许可证         | MIT                                     |
-| GitHub      | https://github.com/fc6a1b03/json-helper |
+| 属性        | 值                                              |
+|-------------|-------------------------------------------------|
+| Group ID    | `com.acme`                                      |
+| Artifact ID | `json-helper`                                   |
+| 插件 ID     | `com.acme.json.helper`                          |
+| 作者        | 拒绝者                                          |
+| 当前版本    | `0.14.5`（定义在 `settings.gradle` 的版本表中） |
+| 许可证      | MIT                                             |
+| GitHub      | https://github.com/fc6a1b03/json-helper         |
 
 **核心功能：**
 
@@ -22,32 +25,36 @@
 - 从 Java 类字段复制 JSON 结构
 - JsonPath / JMESPath 查询与树形浏览
 - URL、JWT、本地文件路径、Web 路径自动解析为 JSON
-- JSON 与 XML / YAML / TOML / Properties / CSV / XLSX / Base64 / URL Params 互转
-- Search Everywhere 集成：项目搜索与 HTTP 请求文件搜索
+- JSON 与 XML / YAML / TOML / Properties / CSV / XLSX / TOON / Base64 / URL Params 互转
+- Search Everywhere 集成：项目搜索、HTTP 请求文件搜索、端口搜索
 - 代码截图复制
 
-## Technology Stack
+## 技术栈
 
-- **语言**: Java 25
-- **构建工具**: Gradle 9.4.1 + IntelliJ Platform Gradle Plugin 2.13.1
-- **目标平台**: IntelliJ IDEA 2026.1 (Build 261+)
-- **UI 框架**: IntelliJ Platform UI (Swing-based)
+- **语言**: Java 25（toolchain 与 `options.release` 均取自版本表 `jvm`）
+- **构建工具**: Gradle 9.6.1 + IntelliJ Platform Gradle Plugin 2.18.1
+- **目标平台**: IntelliJ IDEA 2026.2（sinceBuild = 262，由 IGP 2.14+ 按目标平台 major build 默认生成，无需显式声明）
+- **UI 框架**: IntelliJ Platform UI（Swing-based）
+- **字符编码**: 全项目 UTF-8
 
 ### 依赖版本
 
-| 依赖                   | 版本     | 用途           |
-|----------------------|--------|--------------|
-| IntelliJ Platform    | 2026.1 | IDE 集成       |
-| Hutool               | 5.8.44 | 工具库          |
-| Jackson              | 3.1.0  | JSON/数据格式处理  |
-| Fastjson2            | 2.0.61 | JSON 解析      |
-| Auth0 JWT            | 4.5.1  | JWT Token 解析 |
-| Apache POI           | 5.5.1  | Excel 文件支持   |
-| json-repair          | 0.4.0  | 畸形 JSON 修复   |
-| JToon                | 1.0.9  | TOON 格式处理    |
-| Apache Commons Lang3 | 3.20.0 | 通用工具         |
+版本统一在 `settings.gradle` 的 `gradle.ext.versions` 表中维护：
 
-### 捆绑插件依赖
+| 依赖                 | 版本   | 用途                     |
+|----------------------|--------|--------------------------|
+| IntelliJ Platform    | 2026.2 | IDE 集成                 |
+| Hutool               | 5.8.44 | 工具库（core + http）    |
+| Jackson              | 3.1.0  | JSON/数据格式处理（BOM） |
+| Fastjson2            | 2.0.61 | JSON 解析与校验          |
+| Auth0 JWT            | 4.5.1  | JWT Token 解析           |
+| Apache POI           | 5.5.1  | Excel 文件支持           |
+| json-repair          | 0.4.0  | 畸形 JSON 修复           |
+| JToon                | 1.0.9  | TOON 格式处理            |
+| JUnit                | 6.1.2  | 单元测试（BOM，test 域） |
+| Apache Commons Lang3 | 3.20.0 | 通用工具（强制统一版本） |
+
+### 捆绑插件依赖（`build.gradle` 与 `plugin.xml` 中声明）
 
 - `org.toml.lang` - TOML 语言支持
 - `com.intellij.java` - Java 语言支持
@@ -56,159 +63,157 @@
 - `com.intellij.modules.json` - JSON 模块
 - `org.jetbrains.plugins.yaml` - YAML 支持
 
-## Project Structure
+## 项目结构
 
 ```
 src/main/
 ├── java/com/acme/json/helper/
 │   ├── common/                    # 通用工具类和枚举
 │   │   ├── enums/
-│   │   │   ├── AnyFile.java       # 支持的文件类型枚举
-│   │   │   └── SupportedLanguages.java
-│   │   ├── ActionEventCheck.java  # 动作事件检查（sealed interface）
+│   │   │   ├── AnyFile.java       # 支持的文件类型枚举 (JSON, XML, YAML, TOML, TOON, etc.)
+│   │   │   └── SupportedLanguages.java  # 支持的语言枚举
+│   │   ├── ActionEventCheck.java  # 动作事件检查（sealed interface Check）
 │   │   ├── Clipboard.java         # 剪贴板操作
-│   │   ├── CollectionTypeHandler.java
-│   │   ├── TemporalTypeHandler.java
+│   │   ├── CollectionTypeHandler.java   # 集合类型处理
+│   │   ├── TemporalTypeHandler.java     # 时间类型处理
 │   │   └── UastSupported.java     # UAST (Universal AST) 支持
 │   ├── core/                      # 核心功能模块
 │   │   ├── editor/                # 编辑器集成
-│   │   │   ├── FileDropHandler.java
-│   │   │   ├── JsonEditorPushProvider.java
-│   │   │   └── record/EditorState.java
+│   │   │   ├── FileDropHandler.java         # 文件拖放处理
+│   │   │   ├── JsonEditorPushProvider.java  # 编辑器推送提供者
+│   │   │   └── record/EditorState.java      # 编辑器状态记录 (Base64 编码/解码)
 │   │   ├── json/                  # JSON 处理
-│   │   │   ├── JsonCompressor.java
-│   │   │   ├── JsonEscaper.java
-│   │   │   ├── JsonFormatter.java
-│   │   │   ├── JsonOperation.java      # Sealed interface
-│   │   │   ├── JsonRepairer.java
-│   │   │   ├── JsonSearchEngine.java
-│   │   │   └── JsonUnEscaper.java
+│   │   │   ├── JsonOperation.java       # JSON 操作接口 (sealed interface)
+│   │   │   ├── JsonCompressor.java      # JSON 压缩
+│   │   │   ├── JsonEscaper.java         # JSON 转义
+│   │   │   ├── JsonUnEscaper.java       # JSON 反转义
+│   │   │   ├── JsonFormatter.java       # JSON 格式化
+│   │   │   ├── JsonRepairer.java        # JSON 修复
+│   │   │   └── JsonSearchEngine.java    # JSON 搜索引擎 (JsonPath/JMESPath)
 │   │   ├── notice/
-│   │   │   └── Notifier.java      # 通知系统
+│   │   │   └── Notifier.java      # 线程安全通知系统
 │   │   ├── parser/                # 解析逻辑
-│   │   │   ├── AnyParser.java     # 自动格式检测
-│   │   │   ├── ClassParser.java   # Java 类解析
-│   │   │   ├── JsonNodeParser.java
-│   │   │   ├── JsonParser.java    # JSON 转换分发
-│   │   │   ├── JwtParser.java
-│   │   │   ├── PathParser.java
-│   │   │   ├── TypeResolver.java
-│   │   │   └── converter/         # 格式转换器
-│   │   │       ├── Base64Converter.java
-│   │   │       ├── ClassConverter.java
-│   │   │       ├── CsvConverter.java
-│   │   │       ├── DataFormatConverter.java
-│   │   │       ├── JavaStructure.java
-│   │   │       ├── PropertiesConverter.java
-│   │   │       ├── RecordConverter.java
-│   │   │       ├── TableStructure.java
-│   │   │       ├── TomlConverter.java
-│   │   │       ├── ToonConverter.java
-│   │   │       ├── UrlParamsConverter.java
-│   │   │       ├── XlsxConverter.java
-│   │   │       ├── XmlConverter.java
-│   │   │       └── YamlConverter.java
+│   │   │   ├── AnyParser.java     # 自动格式检测 (TOML/YAML/Properties/CSV)
+│   │   │   ├── ClassParser.java   # Java 类解析 (PSI-based)
+│   │   │   ├── JsonNodeParser.java      # JSON 节点解析
+│   │   │   ├── JsonParser.java    # JSON 转换分发器（EnumMap 注册表）
+│   │   │   ├── JwtParser.java     # JWT Token 解析
+│   │   │   ├── PathParser.java    # 本地/Web 路径解析
+│   │   │   ├── TypeResolver.java  # Java 类型解析
+│   │   │   └── converter/         # 格式转换器（实现 DataFormatConverter）
+│   │   │       ├── DataFormatConverter.java  # 转换器接口
+│   │   │       ├── XmlConverter.java / YamlConverter.java / TomlConverter.java
+│   │   │       ├── CsvConverter.java / XlsxConverter.java / ToonConverter.java
+│   │   │       ├── PropertiesConverter.java / Base64Converter.java / UrlParamsConverter.java
+│   │   │       ├── ClassConverter.java / RecordConverter.java
+│   │   │       └── JavaStructure.java / TableStructure.java  # 结构模型
 │   │   ├── screenshot/
-│   │   │   └── CodeScreenshotSupplier.java
+│   │   │   └── CodeScreenshotSupplier.java  # 代码截图
 │   │   ├── search/                # 搜索功能
-│   │   │   ├── cache/SearchCache.java
-│   │   │   ├── HttpRequestSearch.java
-│   │   │   ├── ProjectSearch.java
-│   │   │   └── item/
+│   │   │   ├── cache/SearchCache.java     # 搜索缓存
+│   │   │   ├── HttpRequestSearch.java     # HTTP 请求文件搜索
+│   │   │   ├── PortSearch.java            # 端口搜索
+│   │   │   ├── ProjectSearch.java         # 项目搜索
+│   │   │   └── item/                      # 搜索项类型
 │   │   │       ├── HttpRequestItem.java
+│   │   │       ├── PortSearchItem.java
 │   │   │       └── ProjectNavigationItem.java
 │   │   └── settings/              # 插件设置
-│   │       ├── PluginSettings.java
-│   │       └── PluginSettingsState.java
+│   │       ├── PluginSettings.java            # 设置页面 (applicationConfigurable)
+│   │       ├── PluginSettingsState.java       # 持久化状态 (applicationService)
+│   │       └── ProjectDisposableService.java  # 项目级 Disposable
 │   └── ui/                        # 用户界面
-│       ├── MainToolWindowFactory.java
-│       ├── action/                # 动作
-│       │   ├── json/
-│       │   │   ├── CopyJsonAction.java
-│       │   │   ├── CreateClassFromJsonAction.java
-│       │   │   └── JsonHelperAction.java
-│       │   ├── screenshot/
-│       │   │   └── CodeScreenshot.java
-│       │   └── search/
-│       │       ├── HttpRequestSearchAction.java
-│       │       └── ProjectSearchAction.java
-│       ├── dialog/                # 对话框
-│       │   ├── ConvertAnyDialog.java
-│       │   └── CreateClassDialog.java
-│       ├── editor/                # 编辑器组件
-│       │   ├── CustomizeEditorFactory.java
-│       │   └── Editor.java        # Sealed interface
-│       ├── panel/                 # UI 面板
-│       │   ├── JsonTreePanel.java
-│       │   └── MainPanel.java
-│       └── search/                # 搜索 UI
-│           ├── HttpRequestSearchFactory.java
-│           └── ProjectSearchFactory.java
+│       ├── MainToolWindowFactory.java       # 工具窗口工厂
+│       ├── action/
+│       │   ├── json/      # CopyJsonAction / JsonHelperAction / CreateClassFromJsonAction
+│       │   ├── screenshot/ # CodeScreenshot（代码截图动作）
+│       │   └── search/    # ProjectSearchAction / HttpRequestSearchAction
+│       ├── dialog/        # ConvertAnyDialog / CreateClassDialog
+│       ├── editor/        # Editor.java (sealed interface) / CustomizeEditorFactory.java
+│       ├── panel/         # MainPanel（主面板）/ JsonTreePanel（JSON 树形面板）
+│       └── search/        # ProjectSearchFactory / HttpRequestSearchFactory / PortSearchFactory
 └── resources/
     ├── META-INF/
-    │   ├── plugin.xml             # 插件配置
+    │   ├── plugin.xml             # 插件配置（actions/extensions/依赖声明）
     │   └── pluginIcon.svg         # 插件图标
     ├── icons/
     │   └── pluginIcon.svg
-    └── messages/                  # 国际化
-        ├── JsonHelperBundle.properties      # 英文
+    └── messages/                  # 国际化资源
+        ├── JsonHelperBundle.properties       # 英文（默认）
         └── JsonHelperBundle_zh_CN.properties # 中文
 ```
 
-## Build Commands
+**注意**：`src/test` 为 JUnit 6 单元测试目录（覆盖纯逻辑单元：JSON 操作、格式转换器、检测引擎、编解码），`./gradlew test` 运行。
 
-### 开发命令
+## 构建命令
+
+项目已生成 Gradle Wrapper（`gradlew` / `gradlew.bat`，固定 9.6.1），优先使用 `./gradlew`；也可使用系统 `gradle` 命令：
 
 ```bash
 # 打印版本信息
-gradle printAllVersions
-gradle printVersion
-gradle printJavaVersion
-gradle printGradleVersion
-
-# 运行 IDE 进行测试
-gradle runIde
+./gradlew printAllVersions      # 项目/平台/Java/Gradle 版本一览
+./gradlew printVersion
+./gradlew printJavaVersion
+./gradlew printGradleVersion
+./gradlew printIdeaVersion
 
 # 编译
-gradle compileJava
+./gradlew compileJava
 
-# 构建插件
-gradle buildPlugin
+# 运行带插件的沙箱 IDE（Darcula 主题，开发者模式）
+./gradlew runIde
 
-# 完整构建并校验
-gradle clean buildPlugin verifyPluginProjectConfiguration verifyPluginStructure
+# 构建插件 ZIP
+./gradlew buildPlugin
+
+# 完整构建并校验（CI 同款）
+./gradlew clean buildPlugin verifyPluginProjectConfiguration verifyPluginStructure
 ```
 
-### 输出产物
+沙箱清理：使用 IGP 内置 `cleanSandbox` 任务（`prepareSandbox` 前自动执行，清理 `.intellijPlatform/sandbox`）。
 
-构建完成后，插件 ZIP 文件位于：
+### 输出产物
 
 ```
 build/distributions/json-helper-x.x.x.zip
 ```
 
-安装方式：在 IntelliJ IDEA 中 `Settings` -> `Plugins` -> 齿轮按钮 -> `Install Plugin from Disk...`
+安装方式：IntelliJ IDEA 中 `Settings` -> `Plugins` -> 齿轮按钮 -> `Install Plugin from Disk...`
 
-## Code Style Guidelines
+### `runIde` JVM 参数（`build.gradle` 中配置）
+
+```
+-Xms1g -Xmx4g -XX:+UseZGC
+-Dfile.encoding=UTF-8 -Duser.timezone=GMT+8 -Didea.wsl.disable=true
+--add-exports=jdk.compiler/com.sun.tools.javac.{api,tree,util,parser}=ALL-UNNAMED
+```
+
+### Gradle 优化配置（`gradle.properties`）
+
+仅保留非默认值且可移植的项：`caching`、`parallel`、`useCacheRedirector=false`；JVM `-Xms1g -Xmx5g`（不得再配
+`-Djava.security.manager=allow`，JDK 24+ 会直接拒绝启动）。`daemon`、`vfs.watch`、`logging.level` 等官方默认值不再显式声明。
+本机相关配置（`org.gradle.java.home`、`installations.paths`、代理）一律放用户级 `GRADLE_USER_HOME/gradle.properties`，不入库。
+
+## 代码风格规范
 
 ### 语言和注释
 
 - **主要文档语言**: 中文 (zh-CN)
-- **代码注释**: 中文
-- **变量/方法名**: 英文 (camelCase)
-- **类名**: 英文 (PascalCase)
-- **资源文件**: 双语支持（英文 + 中文）
+- **代码注释 / Javadoc**: 中文
+- **变量/方法名**: 英文 (camelCase)； **类名**: 英文 (PascalCase)
+- **资源文件**: 双语（英文默认 + 中文）
 
-### Java 编码规范
+### Java 编码约定（源码中实际使用的模式）
 
-1. **使用 Sealed Interfaces**：项目使用 Java 25 sealed interfaces
+1. **Sealed Interfaces**：核心抽象用 Java sealed interface 约束实现集
    ```java
-   public sealed interface JsonOperation permits 
-       JsonCompressor, JsonEscaper, JsonFormatter, 
+   public sealed interface JsonOperation permits
+       JsonCompressor, JsonEscaper, JsonFormatter,
        JsonSearchEngine, JsonUnEscaper, JsonRepairer { }
    ```
+   新增实现类时必须同步修改 `permits` 子句。
 
-2. **模式匹配 switch**：使用现代模式匹配语法
+2. **模式匹配 switch**：
    ```java
    switch (someValue) {
        case final ActionEventCheck.Check.Failed failed -> failed.action().run();
@@ -216,14 +221,15 @@ build/distributions/json-helper-x.x.x.zip
    }
    ```
 
-3. **使用 `var` 进行局部变量类型推断**
+3. **局部变量使用 `var`**； **方法参数标记 `final`**。
 
-4. **使用 `Opt` from Hutool** 进行 null-safe 操作
-   ```java
-   Opt.ofNullable(value).map(...).ifPresent(...);
-   ```
+4. **使用 Hutool 的 `Opt`** 做 null-safe 链式操作。
 
-5. **Javadoc 格式**：包含作者和日期
+5. **使用 `Boolean.TRUE` / `Boolean.FALSE`** 替代原始布尔字面量。
+
+6. **Record 作为 DTO**，如 `EditorState(Integer editorId, String content)`。
+
+7. **Javadoc 格式**（带作者与日期）：
    ```java
    /**
     * 功能描述
@@ -232,243 +238,155 @@ build/distributions/json-helper-x.x.x.zip
     */
    ```
 
-6. **Final 参数**：适当情况下方法参数标记为 `final`
-
-7. **使用 `Boolean.TRUE`/`Boolean.FALSE`** 替代原始 `true`/`false`
-
-8. **Record 类型**：广泛使用 record 作为数据传输对象
-   ```java
-   public record EditorState(Integer editorId, String content) { }
-   ```
-
 ### 性能要求
 
-**所有代码必须满足高性能和低损耗要求：**
-
-1. **避免内存泄漏**
-    - 及时释放资源（流、连接、临时文件）
-    - 使用 `try-with-resources`
-    - 避免在静态集合中持有大对象引用
-
-2. **大数据量处理**
-    - 使用流式处理（Streaming）
-    - 避免将整个文件加载到内存
-    - 对超过 1MB 的 JSON 使用增量解析
-
-3. **缓存策略**
-    - 使用 `SearchCache` 等现有缓存机制
-    - 使用 project service 托管缓存生命周期
-    - 设置合理的过期时间和大小限制
-
-4. **异步执行**
-    - 耗时操作在后台线程执行
-    - 使用 `Task.Backgroundable` 显示进度
-    - 避免阻塞 UI 线程
-
-5. **对象复用**
-    - 优先使用 `EnumMap` 而非线性查找
-    - 避免在循环中创建临时对象
-    - 使用 `StringBuilder` 进行字符串拼接
-
-6. **算法优化**
-    - 选择最优时间复杂度算法
-    - 避免重复计算
-    - 使用合适的数据结构
-
-7. **延迟加载**
-    - 懒加载（Lazy Loading）重型组件
-    - 分页展示大量数据
+1. **避免内存泄漏**：try-with-resources 释放流/连接；不在静态集合中持有大对象。
+2. **大数据量处理**：流式/增量解析，避免整文件载入内存（超过 1MB 的 JSON 尤其注意）。
+3. **缓存策略**：复用 `SearchCache` 等现有机制；由 project service 托管生命周期；设置合理过期时间与大小限制。
+4. **异步执行**：耗时操作用 `Task.Backgroundable` 放后台线程并显示进度，不阻塞 UI 线程。
+5. **对象复用**：优先 `EnumMap` 而非线性查找（见 `JsonParser`）；循环内不创建临时对象；字符串拼接用 `StringBuilder`。
+6. **延迟加载**：重型组件懒加载，大量数据分页展示。
 
 ### IntelliJ Platform 编码模式
 
-1. **Actions**: 继承 `AnAction`，重写 `actionPerformed` 和 `update`
-   ```java
-   public class CopyJsonAction extends AnAction {
-       @Override
-       public @NotNull ActionUpdateThread getActionUpdateThread() {
-           return ActionUpdateThread.BGT;
-       }
-       
-       @Override
-       public void update(@NotNull final AnActionEvent e) { }
-       
-       @Override
-       public void actionPerformed(@NotNull final AnActionEvent e) { }
-   }
-   ```
+1. **Actions**：继承 `AnAction`，重写 `actionPerformed` 与 `update`，并显式声明 `getActionUpdateThread()`（通常返回
+   `ActionUpdateThread.BGT`）。
+2. **Tool Windows**：实现 `ToolWindowFactory`（见 `MainToolWindowFactory`）。
+3. **Settings**：`ApplicationConfigurable` + `ApplicationService`（见 `PluginSettings` / `PluginSettingsState`）。
+4. **Notifications**：统一走 `Notifier` 工具类（线程安全，自动切换 EDT，静默处理异常）。
+5. **线程安全**：UI 更新用 `ApplicationManager.getApplication().invokeLater()` 切到 EDT；PSI 读取使用官方读锁 API。
 
-2. **Tool Windows**: 实现 `ToolWindowFactory`
+## 国际化 (i18n)
 
-3. **Settings**: 使用 `ApplicationConfigurable` 和 `ApplicationService`
+所有用户可见字符串必须外部化，禁止硬编码：
 
-4. **Notifications**: 使用 `Notifier` 工具类
-
-5. **线程安全**
-    - UI 更新必须在 EDT 执行：使用 `ApplicationManager.getApplication().invokeLater()`
-    - 后台任务使用 `Task.Backgroundable`
-    - PSI 读取使用官方读锁 API
-
-## Internationalization (i18n)
-
-所有用户可见字符串必须外部化到资源文件：
-
-- **基础资源**: `messages.JsonHelperBundle.properties` (英文)
-- **中文资源**: `messages.JsonHelperBundle_zh_CN.properties`
+- 默认（英文）: `src/main/resources/messages/JsonHelperBundle.properties`
+- 中文: `src/main/resources/messages/JsonHelperBundle_zh_CN.properties`
 
 访问模式：
 
 ```java
 private static final ResourceBundle BUNDLE =
         ResourceBundle.getBundle("messages.JsonHelperBundle");
-
 String text = BUNDLE.getString("key.name");
 ```
 
-## Testing
+新增字符串时两个文件必须同步添加。
 
-**注意**: 本项目目前没有自动化测试。测试通过以下方式手动完成：
+## 测试策略
 
-1. 运行 `gradle runIde` 启动带插件的 IDE 实例
-2. 测试右键菜单中的所有动作
-3. 验证工具窗口功能
-4. 检查各种格式转换
+纯逻辑单元（JSON 操作、格式转换器、检测引擎、编解码）由 `src/test` 下的 **JUnit 6** 测试覆盖，`./gradlew test` 运行；依赖 IDE 平台运行环境的部分（PSI、编辑器、Search Everywhere）不做单元测试，验证方式为手动测试：
 
-## CI/CD
+1. `./gradlew runIde` 启动带插件的沙箱 IDE
+2. 测试编辑器右键菜单中的所有动作（复制 JSON、推送面板、代码截图等）
+3. 验证 "Json Helper" 工具窗口功能（编辑、格式化、查询、树形浏览）
+4. 检查各种格式转换（XML/YAML/TOML/CSV/XLSX/TOON 等）
+5. 提交前至少跑通 `./gradlew clean buildPlugin verifyPluginProjectConfiguration verifyPluginStructure`
 
-GitHub Actions 工作流 (`.github/workflows/build_jar.yml`)：
+## 部署 / CI-CD
+
+GitHub Actions 工作流 `.github/workflows/build_jar.yml`：
 
 - **触发方式**: 手动 (`workflow_dispatch`)
-- **运行环境**: `ubuntu-latest`
-- **Java 版本**: 25
-- **Gradle 版本**: 9.4.1
-- **流程**:
-    1. 从 settings.gradle 提取版本号
-    2. 设置 JDK 25
-    3. 设置 Gradle 9.4.1
-    4. 缓存 IntelliJ Platform 构件
-    5. 执行构建和校验
-    6. 上传 ZIP 工件
-    7. 创建 GitHub Release
+- **运行环境**: `ubuntu-latest`，Java 25，Gradle 9.6.1
+- **流程**: 从 `settings.gradle` 提取版本号 → 缓存 IntelliJ Platform 构件 → `buildPlugin` +
+  `verifyPluginProjectConfiguration` + `verifyPluginStructure` → 上传 ZIP 工件 → 创建 GitHub Release
 
-## Plugin Configuration
+发布新版本时：修改 `settings.gradle` 中 `gradle.ext.versions.ver`，并同步更新 `build.gradle` 中的 `changeNotes`。
 
-`META-INF/plugin.xml` 关键配置：
+## 插件配置（`META-INF/plugin.xml` 关键点）
 
-- **Actions**: 右键菜单项、键盘快捷键
-- **Tool Window**: "Json Helper" 窗口锚定在右侧
-- **Settings**: Tools 菜单下的插件配置
-- **Search Contributors**: Search Everywhere 集成
+- **Actions**（均注册在编辑器右键/相关菜单组）：
+    - `CodeScreenshot` - 代码截图（快捷键 Shift+Ctrl+S，`EditorPopupMenu`）
+    - `CopyJsonAction` - 复制 JSON（`EditorPopupMenu`）
+    - `JsonHelperAction` - 推送 JSON 到工具窗口（`EditorPopupMenu` + `ConsoleEditorPopupMenu`）
+    - `CreateClassFromJsonAction` - 从 JSON 创建类（`NewGroup` + `ProjectViewPopupMenu`）
+    - `ProjectSearchAction` / `HttpRequestSearch` - 搜索动作（`GoToTargetEx`）
+- **Tool Window**: id 为 "Json Helper"，锚定右侧 (`anchor="right"`, `secondary="true"`)
+- **Settings**: Tools 菜单下的 `applicationConfigurable`
+- **Search Everywhere Contributors**: `ProjectSearchFactory`、`HttpRequestSearchFactory`、`PortSearchFactory`
+- **通知组**: `JSONGenerator.NotificationGroup`（BALLOON，走 i18n bundle）
 
-## Architecture Patterns
+## 架构模式
 
 ### 转换器注册表模式
 
-使用 `EnumMap` 实现高效的格式转换分发：
+`JsonParser` 用 `EnumMap` 做格式转换分发，启动时一次性注册并 `Map.copyOf` 固化：
 
 ```java
-public class JsonParser {
-    private static final Map<AnyFile, DataFormatConverter> CONVERTERS = createConverters();
+private static Map<AnyFile, DataFormatConverter> createConverters() {
+    final EnumMap<AnyFile, DataFormatConverter> converters = new EnumMap<>(AnyFile.class);
+    register(converters, AnyFile.XML, new XmlConverter());
+    // ... 共 11 个转换器
+    return Map.copyOf(converters);
+}
+```
 
-    private static Map<AnyFile, DataFormatConverter> createConverters() {
-        final EnumMap<AnyFile, DataFormatConverter> converters = new EnumMap<>(AnyFile.class);
-        register(converters, AnyFile.XML, new XmlConverter());
-        // ... 其他转换器
-        return Map.copyOf(converters);
+未注册的格式抛出 `IllegalArgumentException("不支持的格式")`。
+
+### 动作事件检查
+
+`ActionEventCheck` 用 sealed interface 做类型安全的前置检查：
+
+```java
+public sealed interface Check permits Check.Failed, Check.Success {
+    record Success() implements Check {
+    }
+
+    record Failed(Runnable action) implements Check {
     }
 }
 ```
 
-### 状态管理
+### 编辑器状态管理
 
-编辑器状态使用 record 存储，支持序列化/反序列化：
+`EditorState` record 支持 List 级别的 Base64 编码/解码，用于编辑器内容持久化。
 
-```java
-public record EditorState(Integer editorId, String content) {
-    // Base64 编码/解码
-    public static String encode(List<EditorState> states) {
-    }
-
-    public static List<EditorState> decode(String data) {
-    }
-}
-```
-
-### 通知系统
-
-`Notifier` 类提供线程安全的通知：
-
-- 自动检测当前线程环境
-- 智能选择执行方式（直接执行或切换到 EDT）
-- 静默处理异常避免影响主流程
-
-## Development Environment Setup
-
-### 前置要求
-
-- JDK 25 (Temurin 推荐)
-- Gradle 9.4.1
-- IntelliJ IDEA 2026.1+
-
-### 推荐 JVM 参数 (runIde)
-
-```
--Xms1g
--Xmx4g
--XX:+UseZGC
--Dfile.encoding=UTF-8
--Duser.timezone=GMT+8
-```
-
-### Gradle 优化配置
-
-```properties
-org.gradle.daemon=true
-org.gradle.caching=true
-org.gradle.parallel=true
-org.gradle.vfs.watch=true
-org.gradle.incremental=true
-org.gradle.workers.max=20
-```
-
-## Common Tasks
+## 常见任务指南
 
 ### 添加新的 JSON 操作
 
-1. 创建类实现 `JsonOperation` (sealed interface)
-2. 在 `JsonOperation.java` 的 `permits` 子句中添加
-3. 在 `MainPanel.java` 或适当的面板/动作类中注册 UI
-4. 在两个属性文件中添加 i18n 键
+1. 在 `core/json/` 创建类实现 `JsonOperation`
+2. 在 `JsonOperation.java` 的 `permits` 子句中登记
+3. 在 `MainPanel.java` 或相应面板/动作类中接入 UI
+4. 两个 properties 文件同步添加 i18n 键
 
 ### 添加新的格式转换器
 
-1. 在 `core/parser/converter/` 创建转换器类
-2. 实现 `DataFormatConverter` 接口
-3. 在 `JsonParser.java` 的 `createConverters()` 中注册
-4. 在 `AnyFile.java` 枚举中添加新文件类型（如果需要）
-5. 更新 `SupportedLanguages.java`（如果需要）
+1. 在 `core/parser/converter/` 创建转换器类，实现 `DataFormatConverter`
+2. 在 `JsonParser.java` 的 `createConverters()` 中注册
+3. 如需新文件类型，在 `AnyFile.java` 枚举中添加
+4. 如需新语言支持，更新 `SupportedLanguages.java`
 
 ### 添加新的 Action
 
-1. 在 `ui/action/` 创建动作类
-2. 继承 `AnAction`
-3. 在 `META-INF/plugin.xml` 中注册 `<action>` 元素
-4. 在属性文件中添加 i18n 字符串
+1. 在 `ui/action/` 下对应子包创建动作类，继承 `AnAction`
+2. 重写 `getActionUpdateThread()` / `update()` / `actionPerformed()`
+3. 在 `META-INF/plugin.xml` 注册 `<action>` 并指定菜单组
+4. 添加 i18n 字符串
 
-## Security Considerations
+### 添加新的 Search Everywhere 贡献者
 
-1. **本地数据处理**: 所有 JSON、Java 代码处理在本地完成，无外部数据传输
-2. **HTTP 请求搜索**: 仅用于本地项目分析
-3. **剪贴板操作**: 需要用户显式触发
-4. **文件操作**: 处理前验证 JSON 格式
+1. 创建工厂类实现 `SearchEverywhereContributorFactory`
+2. 创建搜索类继承 `SearchEverywhereContributor`
+3. 在 `plugin.xml` 注册 `<searchEverywhereContributor>` 扩展
 
-## Related Documentation
+## 安全注意事项
 
+1. **本地数据处理**: 所有 JSON、Java 代码处理均在本地完成，无外部数据传输
+2. **HTTP 请求搜索**: 仅扫描本地项目文件，不发起真实请求
+3. **剪贴板操作**: 需用户显式触发
+4. **文件操作**: 处理前校验 JSON 格式；畸形输入走 `JsonRepairer` 修复路径
+
+## 相关文档
+
+- [README.md](README.md) - 面向用户的项目说明（含预览图）
+- [doc/2026.1-java25-audit.md](doc/2026.1-java25-audit.md) - 2026.1 / Java 25 基线审计
 - [IntelliJ Platform Gradle Plugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html)
 - [IntelliJ Platform SDK](https://plugins.jetbrains.com/docs/intellij/welcome.html)
 - [API Changes List 2026](https://plugins.jetbrains.com/docs/intellij/api-changes-list-2026.html)
 - [Threading Model](https://plugins.jetbrains.com/docs/intellij/threading-model.html)
-- [Audit Document](doc/2026.1-java25-audit.md)
 
-## License
+## 许可证
 
 MIT License - 详见 `LICENSE` 文件

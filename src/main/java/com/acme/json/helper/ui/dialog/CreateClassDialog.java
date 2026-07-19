@@ -5,6 +5,7 @@ import com.acme.json.helper.common.enums.AnyFile;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.acme.json.helper.core.notice.Notifier;
 import com.acme.json.helper.core.parser.JsonParser;
+import com.acme.json.helper.core.parser.converter.JavaStructure;
 import com.alibaba.fastjson2.JSON;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -58,16 +59,32 @@ public class CreateClassDialog extends DialogWrapper {
     private final Timer jsonFormatTimer;
     private final AtomicLong formatSequence = new AtomicLong();
     private final AtomicBoolean applyingJsonFormat = new AtomicBoolean(Boolean.FALSE);
+    /**
+     * JSON 自动格式化防抖延迟（毫秒）
+     */
+    private static final int FORMAT_DEBOUNCE_MS = 300;
+    /**
+     * 类名输入框列数
+     */
+    private static final int CLASS_NAME_FIELD_COLUMNS = 20;
+    /**
+     * JSON 输入区行数
+     */
+    private static final int JSON_AREA_ROWS = 10;
+    /**
+     * JSON 输入区列数
+     */
+    private static final int JSON_AREA_COLUMNS = 40;
 
     public CreateClassDialog(@Nullable final Project project, @NotNull final PsiDirectory targetDirectory) {
         super(project, Boolean.TRUE);
         this.project = project;
         this.targetDirectory = targetDirectory;
-        this.classNameField = new JBTextField(20);
-        this.jsonTextArea = new JBTextArea(10, 40);
-        this.classRadioButton = new JBRadioButton("Class", Boolean.TRUE);
-        this.recordRadioButton = new JBRadioButton("Record", Boolean.FALSE);
-        this.jsonFormatTimer = new Timer(300, _ -> this.scheduleJsonFormatting());
+        this.classNameField = new JBTextField(CLASS_NAME_FIELD_COLUMNS);
+        this.jsonTextArea = new JBTextArea(JSON_AREA_ROWS, JSON_AREA_COLUMNS);
+        this.classRadioButton = new JBRadioButton(BUNDLE.getString("create.class.type.class"), Boolean.TRUE);
+        this.recordRadioButton = new JBRadioButton(BUNDLE.getString("create.class.type.record"), Boolean.FALSE);
+        this.jsonFormatTimer = new Timer(FORMAT_DEBOUNCE_MS, _ -> this.scheduleJsonFormatting());
         this.jsonFormatTimer.setRepeats(Boolean.FALSE);
         this.init();
         this.bindJsonFormattingListener();
@@ -79,6 +96,13 @@ public class CreateClassDialog extends DialogWrapper {
         this.setModal(Boolean.FALSE);
         this.setResizable(Boolean.TRUE);
         this.setTitle(BUNDLE.getString("create.class.dialog.title"));
+    }
+
+    @Override
+    public void dispose() {
+        // 停止防抖定时器，避免对话框销毁后仍持有触发任务
+        this.jsonFormatTimer.stop();
+        super.dispose();
     }
 
     @Override
@@ -105,7 +129,9 @@ public class CreateClassDialog extends DialogWrapper {
 
                     @Override
                     public void run(@NotNull final ProgressIndicator indicator) {
-                        this.generatedClassText = JsonParser.convert(jsonText, targetType).replaceAll("Dummy", className);
+                        // 字面替换默认类名（replaceAll 的替换串中 $ 与 \ 会被当作特殊字符，存在崩溃风险）
+                        this.generatedClassText = JsonParser.convert(jsonText, targetType)
+                                .replace(JavaStructure.DEFAULT_CLASS_NAME, className);
                     }
 
                     @Override
@@ -145,7 +171,8 @@ public class CreateClassDialog extends DialogWrapper {
 
     @Override
     protected @Nullable ValidationInfo doValidate() {
-        if (!this.isValidClassName(this.classNameField.getText())) {
+        // 校验转换后的类名（与生成逻辑取值口径一致，避免原始输入通过但转换后为空的边界）
+        if (!this.isValidClassName(this.getClassName())) {
             return new ValidationInfo(BUNDLE.getString("create.class.name.invalid"), this.classNameField);
         }
         if (!JSON.isValid(this.jsonTextArea.getText())) {
@@ -193,7 +220,9 @@ public class CreateClassDialog extends DialogWrapper {
     }
 
     private PsiFile addGeneratedClassToFile(final String classText) {
-        if (this.targetDirectory.findFile("%s.java".formatted(this.getClassName())) instanceof final PsiJavaFile file) {
+        // 同名文件已存在时先清空其首个类（空文件无任何类声明，直接跳过避免数组越界）
+        if (this.targetDirectory.findFile("%s.java".formatted(this.getClassName())) instanceof final PsiJavaFile file
+                && file.getClasses().length > 0) {
             file.getClasses()[0].delete();
         }
         final PsiFile file = PsiFileFactory.getInstance(this.project)
@@ -223,6 +252,10 @@ public class CreateClassDialog extends DialogWrapper {
 
     public String getClassName() {
         final String className = StrUtil.toCamelCase(this.classNameField.getText().trim());
+        // 输入经驼峰转换后可能为空（如纯符号输入），需先判空再取首字符
+        if (className.isEmpty()) {
+            return "";
+        }
         return Character.toUpperCase(className.charAt(0)) + className.substring(1);
     }
 

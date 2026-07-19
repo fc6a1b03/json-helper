@@ -59,11 +59,7 @@ public class CopyJsonAction extends AnAction {
                 }
                 // 确认最终状态设置
                 e.getPresentation().setEnabledAndVisible(
-                        switch (e.getData(CommonDataKeys.PSI_FILE)) {
-                            case null -> Boolean.FALSE;
-                            case final PsiFile psi -> UastSupported.of(psi) &&
-                                    UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psi);
-                        }
+                        UastSupported.of(psiFile) && UastSupported.hasValidClassContext(e.getData(CommonDataKeys.EDITOR), psiFile)
                 );
             }
         }

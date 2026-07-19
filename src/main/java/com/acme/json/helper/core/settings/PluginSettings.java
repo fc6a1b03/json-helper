@@ -61,9 +61,7 @@ public class PluginSettings implements Configurable {
         // 获取设置状态
         final PluginSettingsState settings = of();
         // 判断全局状态与设置组件状态
-        boolean modified = component.getCopyJson() != settings.copyJson;
-        modified |= component.getJsonHelper() != settings.jsonHelper;
-        return modified;
+        return component.getCopyJson() != settings.copyJson || component.getJsonHelper() != settings.jsonHelper;
     }
 
     @Override

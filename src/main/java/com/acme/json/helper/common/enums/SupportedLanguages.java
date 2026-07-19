@@ -20,14 +20,14 @@ import java.util.Map;
  */
 public enum SupportedLanguages {
     YAML(YAMLFileType.YML, AnyFile.YAML),
-    TOON(YAMLFileType.YML, AnyFile.YAML),
+    TOON(YAMLFileType.YML, AnyFile.TOON),
     XML(XmlFileType.INSTANCE, AnyFile.XML),
     TOML(TomlFileType.INSTANCE, AnyFile.TOML),
     JSON(JsonFileType.INSTANCE, AnyFile.JSON),
     CLASS(JavaFileType.INSTANCE, AnyFile.CLASS),
     CSV(PlainTextFileType.INSTANCE, AnyFile.CSV),
     RECORD(JavaFileType.INSTANCE, AnyFile.RECORD),
-    Text(PlainTextFileType.INSTANCE, AnyFile.Text),
+    TEXT(PlainTextFileType.INSTANCE, AnyFile.TEXT),
     BASE64(PlainTextFileType.INSTANCE, AnyFile.BASE64),
     URL_PARAMS(PlainTextFileType.INSTANCE, AnyFile.URL_PARAMS),
     PROPERTIES(PropertiesFileType.INSTANCE, AnyFile.PROPERTIES);
@@ -47,7 +47,7 @@ public enum SupportedLanguages {
      * @return {@link SupportedLanguages }
      */
     public static SupportedLanguages getByAnyFile(final AnyFile any) {
-        return BY_ANY_FILE.getOrDefault(any, SupportedLanguages.Text);
+        return BY_ANY_FILE.getOrDefault(any, SupportedLanguages.TEXT);
     }
 
     private static Map<AnyFile, SupportedLanguages> createIndex() {

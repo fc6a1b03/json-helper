@@ -2,8 +2,6 @@ package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
-import cn.hutool.core.convert.ConvertException;
-import com.acme.json.helper.common.enums.AnyFile;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -14,6 +12,11 @@ import java.util.Set;
  * @date 2025-04-21
  */
 public class ClassConverter extends JavaStructure {
+    /**
+     * 代码构建器初始容量
+     */
+    private static final int CODE_BUILDER_CAPACITY = 4096;
+
     /**
      * 生成普通类（非 Record）的完整代码
      * <br/>
@@ -34,7 +37,7 @@ public class ClassConverter extends JavaStructure {
         // 默认带有`lombok`
         imports.add("lombok.Data");
         // 代码字符串
-        final StringBuilder code = new StringBuilder(4096);
+        final StringBuilder code = new StringBuilder(CODE_BUILDER_CAPACITY);
         // 构建类代码
         buildClassCode(root, code, imports, 0);
         // 处理导包
@@ -84,11 +87,11 @@ public class ClassConverter extends JavaStructure {
         clazz.getFields().forEach(f -> {
             code.append(indent)
                     .append("    private ")
-                    .append(f.getType())
+                    .append(f.type())
                     .append(" ")
-                    .append(f.getName())
+                    .append(f.name())
                     .append(";");
-            collectImports(f.getType(), imports);
+            collectImports(f.type(), imports);
         });
         // 处理嵌套类（递归）
         if (CollUtil.isNotEmpty(clazz.getNestedClasses())) {
@@ -99,12 +102,8 @@ public class ClassConverter extends JavaStructure {
     }
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         return generateClassCode(processObject(json, DEFAULT_CLASS_NAME, Boolean.FALSE));
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.CLASS.equals(any);
-    }
 }

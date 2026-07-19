@@ -1,22 +1,36 @@
+//file:noinspection GroovyAssignabilityCheck
+/**
+ * 项目设置：构建插件声明与统一版本表
+ * 版本表是全部构建脚本的唯一事实来源，调整版本只允许修改此处
+ * @author 拒绝者
+ * @date 2026-07-18
+ */
 pluginManagement {
     plugins {
-        // https://github.com/JetBrains/intellij-platform-gradle-plugin
+        // IntelliJ Platform Gradle Plugin（官方要求：Gradle 9.0.0+、JVM 17+、目标平台 2023.3+）
         // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-        id "org.jetbrains.intellij.platform" version "2.13.1"
+        // https://github.com/JetBrains/intellij-platform-gradle-plugin
+        id "org.jetbrains.intellij.platform" version "2.18.1"
     }
 }
 
+// 统一版本表：插件版本、目标平台、Java 基线与第三方依赖版本在此集中维护
 gradle.ext.versions = [
-        ver         : "0.13.1",
-        idea        : "2026.1",
-        sinceBuild  : "261",
+        // 插件版本：发布新版本时递增，并同步更新 build.gradle 中的 changeNotes
+        ver         : "0.14.5",
+        // 目标 IntelliJ 平台版本：sinceBuild 自 IGP 2.14 起默认取平台 major build（2026.2 → 262），无需显式声明
+        idea        : "2026.2",
+        // Java 语言基线：toolchain 与 options.release 共用
+        jvm         : 25,
+        // 第三方依赖版本
         toon        : "1.0.9",
-        auth0       : "4.5.1",
-        hutool      : "5.8.44",
-        jackson     : "3.1.0",
+        auth0       : "4.5.2",
+        hutool      : "5.8.47",
+        jackson     : "3.2.1",
         apachePoi   : "5.5.1",
-        fastjson2   : "2.0.61",
+        fastjson2   : "2.0.62",
         jsonRepair  : "0.4.0",
+        junit       : "6.1.2",
         commonsLang3: "3.20.0"
 ]
 

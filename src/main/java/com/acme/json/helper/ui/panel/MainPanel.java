@@ -27,8 +27,11 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.keymap.KeymapManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EditorTextField;
+import com.intellij.util.Alarm;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.update.MergingUpdateQueue;
+import com.intellij.util.ui.update.Update;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -57,6 +60,38 @@ public class MainPanel {
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
     /**
+     * 搜索框宽度
+     */
+    private static final int SEARCH_BOX_WIDTH = 220;
+    /**
+     * 搜索框高度
+     */
+    private static final int SEARCH_BOX_HEIGHT = 35;
+    /**
+     * 工具按钮尺寸
+     */
+    private static final int BUTTON_SIZE = 35;
+    /**
+     * 撤销/重做历史上限（防止长期编辑导致历史无限膨胀）
+     */
+    private static final int MAX_HISTORY_SIZE = 100;
+    /**
+     * 自动识别防抖延迟（毫秒）
+     */
+    private static final int AUTO_DETECT_DEBOUNCE_MS = 300;
+    /**
+     * JSON 文件扩展名
+     */
+    private static final String JSON_EXTENSION = "json";
+    /**
+     * 编辑器弹出菜单名称
+     */
+    private static final String POPUP_MENU_NAME = "JsonEditorPopup";
+    /**
+     * IDE 代码格式化动作 ID（平台注册的标准动作，用于跟随当前键位映射的快捷键）
+     */
+    private static final String REFORMAT_CODE_ACTION_ID = "ReformatCode";
+    /**
      * 重做历史堆栈
      */
     private final Deque<String> redoStack = new ArrayDeque<>();
@@ -76,6 +111,10 @@ public class MainPanel {
      * 自动识别回写标记
      */
     private final AtomicBoolean autoDetectApplying = new AtomicBoolean(Boolean.FALSE);
+    /**
+     * 自动识别防抖队列（官方推荐的事件合并机制，避免每次击键都触发全量识别）
+     */
+    private MergingUpdateQueue autoDetectQueue;
 
     /**
      * 创建主面板
@@ -132,7 +171,7 @@ public class MainPanel {
         });
         searchBox.setMargin(JBUI.emptyInsets());
         searchBox.setBorder(MainPanel.this.createBorderByDefaultColor());
-        searchBox.setPreferredSize(new Dimension(220, 35));
+        searchBox.setPreferredSize(new Dimension(SEARCH_BOX_WIDTH, SEARCH_BOX_HEIGHT));
         searchBox.setToolTipText(BUNDLE.getString("json.tool.tip.text"));
         return searchBox;
     }
@@ -149,7 +188,7 @@ public class MainPanel {
         toolButton.setIcon(icon);
         toolButton.setEnabled(Boolean.FALSE);
         toolButton.setMargin(JBUI.emptyInsets());
-        toolButton.setPreferredSize(new Dimension(35, 35));
+        toolButton.setPreferredSize(new Dimension(BUTTON_SIZE, BUTTON_SIZE));
         toolButton.setBorder(MainPanel.this.createBorderByDefaultColor(top, left, bottom, right));
         toolButton.addFocusListener(new FocusAdapter() {
             @Override
@@ -209,6 +248,19 @@ public class MainPanel {
     }
 
     /**
+     * 有界压入历史堆栈（超出上限时淘汰最旧记录）
+     *
+     * @param stack 目标堆栈
+     * @param text  文本
+     */
+    private void pushHistory(final Deque<String> stack, final String text) {
+        while (stack.size() >= MAX_HISTORY_SIZE) {
+            stack.removeLast();
+        }
+        stack.push(text);
+    }
+
+    /**
      * 重做
      *
      * @param redoButton 重做按钮
@@ -218,7 +270,7 @@ public class MainPanel {
     private void redoLastSearch(final JButton redoButton, final JButton undoButton, final EditorTextField editor) {
         if (Objects.isNull(editor) || this.redoStack.isEmpty()) return;
         // 储存撤销历史
-        this.undoStack.push(editor.getDocument().getText());
+        this.pushHistory(this.undoStack, editor.getDocument().getText());
         // 将重做历史写回编辑器
         editor.setText(this.redoStack.pop());
         // 更新按钮可用状态
@@ -238,7 +290,7 @@ public class MainPanel {
             return;
         }
         // 储存重做历史
-        this.redoStack.push(editor.getDocument().getText());
+        this.pushHistory(this.redoStack, editor.getDocument().getText());
         // 将撤消历史写回编辑器
         editor.setText(this.undoStack.pop());
         // 更新按钮可用状态
@@ -253,7 +305,7 @@ public class MainPanel {
     private void clearContent(final JButton redoButton, final JButton undoButton, final EditorTextField editor) {
         if (Objects.isNull(editor)) return;
         // 储存撤消历史
-        this.undoStack.push(editor.getDocument().getText());
+        this.pushHistory(this.undoStack, editor.getDocument().getText());
         // 清空原始记录
         this.originalJson.set("");
         // 清空重做历史
@@ -285,7 +337,7 @@ public class MainPanel {
                     if (!snapshot.equals(document.getText())) {
                         return;
                     }
-                    this.undoStack.push(snapshot);
+                    this.pushHistory(this.undoStack, snapshot);
                     editor.setText(result);
                     this.updateButtons(undoButton, redoButton);
                 }))
@@ -335,7 +387,7 @@ public class MainPanel {
         group.add(ActionManager.getInstance().getAction(IdeActions.GROUP_EDITOR_POPUP));
         // 添加菜单触发事件及出现位置
         ActionManager.getInstance()
-                .createActionPopupMenu("JsonEditorPopup", group)
+                .createActionPopupMenu(POPUP_MENU_NAME, group)
                 .getComponent()
                 .show(editor.getComponent(), e.getX(), e.getY());
     }
@@ -354,6 +406,11 @@ public class MainPanel {
                                final JButton undoButton, final EditorTextField editor) {
         group.add(new AnAction(BUNDLE.getString(nameKey), BUNDLE.getString(descKey), icon) {
             @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
+            @Override
             public void actionPerformed(final @NotNull AnActionEvent e) {
                 MainPanel.this.optJson(redoButton, undoButton, editor.getEditor(), operation);
             }
@@ -371,6 +428,11 @@ public class MainPanel {
                 BUNDLE.getString("json.to.any.desc"),
                 AllIcons.Debugger.Db_muted_dep_line_breakpoint
         ) {
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
             @Override
             public void actionPerformed(final @NotNull AnActionEvent e) {
                 if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
@@ -397,6 +459,10 @@ public class MainPanel {
         undoButton.addActionListener(_ -> this.undoLastSearch(redoButton, undoButton, editor));
         redoButton.addActionListener(_ -> this.redoLastSearch(redoButton, undoButton, editor));
         if (Objects.nonNull(editor.getProject())) {
+            // 自动识别防抖队列：合并连续输入事件，仅在停顿后执行一次全量识别
+            this.autoDetectQueue = new MergingUpdateQueue(
+                    "JsonHelper.AutoDetect", AUTO_DETECT_DEBOUNCE_MS, Boolean.TRUE, null, parentDisposable, null, Alarm.ThreadToUse.POOLED_THREAD
+            );
             EditorFactory.getInstance().getEventMulticaster().addDocumentListener(new DocumentListener() {
                 @Override
                 public void documentChanged(final @NotNull DocumentEvent e) {
@@ -410,8 +476,8 @@ public class MainPanel {
                     if (CharSequence.compare(oldText, newText) == 0) {
                         return;
                     }
-                    // 内容无变化时直接跳过 - 忽略空白差异
-                    if (StrUtil.emptyIfNull(oldText).stripTrailing().trim().equals(StrUtil.emptyIfNull(newText).stripTrailing().trim())) {
+                    // 忽略纯空白差异
+                    if (StrUtil.emptyIfNull(oldText).strip().equals(StrUtil.emptyIfNull(newText).strip())) {
                         return;
                     }
                     // 文档内容
@@ -421,8 +487,9 @@ public class MainPanel {
                     if (MainPanel.this.autoDetectApplying.get()) {
                         return;
                     }
-                    // 自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器
-                    MainPanel.this.optPath(text, editor);
+                    // 防抖调度：自动识别路径类型（Web或本地路径）、Jwt、Any并将其转换为格式化JSON，回写到编辑器
+                    // identity 固定为编辑器实例，连续输入事件互相合并，仅执行最后一次
+                    MainPanel.this.autoDetectQueue.queue(Update.create(editor, () -> MainPanel.this.optPath(text, editor)));
                 }
             }, parentDisposable);
         }
@@ -446,15 +513,25 @@ public class MainPanel {
         // 右键菜单事件
         new AnAction() {
             @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
+            @Override
             public void actionPerformed(final @NotNull AnActionEvent e) {
                 MainPanel.this.optJson(redoButton, undoButton, editor.getEditor(), new JsonFormatter());
             }
         }.registerCustomShortcutSet(
-                new CustomShortcutSet(KeymapManager.getInstance().getActiveKeymap().getShortcuts("ReformatCode")),
+                new CustomShortcutSet(KeymapManager.getInstance().getActiveKeymap().getShortcuts(REFORMAT_CODE_ACTION_ID)),
                 editor.getComponent()
         );
         // 搜索框快捷事件
         new AnAction() {
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
             @Override
             public void actionPerformed(final @NotNull AnActionEvent e) {
                 MainPanel.this.performSearch(searchField, redoButton, undoButton, editor);
@@ -474,9 +551,13 @@ public class MainPanel {
      */
     private void optPath(final String text, final EditorTextField editor) {
         final long sequence = this.autoDetectSequence.incrementAndGet();
-        CompletableFuture.supplyAsync(() -> this.resolveJson(text), AppExecutorUtil.getAppExecutorService())
+        CompletableFuture.supplyAsync(() -> {
+                    final String result = this.resolveJson(text);
+                    // JSON 合法性校验放后台线程，避免大文本校验阻塞 EDT
+                    return JSON.isValid(result) ? result : null;
+                }, AppExecutorUtil.getAppExecutorService())
                 .thenAccept(processedText -> ApplicationManager.getApplication().invokeLater(() -> {
-                    if (sequence != this.autoDetectSequence.get() || !JSON.isValid(processedText)) {
+                    if (Objects.isNull(processedText) || sequence != this.autoDetectSequence.get()) {
                         return;
                     }
                     if (processedText.equals(editor.getText())) {
@@ -517,15 +598,15 @@ public class MainPanel {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final Document document = editor.getDocument();
         final String snapshot = document.getText();
-        if (!operation.isValid(snapshot)) return;
         CompletableFuture
-                .supplyAsync(() -> StringUtil.convertLineSeparators(operation.process(snapshot)), AppExecutorUtil.getAppExecutorService())
+                // 合法性校验与处理均在后台线程，避免大 JSON 校验阻塞 EDT
+                .supplyAsync(() -> operation.isValid(snapshot) ? StringUtil.convertLineSeparators(operation.process(snapshot)) : null, AppExecutorUtil.getAppExecutorService())
                 .thenAccept(result -> ApplicationManager.getApplication().invokeLater(() -> {
-                    if (!snapshot.equals(document.getText())) {
+                    if (Objects.isNull(result) || !snapshot.equals(document.getText())) {
                         return;
                     }
                     WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> {
-                        this.undoStack.push(snapshot);
+                        this.pushHistory(this.undoStack, snapshot);
                         document.setText(result);
                         this.updateButtons(undoButton, redoButton);
                     });
@@ -549,6 +630,11 @@ public class MainPanel {
                 AllIcons.Actions.MenuOpen
         ) {
             @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
+            @Override
             public void actionPerformed(@NotNull final AnActionEvent e) {
                 MainPanel.this.handleFileOpen(editor);
             }
@@ -568,6 +654,11 @@ public class MainPanel {
                 AllIcons.Actions.Diff
         ) {
             @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
+
+            @Override
             public void actionPerformed(@NotNull final AnActionEvent e) {
                 MainPanel.this.showDiffViewer(editor);
             }
@@ -583,7 +674,7 @@ public class MainPanel {
         FileChooser.chooseFile(
                 FileChooserDescriptorFactory
                         .createSingleFileDescriptor(editor.getFileType())
-                        .withFileFilter(virtualFile -> "json".equalsIgnoreCase(virtualFile.getExtension())),
+                        .withFileFilter(virtualFile -> JSON_EXTENSION.equalsIgnoreCase(virtualFile.getExtension())),
                 editor.getProject(), null, virtualFile -> {
                     if (Objects.isNull(virtualFile)) return;
                     CompletableFuture
@@ -623,7 +714,8 @@ public class MainPanel {
     private void showDiffViewer(final EditorTextField editor) {
         if (Objects.isNull(editor) || Objects.isNull(editor.getProject())) return;
         final DiffContentFactory factory = DiffContentFactory.getInstance();
-        WriteCommandAction.runWriteCommandAction(editor.getProject(), () -> DiffManager.getInstance().showDiff(editor.getProject(),
+        // 差异查看器是纯 UI 展示，不属于写操作，直接调度到 EDT 即可
+        ApplicationManager.getApplication().invokeLater(() -> DiffManager.getInstance().showDiff(editor.getProject(),
                 new SimpleDiffRequest(
                         BUNDLE.getString("menu.diff.viewer"),
                         factory.createEditable(editor.getProject(), editor.getDocument().getText(), null),

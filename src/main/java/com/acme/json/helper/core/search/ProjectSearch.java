@@ -19,7 +19,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.psi.codeStyle.MinusculeMatcher;
 import com.intellij.psi.codeStyle.NameUtil;
-import com.intellij.ui.SimpleColoredComponent;
+import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.Processor;
 import org.jetbrains.annotations.NotNull;
@@ -28,8 +28,10 @@ import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import static com.acme.json.helper.core.search.item.ProjectNavigationItem.GIT_URL_PATTERN;
 
@@ -41,6 +43,14 @@ import static com.acme.json.helper.core.search.item.ProjectNavigationItem.GIT_UR
  */
 public record ProjectSearch(Project project) implements WeightedSearchEverywhereContributor<ProjectNavigationItem> {
     /**
+     * 搜索提供者 ID（与 ProjectSearchFactory / 搜索动作的引用保持一致）
+     */
+    public static final String PROVIDER_ID = "ProjectSearch";
+    /**
+     * 排序权重
+     */
+    private static final int SORT_WEIGHT = 799;
+    /**
      * 用于存储正在克隆的仓库信息的并发哈希表
      * <p>
      * 键为仓库名称, 值表示该仓库是否正在被克隆
@@ -50,9 +60,34 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * 加载语言资源文件
      */
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    /**
+     * HTTP(S) 协议主机前缀模式
+     */
+    private static final Pattern HTTP_HOST_PREFIX_PATTERN = Pattern.compile("^https?://[^/]+/");
+    /**
+     * git@ 主机前缀模式
+     */
+    private static final Pattern GIT_AT_PREFIX_PATTERN = Pattern.compile("^git@[^:/]+[:/]");
+    /**
+     * SSH 协议主机前缀模式
+     */
+    private static final Pattern SSH_HOST_PREFIX_PATTERN = Pattern.compile("^ssh://[^/]+/");
+    /**
+     * Git 协议主机前缀模式
+     */
+    private static final Pattern GIT_PROTOCOL_PREFIX_PATTERN = Pattern.compile("^git://[^/]+/");
+    /**
+     * .git 后缀模式
+     */
+    private static final Pattern GIT_SUFFIX_PATTERN = Pattern.compile("\\.git$");
 
     /**
-     * 计算克隆项目的路径
+     * 克隆路径推导结果缓存（避免搜索热路径上重复遍历打开项目与磁盘检查）
+     */
+    private static final ConcurrentHashMap<String, String> CLONE_PATH_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * 计算克隆项目的路径（带缓存）
      * <p>
      * 根据给定的 URL 地址, 生成适用于项目克隆的本地路径. 该方法会从已打开的项目中获取基础路径,<br/>
      * 并对 URL 进行一系列正则替换操作以标准化路径格式.
@@ -61,6 +96,16 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * @return 标准化后的本地克隆路径, 格式为 "基础路径 / 处理后的 URL"
      */
     private static String calculateClonePath(final String url) {
+        return CLONE_PATH_CACHE.computeIfAbsent(url, ProjectSearch::doCalculateClonePath);
+    }
+
+    /**
+     * 实际计算克隆项目的路径
+     *
+     * @param url 远程仓库的 URL 地址
+     * @return 标准化后的本地克隆路径
+     */
+    private static String doCalculateClonePath(final String url) {
         String basePath = System.getProperty("user.home");
         for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
             if (StrUtil.isEmpty(openProject.getBasePath())) {
@@ -84,17 +129,21 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
         }
         return "%s/%s".formatted(
                 basePath,
-                url.replaceFirst("^https?://[^/]+/", "")
-                        .replaceFirst("^git@[^:/]+[:/]", "")
-                        .replaceFirst("^ssh://[^/]+/", "")
-                        .replaceFirst("^git://[^/]+/", "")
-                        .replaceFirst("\\.git$", "")
+                GIT_SUFFIX_PATTERN.matcher(
+                        GIT_PROTOCOL_PREFIX_PATTERN.matcher(
+                                SSH_HOST_PREFIX_PATTERN.matcher(
+                                        GIT_AT_PREFIX_PATTERN.matcher(
+                                                HTTP_HOST_PREFIX_PATTERN.matcher(url).replaceFirst("")
+                                        ).replaceFirst("")
+                                ).replaceFirst("")
+                        ).replaceFirst("")
+                ).replaceFirst("")
         );
     }
 
     @Override
     public @NotNull String getSearchProviderId() {
-        return "ProjectSearch";
+        return PROVIDER_ID;
     }
 
     @Override
@@ -104,7 +153,7 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
 
     @Override
     public int getSortWeight() {
-        return 799;
+        return SORT_WEIGHT;
     }
 
     @Override
@@ -132,9 +181,9 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      * @return 提取到的项目名称, 如果无法提取则返回 "unknown"
      */
     private static String extractProjectName(final String url) {
-        final String path = url.replaceFirst("\\.git$", "");
+        final String path = GIT_SUFFIX_PATTERN.matcher(url).replaceFirst("");
         final int lastSlash = path.lastIndexOf('/');
-        return lastSlash >= 0 ? path.substring(lastSlash + 1) : "unknown";
+        return lastSlash >= 0 ? path.substring(lastSlash + 1) : BUNDLE.getString("search.unknown.name");
     }
 
     private SearchCache cache() {
@@ -195,9 +244,9 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
                 try {
                     // 命令流程构建器
                     final Process process = new ProcessBuilder("git", "clone", "--recurse-submodules", "--progress", url, target.getName())
-                            .directory(FileUtil.mkdir(FileUtil.mkdir(target.getParentFile()))).redirectErrorStream(Boolean.TRUE).start();
+                            .directory(FileUtil.mkdir(target.getParentFile())).redirectErrorStream(Boolean.TRUE).start();
                     // 读取进程输出以提供详细进度
-                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                         String line;
                         while (Objects.nonNull(line = reader.readLine())) {
                             indicator.setText2(line);
@@ -230,7 +279,7 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
             @Override
             public void onSuccess() {
                 try {
-                    ProjectSearch.this.cache().addGitRepository(url);
+                    // 克隆成功后移出待克隆列表并失效项目缓存
                     ProjectSearch.this.cache().removeGitRepository(url);
                     ProjectUtil.openOrImport(target.toPath(), null, Boolean.TRUE);
                 } finally {
@@ -262,8 +311,16 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      */
     @Override
     public @NotNull ListCellRenderer<? super ProjectNavigationItem> getElementsRenderer() {
-        return (list, value, index, isSel, cellHasFocus) -> new SimpleColoredComponent() {{
-            if (Objects.nonNull(value)) {
+        return new ColoredListCellRenderer<>() {
+            @Override
+            protected void customizeCellRenderer(@NotNull final JList<? extends ProjectNavigationItem> list,
+                                                 final ProjectNavigationItem value,
+                                                 final int index,
+                                                 final boolean selected,
+                                                 final boolean hasFocus) {
+                if (Objects.isNull(value)) {
+                    return;
+                }
                 this.setIcon(switch (value) {
                     case final ProjectNavigationItem.Opened ignored ->
                             ExecutionUtil.getLiveIndicator(AllIcons.Nodes.Module);
@@ -276,9 +333,8 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
                     case final ProjectNavigationItem.Recent recent -> "  %s".formatted(recent.projectPath());
                     case final ProjectNavigationItem.GitRepository gitRepo -> "  %s".formatted(gitRepo.repositoryUrl());
                 }, SimpleTextAttributes.GRAYED_ATTRIBUTES);
-                this.setBackground(isSel ? list.getSelectionBackground() : list.getBackground());
             }
-        }};
+        };
     }
 
     /**

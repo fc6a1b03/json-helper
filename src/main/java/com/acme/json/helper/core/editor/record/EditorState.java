@@ -16,6 +16,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public record EditorState(Integer editorId, String content) {
     /**
+     * Base64 编码器
+     */
+    private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
+    /**
+     * Base64 解码器
+     */
+    private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
+    /**
      * ASCII Record Separator 分隔符（外）
      */
     private static final String SEP_OUTSIDE = "\u001E";
@@ -48,9 +56,10 @@ public record EditorState(Integer editorId, String content) {
             if (!first) {
                 builder.append(SEP_OUTSIDE);
             }
+            // content 为 null 时按空串处理，避免编码器 NPE
             builder.append(state.editorId)
                     .append(SEP_INTERNAL)
-                    .append(Base64.getEncoder().encodeToString(StrUtil.bytes(state.content, StandardCharsets.UTF_8)));
+                    .append(BASE64_ENCODER.encodeToString(StrUtil.bytes(Objects.requireNonNullElse(state.content, ""), StandardCharsets.UTF_8)));
             first = false;
         }
         return builder.toString();
@@ -68,13 +77,13 @@ public record EditorState(Integer editorId, String content) {
             if (StrUtil.isBlank(entry)) {
                 continue;
             }
-            final String[] parts = entry.split(SEP_INTERNAL);
+            final String[] parts = entry.split(SEP_INTERNAL, -1);
             if (ArrayUtil.isEmpty(parts) || parts.length != 2) {
                 continue;
             }
             states.add(new EditorState(
                     Convert.toInt(parts[0]),
-                    StrUtil.utf8Str(Base64.getDecoder().decode(parts[1]))
+                    StrUtil.utf8Str(BASE64_DECODER.decode(parts[1]))
             ));
         }
         return states;

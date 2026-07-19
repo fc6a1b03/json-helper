@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +23,15 @@ public abstract class JavaStructure implements DataFormatConverter {
     /**
      * 默认类名
      */
-    protected final static String DEFAULT_CLASS_NAME = "Dummy";
+    public static final String DEFAULT_CLASS_NAME = "Dummy";
+    /**
+     * 单词边界分割模式（非单词字符后或驼峰大写前）
+     */
+    private static final Pattern WORD_BOUNDARY_PATTERN = Pattern.compile("(?<=\\W)|(?=\\p{Lu})");
+    /**
+     * 纯符号单词模式
+     */
+    private static final Pattern SYMBOL_WORD_PATTERN = Pattern.compile("\\W+");
 
     /**
      * 处理对象
@@ -189,11 +198,11 @@ public abstract class JavaStructure implements DataFormatConverter {
             return name;
         }
         // 使用正则表达式分割单词边界：非字母数字符或驼峰大写位置
-        return Arrays.stream(name.split("(?<=\\W)|(?=\\p{Lu})"))
+        return Arrays.stream(WORD_BOUNDARY_PATTERN.split(name))
                 .filter(StrUtil::isNotEmpty)
                 .map(word -> {
                     // 忽略纯符号（如 "--"、"$$" 等）
-                    if (word.matches("\\W+")) {
+                    if (SYMBOL_WORD_PATTERN.matcher(word).matches()) {
                         return "";
                     }
                     // 首字母大写（保留后续字符原样）
@@ -303,40 +312,11 @@ public abstract class JavaStructure implements DataFormatConverter {
     /**
      * 字段信息
      *
+     * @param name 字段名称
+     * @param type 字段类型
      * @author 拒绝者
      * @date 2025-01-26
      */
-    protected static class Field {
-        /**
-         * 字段名称
-         */
-        private String name;
-        /**
-         * 字段类型
-         */
-        private String type;
-
-        public Field(final String name, final String type) {
-            this.type = type;
-            this.name = name;
-        }
-
-        public String getName() {
-            return this.name;
-        }
-
-        public Field setName(final String name) {
-            this.name = name;
-            return this;
-        }
-
-        public String getType() {
-            return this.type;
-        }
-
-        public Field setType(final String type) {
-            this.type = type;
-            return this;
-        }
+    protected record Field(String name, String type) {
     }
 }

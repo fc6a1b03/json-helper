@@ -19,16 +19,22 @@ import java.util.List;
 public class JsonNodeParser {
     /**
      * 解析
+     * <p>
+     * 单次解析策略：直接尝试解析，失败时按原始文本处理（避免 isValid 与 parse 双重解析）
      *
      * @param key  钥匙
      * @param json json
      * @return {@link JsonNode }
      */
     public static JsonNode parse(final String key, final String json) {
-        return parseNode(key,
-                Opt.of(JSON.isValid(json)).filter(i -> i)
-                        .map(_ -> JSON.parse(json)).orElse(json)
-        );
+        final Object parsed;
+        try {
+            parsed = JSON.parse(json);
+        } catch (final Exception ignored) {
+            // 非 JSON 文本时按原始字符串构建叶子节点
+            return parseNode(key, json);
+        }
+        return parseNode(key, parsed);
     }
 
     /**

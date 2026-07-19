@@ -1,5 +1,7 @@
 package com.acme.json.helper.common.enums;
 
+import java.util.Locale;
+
 /**
  * 任何文件枚举
  *
@@ -58,7 +60,7 @@ public enum AnyFile {
     /**
      * 单文本
      */
-    Text;
+    TEXT;
 
     /**
      * 文件类型拓展名
@@ -68,7 +70,7 @@ public enum AnyFile {
     public String extension() {
         return switch (this) {
             case CLASS, RECORD -> "java";
-            case JSON, XML, YAML, TOML, CSV, XLSX, TOON, PROPERTIES -> this.name().toLowerCase();
+            case JSON, XML, YAML, TOML, CSV, XLSX, TOON, PROPERTIES -> this.name().toLowerCase(Locale.ROOT);
             default -> "txt";
         };
     }
@@ -79,7 +81,7 @@ public enum AnyFile {
      * @return boolean
      */
     public boolean isEditor() {
-        return this != AnyFile.Text && this != AnyFile.JSON && this != AnyFile.XLSX;
+        return this != AnyFile.TEXT && this != AnyFile.JSON && this != AnyFile.XLSX;
     }
 
     /**
@@ -97,6 +99,6 @@ public enum AnyFile {
      * @return boolean
      */
     public boolean isRadio() {
-        return this != AnyFile.Text && this != AnyFile.JSON;
+        return this != AnyFile.TEXT && this != AnyFile.JSON;
     }
 }

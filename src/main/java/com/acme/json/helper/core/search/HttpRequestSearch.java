@@ -14,13 +14,19 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.psi.codeStyle.MinusculeMatcher;
 import com.intellij.psi.codeStyle.NameUtil;
-import com.intellij.ui.SimpleColoredComponent;
+import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.Processor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.ResourceBundle;
+import java.util.SequencedCollection;
 
 /**
  * HTTP请求搜索实现<br/>
@@ -31,23 +37,40 @@ import java.util.*;
  * @date 2025-11-05
  */
 public record HttpRequestSearch(Project project) implements WeightedSearchEverywhereContributor<HttpRequestItem> {
+    /**
+     * 搜索提供者 ID（与 HttpRequestSearchFactory / 搜索动作的引用保持一致）
+     */
+    public static final String PROVIDER_ID = "HttpRequestSearch";
+    /**
+     * 加载语言资源文件
+     */
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.JsonHelperBundle");
+    /**
+     * 排序权重
+     */
+    private static final int SORT_WEIGHT = 800;
+    /**
+     * 空模式默认权重
+     */
+    private static final int EMPTY_PATTERN_WEIGHT = 100;
+
     private SearchCache cache() {
         return SearchCache.getInstance(Objects.requireNonNull(this.project));
     }
 
     @Override
     public @NotNull String getSearchProviderId() {
-        return "HttpRequestSearch";
+        return PROVIDER_ID;
     }
 
     @Override
     public @NotNull String getGroupName() {
-        return "HTTP";
+        return BUNDLE.getString("http.search.group.name");
     }
 
     @Override
     public int getSortWeight() {
-        return 800;
+        return SORT_WEIGHT;
     }
 
     @Override
@@ -77,29 +100,33 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
      */
     @Override
     public boolean processSelectedItem(@NotNull final HttpRequestItem item, final int modifiers, @NotNull final String searchText) {
-        Opt.ofNullable(LocalFileSystem.getInstance().findFileByPath(item.getFilePath()))
+        Opt.ofNullable(LocalFileSystem.getInstance().findFileByPath(item.filePath()))
                 .ifPresent(virtualFile -> FileEditorManager.getInstance(this.project).openFile(Objects.requireNonNull(virtualFile), Boolean.TRUE));
         return Boolean.TRUE;
     }
 
     /**
      * 获取 HTTP 请求项的列表单元格渲染器
-     * <p>
-     * 返回一个用于渲染 HttpRequestItem 对象的列表单元格渲染器, 该渲染器会显示请求文件名和路径信息,<br/>
-     * 并根据选中状态设置不同的背景颜色
      *
      * @return HTTP 请求项的列表单元格渲染器
      */
     @Override
     public @NotNull ListCellRenderer<? super HttpRequestItem> getElementsRenderer() {
-        return (list, value, index, isSelected, cellHasFocus) -> new SimpleColoredComponent() {{
-            if (Objects.nonNull(value)) {
+        return new ColoredListCellRenderer<>() {
+            @Override
+            protected void customizeCellRenderer(@NotNull final JList<? extends HttpRequestItem> list,
+                                                 final HttpRequestItem value,
+                                                 final int index,
+                                                 final boolean selected,
+                                                 final boolean hasFocus) {
+                if (Objects.isNull(value)) {
+                    return;
+                }
                 this.setIcon(AllIcons.FileTypes.Http);
-                this.append(value.getFileName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
-                this.setBackground(isSelected ? list.getSelectionBackground() : list.getBackground());
-                this.append("  %s".formatted(value.getFilePath()), SimpleTextAttributes.GRAYED_ATTRIBUTES);
+                this.append(value.fileName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
+                this.append("  %s".formatted(value.filePath()), SimpleTextAttributes.GRAYED_ATTRIBUTES);
             }
-        }};
+        };
     }
 
     /**
@@ -117,20 +144,20 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
         // 获取缓存中的HTTP请求文件
         final SequencedCollection<HttpRequestItem> src = this.cache().getHttp();
         if (CollUtil.isEmpty(src)) return;
-        // 过滤结果 - 可以根据需要添加过滤逻辑
+        // 过滤结果
         final LinkedHashSet<HttpRequestItem> filteredFiles = new LinkedHashSet<>();
-        final String lowerPattern = pattern.toLowerCase();
+        final String lowerPattern = pattern.toLowerCase(Locale.ROOT);
         for (final HttpRequestItem item : src) {
             if (Objects.isNull(item)) {
                 continue;
             }
-            if (StrUtil.isEmpty(pattern) || StrUtil.emptyIfNull(item.getFileName()).toLowerCase().contains(lowerPattern)) {
+            if (StrUtil.isEmpty(pattern) || StrUtil.emptyIfNull(item.fileName()).toLowerCase(Locale.ROOT).contains(lowerPattern)) {
                 filteredFiles.add(item);
             }
         }
         // 如果是空模式，直接返回所有过滤后的文件
         if (StrUtil.isEmpty(pattern)) {
-            filteredFiles.stream().map(item -> new FoundItemDescriptor<>(item, 100)).forEach(consumer::process);
+            filteredFiles.stream().map(item -> new FoundItemDescriptor<>(item, EMPTY_PATTERN_WEIGHT)).forEach(consumer::process);
             return;
         }
         // 使用匹配器计算权重
@@ -138,7 +165,7 @@ public record HttpRequestSearch(Project project) implements WeightedSearchEveryw
         // 计算权重并排序
         final List<FoundItemDescriptor<HttpRequestItem>> descriptors = new ArrayList<>(filteredFiles.size());
         for (final HttpRequestItem item : filteredFiles) {
-            final int weight = matcher.matchingDegree(item.getFileName());
+            final int weight = matcher.matchingDegree(item.fileName());
             if (weight > 0) {
                 descriptors.add(new FoundItemDescriptor<>(item, weight));
             }

@@ -64,7 +64,12 @@ public class FileDropHandler extends DropTargetAdapter {
                 e.rejectDrop();
             }
         } catch (final Exception ignored) {
-            e.rejectDrop();
+            // acceptDrop 已调用后再 rejectDrop 会抛 IllegalStateException，需独立保护
+            try {
+                e.rejectDrop();
+            } catch (final Exception suppressed) {
+                // 忽略重复拒绝异常
+            }
             Notifier.notifyError(BUNDLE.getString("file.to.path.warn"), editor.getProject());
         }
     }

@@ -76,6 +76,7 @@ intellijPlatform {
                 <li>Upgrade the build baseline to IntelliJ IDEA 2026.2, Java 25, Gradle 9.6.1, and IntelliJ Platform Gradle Plugin 2.18.1.</li>
                 <li>Rebuild core flows against the 2026.2 platform APIs with a focus on responsiveness and low overhead.</li>
                 <li>Enhance port search with well-known service detection, real process icons, and one-click process termination.</li>
+                <li>Add settings switches for port, project, and HTTP search contributors.</li>
                 <li>Remove TOON and broken-JSON repair features to keep the tool focused.</li>
                 <li>Establish a JUnit 6 test suite over all core converters and parsers.</li>
                 <li>Upgrade Jackson, Hutool, Auth0 JWT, and Fastjson2 to their latest releases.</li>

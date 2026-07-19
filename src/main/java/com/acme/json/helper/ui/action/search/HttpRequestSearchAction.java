@@ -1,6 +1,7 @@
 package com.acme.json.helper.ui.action.search;
 
 import com.acme.json.helper.core.search.HttpRequestSearch;
+import com.acme.json.helper.core.settings.PluginSettings;
 import com.intellij.ide.actions.SearchEverywhereBaseAction;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -16,6 +17,12 @@ public class HttpRequestSearchAction extends SearchEverywhereBaseAction implemen
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
         return ActionUpdateThread.BGT;
+    }
+
+    @Override
+    public void update(@NotNull final AnActionEvent event) {
+        // 设置面板关闭本搜索时禁用入口
+        event.getPresentation().setEnabled(PluginSettings.of().httpSearchEnabled);
     }
 
     /**

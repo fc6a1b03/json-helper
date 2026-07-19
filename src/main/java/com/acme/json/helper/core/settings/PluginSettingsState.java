@@ -24,6 +24,12 @@ public class PluginSettingsState implements PersistentStateComponent<PluginSetti
     public boolean copyJson = Boolean.TRUE;
     /** JSON助手默认配置 */
     public boolean jsonHelper = Boolean.TRUE;
+    /** 端口搜索开关（默认开启） */
+    public boolean portSearchEnabled = Boolean.TRUE;
+    /** 项目搜索开关（默认开启） */
+    public boolean projectSearchEnabled = Boolean.TRUE;
+    /** HTTP 请求文件搜索开关（默认开启） */
+    public boolean httpSearchEnabled = Boolean.TRUE;
 
     @NotNull
     public static PluginSettingsState getInstance() {

@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.core.notice.Notifier;
 import com.acme.json.helper.core.search.cache.SearchCache;
 import com.acme.json.helper.core.search.item.ProjectNavigationItem;
+import com.acme.json.helper.core.settings.PluginSettings;
 import com.intellij.execution.runners.ExecutionUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
@@ -163,7 +164,8 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
 
     @Override
     public boolean isShownInSeparateTab() {
-        return Boolean.TRUE;
+        // 设置面板关闭本搜索时不显示独立页签（Search Everywhere 每次打开时重新查询）
+        return PluginSettings.of().projectSearchEnabled;
     }
 
     @Override
@@ -350,6 +352,8 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
      */
     @Override
     public void fetchWeightedElements(@NotNull final String pattern, @NotNull final ProgressIndicator indicator, @NotNull final Processor<? super FoundItemDescriptor<ProjectNavigationItem>> consumer) {
+        // 设置面板关闭本搜索时不产出结果
+        if (!PluginSettings.of().projectSearchEnabled) return;
         final SequencedCollection<ProjectNavigationItem> cachedItems = this.cache().get();
         final LinkedHashSet<ProjectNavigationItem> src = new LinkedHashSet<>();
         for (final ProjectNavigationItem item : cachedItems) {

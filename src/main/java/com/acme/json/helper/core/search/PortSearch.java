@@ -9,7 +9,6 @@ import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.SystemInfo;
@@ -21,14 +20,7 @@ import com.intellij.util.Processor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.ResourceBundle;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -108,7 +100,7 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
     /**
      * 知名端口服务映射表（IANA 与各软件官方默认端口），用于在列表中描述端口服务并支持按服务名搜索
      */
-    private static final Map<Integer, String> WELL_KNOWN_SERVICES = Map.ofEntries(
+    private static final Map<Integer, String> WELL_KNOWN_SERVICES = Map.<Integer, String>ofEntries(
             Map.entry(21, "FTP"),
             Map.entry(22, "SSH"),
             Map.entry(23, "Telnet"),
@@ -168,10 +160,6 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
             Map.entry(27017, "MongoDB"),
             Map.entry(61616, "ActiveMQ")
     );
-    /**
-     * 按扩展名缓存的文件类型图标（渲染热路径避免重复查询 FileTypeManager）
-     */
-    private static final Map<String, Icon> ICON_CACHE = new ConcurrentHashMap<>();
 
     private SearchCache cache() {
         return SearchCache.getInstance(Objects.requireNonNull(this.project));
@@ -290,8 +278,8 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
                     return;
                 }
 
-                // 根据应用名获取文件类型图标
-                this.setIcon(getIconForApp(value.appName()));
+                // 使用加载阶段提取的应用系统图标（SearchCache 已缓存）
+                this.setIcon(value.icon());
 
                 // 应用名称（固定宽度对齐）
                 final String appName = value.appName();
@@ -350,31 +338,6 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
      */
     private static String padStart(final String text) {
         return text.length() >= PORT_COLUMN_WIDTH ? text : " ".repeat(PORT_COLUMN_WIDTH - text.length()) + text;
-    }
-
-    /**
-     * 根据应用名称获取对应的图标
-     * <p>
-     * 优先从文件类型图标库获取（按扩展名缓存），失败时返回绿色执行图标
-     *
-     * @param appName 应用名称（如 java.exe）
-     * @return 对应的图标
-     */
-    private static Icon getIconForApp(final String appName) {
-        final int dotIndex = appName.lastIndexOf('.');
-        if (dotIndex <= 0) {
-            return AllIcons.Actions.Execute;
-        }
-        final String ext = appName.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
-        return ICON_CACHE.computeIfAbsent(ext, key -> {
-            try {
-                final Icon icon = FileTypeManager.getInstance().getFileTypeByExtension(key).getIcon();
-                return Objects.nonNull(icon) ? icon : AllIcons.Actions.Execute;
-            } catch (final Exception ignored) {
-                // 获取图标失败时使用默认图标
-                return AllIcons.Actions.Execute;
-            }
-        });
     }
 
     /**

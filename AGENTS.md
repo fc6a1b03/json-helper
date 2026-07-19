@@ -14,7 +14,7 @@
 | Artifact ID | `json-helper`                                   |
 | 插件 ID     | `com.acme.json.helper`                          |
 | 作者        | 拒绝者                                          |
-| 当前版本    | `0.14.5`（定义在 `settings.gradle` 的版本表中） |
+| 当前版本    | `0.14.9`（定义在 `settings.gradle` 的版本表中） |
 | 许可证      | MIT                                             |
 | GitHub      | https://github.com/fc6a1b03/json-helper         |
 
@@ -378,7 +378,6 @@ public sealed interface Check permits Check.Failed, Check.Success {
 ## 相关文档
 
 - [README.md](README.md) - 面向用户的项目说明（含预览图）
-- [doc/2026.1-java25-audit.md](doc/2026.1-java25-audit.md) - 2026.1 / Java 25 基线审计
 - [IntelliJ Platform Gradle Plugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html)
 - [IntelliJ Platform SDK](https://plugins.jetbrains.com/docs/intellij/welcome.html)
 - [API Changes List 2026](https://plugins.jetbrains.com/docs/intellij/api-changes-list-2026.html)

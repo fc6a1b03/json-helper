@@ -30,6 +30,8 @@ public class PluginSettingsState implements PersistentStateComponent<PluginSetti
     public boolean projectSearchEnabled = Boolean.TRUE;
     /** HTTP 请求文件搜索开关（默认开启） */
     public boolean httpSearchEnabled = Boolean.TRUE;
+    /** 项目树压缩包节点开关（默认开启） */
+    public boolean archiveNodeEnabled = Boolean.TRUE;
 
     @NotNull
     public static PluginSettingsState getInstance() {

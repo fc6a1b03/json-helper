@@ -1,6 +1,9 @@
 package com.acme.json.helper.core.settings;
 
+import com.intellij.ide.projectView.ProjectView;
 import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.components.JBCheckBox;
@@ -65,19 +68,29 @@ public class PluginSettings implements Configurable {
                 || component.getJsonHelper() != settings.jsonHelper
                 || component.getPortSearch() != settings.portSearchEnabled
                 || component.getProjectSearch() != settings.projectSearchEnabled
-                || component.getHttpSearch() != settings.httpSearchEnabled;
+                || component.getHttpSearch() != settings.httpSearchEnabled
+                || component.getArchiveNode() != settings.archiveNodeEnabled;
     }
 
     @Override
     public void apply() {
         // 获取设置状态
         final PluginSettingsState settings = of();
+        // 记录压缩包节点开关旧值（用于变更后刷新项目树）
+        final boolean previousArchiveNodeEnabled = settings.archiveNodeEnabled;
         // 将设置组件状态覆盖全局状态
         settings.copyJson = component.getCopyJson();
         settings.jsonHelper = component.getJsonHelper();
         settings.portSearchEnabled = component.getPortSearch();
         settings.projectSearchEnabled = component.getProjectSearch();
         settings.httpSearchEnabled = component.getHttpSearch();
+        settings.archiveNodeEnabled = component.getArchiveNode();
+        // 压缩包节点开关变更后刷新全部打开项目的项目树（平台对 TreeStructureProvider 结果有节点缓存，需主动刷新）
+        if (previousArchiveNodeEnabled != settings.archiveNodeEnabled) {
+            for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
+                ProjectView.getInstance(openProject).refresh();
+            }
+        }
     }
 
     @Override
@@ -88,6 +101,7 @@ public class PluginSettings implements Configurable {
         component.setPortSearch(settings.portSearchEnabled);
         component.setProjectSearch(settings.projectSearchEnabled);
         component.setHttpSearch(settings.httpSearchEnabled);
+        component.setArchiveNode(settings.archiveNodeEnabled);
     }
 
     @Override
@@ -109,11 +123,13 @@ public class PluginSettings implements Configurable {
         private final JBCheckBox projectSearch = new JBCheckBox(BUNDLE.getString("project.search.group.name"));
         private final JBCheckBox httpSearch = new JBCheckBox(BUNDLE.getString("http.search.group.name"));
         private final JBCheckBox portSearch = new JBCheckBox(BUNDLE.getString("port.search.group.name"));
+        private final JBCheckBox archiveNode = new JBCheckBox(BUNDLE.getString("plugin.setting.archive.node"));
 
         public PluginSettingsComponent() {
             mainPanel = FormBuilder.createFormBuilder()
                     .addComponent(of(BUNDLE.getString("plugin.setting.title1"), copyJson, jsonHelper), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title2"), projectSearch, httpSearch, portSearch), 1)
+                    .addComponent(of(BUNDLE.getString("plugin.setting.title3"), archiveNode), 1)
                     .addComponentFillVertically(new JPanel(), 0)
                     .getPanel();
         }
@@ -186,6 +202,14 @@ public class PluginSettings implements Configurable {
 
         public void setHttpSearch(final boolean status) {
             httpSearch.setSelected(status);
+        }
+
+        public boolean getArchiveNode() {
+            return archiveNode.isSelected();
+        }
+
+        public void setArchiveNode(final boolean status) {
+            archiveNode.setSelected(status);
         }
     }
 }

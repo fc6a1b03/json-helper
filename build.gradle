@@ -59,6 +59,7 @@ dependencies {
     implementation "tools.jackson.dataformat:jackson-dataformat-properties"
     implementation "com.auth0:java-jwt:${gradle.ext.versions.auth0}"
     implementation "org.apache.poi:poi-ooxml:${gradle.ext.versions.apachePoi}"
+    implementation "org.apache.commons:commons-compress:${gradle.ext.versions.commonsCompress}"
     implementation "com.alibaba.fastjson2:fastjson2:${gradle.ext.versions.fastjson2}"
     /* 测试依赖（JUnit BOM 统一版本） */
     testImplementation platform("org.junit:junit-bom:${gradle.ext.versions.junit}")
@@ -77,6 +78,7 @@ intellijPlatform {
                 <li>Rebuild core flows against the 2026.2 platform APIs with a focus on responsiveness and low overhead.</li>
                 <li>Enhance port search with well-known service detection, real process icons, and one-click process termination.</li>
                 <li>Add settings switches for port, project, and HTTP search contributors.</li>
+                <li>Browse archives (zip / 7z / jar / tar) as expandable folders in the project tree, search their entries in Search Everywhere, and open entries read-only.</li>
                 <li>Remove TOON and broken-JSON repair features to keep the tool focused.</li>
                 <li>Establish a JUnit 6 test suite over all core converters and parsers.</li>
                 <li>Upgrade Jackson, Hutool, Auth0 JWT, and Fastjson2 to their latest releases.</li>

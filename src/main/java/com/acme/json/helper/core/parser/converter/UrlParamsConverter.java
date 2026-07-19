@@ -2,12 +2,9 @@ package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
-import cn.hutool.core.convert.ConvertException;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.net.URLDecoder;
-import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.alibaba.fastjson2.JSON;
 
@@ -21,6 +18,18 @@ import java.util.*;
  * @date 2025-04-21
  */
 public class UrlParamsConverter implements DataFormatConverter {
+    /**
+     * JSON 格式化器（无状态，全局复用）
+     */
+    private static final JsonFormatter JSON_FORMATTER = new JsonFormatter();
+    /**
+     * URL 编码时按 Map 大小预估的每对键值字符数
+     */
+    private static final int ESTIMATED_PAIR_LENGTH = 24;
+    /**
+     * URL 编码时按 List 大小预估的每项字符数
+     */
+    private static final int ESTIMATED_ITEM_LENGTH = 16;
     /**
      * 解析 URL 参数字符串为键值对映射
      * <p>
@@ -53,32 +62,15 @@ public class UrlParamsConverter implements DataFormatConverter {
     /**
      * 解析字符串值并转换为合适的对象类型
      * <p>
-     * 根据字符串的格式自动识别并转换为相应的数据类型:<br/>
-     * 如果是有效的 JSON 格式, 则解析为 JSON 对象或数组;<br/>
-     * 如果是布尔值字符串 ("true" 或 "false"), 则转换为 Boolean 类型;<br/>
-     * 如果是整数格式, 则转换为 Long 类型;<br/>
-     * 如果是数字格式 (包括科学计数法), 则转换为 Double 类型;<br/>
-     * 否则返回原始字符串.
+     * 合法 JSON 标量（布尔/数字/带引号字符串/对象/数组）直接解析为对应类型，其余按原始字符串返回
      *
      * @param value 待解析的字符串值
-     * @return 解析后的对象, 可能是 JSON 对象,Boolean,Long,Double 或 String 类型
+     * @return 解析后的对象，可能是 JSON 对象、Boolean、Integer、Double 或 String 类型
      */
     private static Object parseValue(final String value) {
-        // 尝试识别JSON对象或数组
+        // JSON 标量直接解析（布尔/数字/对象/数组均由此覆盖）
         if (JSON.isValid(value)) {
             return JSON.parse(value);
-        }
-        // 尝试识别布尔值
-        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
-            return Convert.toBool(value);
-        }
-        // 尝试识别整数
-        if (NumberUtil.isLong(value)) {
-            return Convert.toLong(value);
-        }
-        // 尝试识别浮点数
-        if (NumberUtil.isDouble(value)) {
-            return Convert.toDouble(value);
         }
         // 默认返回字符串
         return value;
@@ -97,7 +89,7 @@ public class UrlParamsConverter implements DataFormatConverter {
     private static String convertMapToUrlParams(final Map<?, ?> map) {
         if (MapUtil.isEmpty(map)) return "";
         boolean first = Boolean.TRUE;
-        final StringBuilder builder = new StringBuilder(map.size() * 24);
+        final StringBuilder builder = new StringBuilder(map.size() * ESTIMATED_PAIR_LENGTH);
         for (final Map.Entry<?, ?> entry : map.entrySet()) {
             final Object key = entry.getKey();
             if (Objects.isNull(key)) continue;
@@ -126,7 +118,7 @@ public class UrlParamsConverter implements DataFormatConverter {
     private static String convertListToUrlParams(final List<?> list) {
         if (CollUtil.isEmpty(list)) return "";
         boolean first = Boolean.TRUE;
-        final StringBuilder builder = new StringBuilder(list.size() * 16);
+        final StringBuilder builder = new StringBuilder(list.size() * ESTIMATED_ITEM_LENGTH);
         for (int i = 0, size = list.size(); i < size; i++) {
             final Object item = list.get(i);
             if (Objects.isNull(item)) continue;
@@ -180,7 +172,7 @@ public class UrlParamsConverter implements DataFormatConverter {
     }
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         try {
             final Object parsed = JSON.parse(json);
             if (parsed instanceof final Map<?, ?> map) {
@@ -198,14 +190,10 @@ public class UrlParamsConverter implements DataFormatConverter {
     @Override
     public String reverseConvert(final String urlParams) {
         try {
-            return new JsonFormatter().process(parseUrlParams(urlParams));
+            return JSON_FORMATTER.process(parseUrlParams(urlParams));
         } catch (final Exception e) {
             return urlParams;
         }
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.URL_PARAMS.equals(any);
-    }
 }

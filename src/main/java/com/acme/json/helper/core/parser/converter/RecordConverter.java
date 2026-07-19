@@ -2,8 +2,6 @@ package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
-import cn.hutool.core.convert.ConvertException;
-import com.acme.json.helper.common.enums.AnyFile;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -15,6 +13,11 @@ import java.util.StringJoiner;
  * @date 2025-04-21
  */
 public class RecordConverter extends JavaStructure {
+    /**
+     * 代码构建器初始容量
+     */
+    private static final int CODE_BUILDER_CAPACITY = 4096;
+
     /**
      * 生成Record类的完整代码
      * <br/>
@@ -37,7 +40,7 @@ public class RecordConverter extends JavaStructure {
         // 导包集合
         final Set<String> imports = new LinkedHashSet<>();
         // 代码字符串
-        final StringBuilder code = new StringBuilder(4096);
+        final StringBuilder code = new StringBuilder(CODE_BUILDER_CAPACITY);
         // 构建记录类代码
         buildRecordCode(root, code, imports, 0);
         // 处理导包
@@ -86,9 +89,9 @@ public class RecordConverter extends JavaStructure {
         final StringJoiner fieldJoiner = new StringJoiner(", ");
         // 处理字段
         clazz.getFields().forEach(f -> {
-            fieldJoiner.add("%s %s".formatted(f.getType(), f.getName()));
+            fieldJoiner.add("%s %s".formatted(f.type(), f.name()));
             // 收集导包
-            collectImports(f.getType(), imports);
+            collectImports(f.type(), imports);
         });
         // 处理类身体
         code.append(fieldJoiner).append(") {");
@@ -102,12 +105,8 @@ public class RecordConverter extends JavaStructure {
     }
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         return generateRecordCode(processObject(json, DEFAULT_CLASS_NAME, Boolean.TRUE));
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.RECORD.equals(any);
-    }
 }

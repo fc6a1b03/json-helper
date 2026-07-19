@@ -130,14 +130,13 @@ public class JsonHelperAction extends AnAction {
      * @implNote 该方法使用{@link Opt}进行空安全操作，避免潜在的NPE问题
      */
     private boolean checkJsonSelectionValidity(@NotNull final AnActionEvent e) {
-        // 从事件中获取编辑器引用
+        // update 阶段仅做轻量预检（存在非空选区），完整 JSON 校验放 actionPerformed，
+        // 避免每次 update 都对大选区做全量解析，拖慢动作系统
         return Opt.ofNullable(e.getData(CommonDataKeys.EDITOR))
                 // 转换为选区模型
                 .map(Editor::getSelectionModel)
-                // 过滤存在选区的情况
-                .filter(SelectionModel::hasSelection)
-                // 执行JSON语法验证
-                .map(sel -> JSON.isValid(sel.getSelectedText()))
+                // 存在非空选区
+                .map(sel -> sel.hasSelection() && StrUtil.isNotBlank(sel.getSelectedText()))
                 .orElse(Boolean.FALSE);
     }
 
@@ -184,7 +183,12 @@ public class JsonHelperAction extends AnAction {
      * @param e 行动事件
      */
     private void handleJsonSelection(@NotNull final AnActionEvent e) {
-        JsonEditorPushProvider.pushToJsonEditor(e.getProject(), this.processSelectedJson(e));
+        final String selectedJson = this.processSelectedJson(e);
+        // 执行阶段严格校验 JSON 合法性（update 阶段仅做轻量预检）
+        if (!JSON.isValid(selectedJson)) {
+            return;
+        }
+        JsonEditorPushProvider.pushToJsonEditor(e.getProject(), selectedJson);
     }
 
     /* ########################### JSON文本处理逻辑 ########################### */

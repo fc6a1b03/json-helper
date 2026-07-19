@@ -4,7 +4,6 @@ import cn.hutool.core.lang.Opt;
 import com.acme.json.helper.core.parser.TypeResolver;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
-import com.intellij.util.ArrayUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -123,27 +122,10 @@ public class CollectionTypeHandler {
         if (Objects.isNull(type)) {
             return Boolean.FALSE;
         }
-        // 获取PSI类
+        // 获取PSI类（resolve 结果即为泛型擦除后的原始类）
         final PsiClass psiClass = type.resolve();
         if (Objects.isNull(psiClass)) return Boolean.FALSE;
-        // 获取泛型擦除后的原始类型
-        final PsiClassType rawType = getRawType(type);
-        if (Objects.isNull(rawType)) return Boolean.FALSE;
         return InheritanceUtil.isInheritor(psiClass, superType);
-    }
-
-    /**
-     * 获取泛型擦除后的原始类型
-     *
-     * @param type 类型
-     * @return {@link PsiClassType }
-     */
-    private static PsiClassType getRawType(final PsiClassType type) {
-        final PsiType[] parameters = type.getParameters();
-        if (ArrayUtil.isEmpty(parameters)) return type;
-        final PsiClass psiClass = type.resolve();
-        if (Objects.isNull(psiClass)) return null;
-        return JavaPsiFacade.getElementFactory(psiClass.getProject()).createType(psiClass);
     }
 
     /**

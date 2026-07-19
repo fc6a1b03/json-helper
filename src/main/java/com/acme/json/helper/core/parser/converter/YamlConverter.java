@@ -1,7 +1,5 @@
 package com.acme.json.helper.core.parser.converter;
 
-import cn.hutool.core.convert.ConvertException;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.acme.json.helper.core.json.JsonFormatter;
 import com.alibaba.fastjson2.JSON;
 import tools.jackson.databind.MappingIterator;
@@ -19,7 +17,7 @@ public class YamlConverter implements DataFormatConverter {
     private static final JsonFormatter JSON_FORMATTER = new JsonFormatter();
     private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder().build();
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         return YAML_MAPPER.writeValueAsString(JSON.parse(json));
     }
 
@@ -39,8 +37,4 @@ public class YamlConverter implements DataFormatConverter {
         }
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.YAML.equals(any);
-    }
 }

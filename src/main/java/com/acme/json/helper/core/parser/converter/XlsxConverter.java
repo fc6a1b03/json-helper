@@ -1,7 +1,5 @@
 package com.acme.json.helper.core.parser.converter;
 
-import cn.hutool.core.convert.ConvertException;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -29,7 +27,7 @@ public class XlsxConverter extends TableStructure {
     }
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         try {
             // 原始数据集合
             final List<Map<String, String>> data = flattenJsonArray(normalizeToArray(json));
@@ -54,8 +52,4 @@ public class XlsxConverter extends TableStructure {
         }
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.XLSX.equals(any);
-    }
 }

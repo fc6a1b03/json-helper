@@ -50,7 +50,30 @@ import java.util.stream.IntStream;
  * @date 2025-01-26
  */
 public class ConvertAnyDialog extends DialogWrapper {
+    /**
+     * 列宽采样行数上限（大表格只采样前 N 行计算列宽）
+     */
     private static final int MAX_COLUMN_FIT_ROWS = 200;
+    /**
+     * 列宽像素上限
+     */
+    private static final int MAX_COLUMN_WIDTH = 200;
+    /**
+     * 对话框初始尺寸
+     */
+    private static final int DIALOG_SIZE = 800;
+    /**
+     * 导出按钮尺寸
+     */
+    private static final int EXPORT_BUTTON_SIZE = 35;
+    /**
+     * 导出文件的工作表名
+     */
+    private static final String EXPORT_SHEET_NAME = "Data";
+    /**
+     * 导出文件名模板
+     */
+    private static final String EXPORT_FILE_NAME_TEMPLATE = "export_%s.xlsx";
     /**
      * 加载语言资源文件
      */
@@ -90,7 +113,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         super.init();
         this.setModal(Boolean.FALSE);
         this.setResizable(Boolean.TRUE);
-        this.setSize(800, 800);
+        this.setSize(DIALOG_SIZE, DIALOG_SIZE);
         this.setTitle(BUNDLE.getString("dialog.convert.java.title"));
     }
 
@@ -140,7 +163,7 @@ public class ConvertAnyDialog extends DialogWrapper {
                         ((CardLayout) ConvertAnyDialog.this.cardPanel.getLayout()).show(ConvertAnyDialog.this.cardPanel, fileType.name());
                         // 重新加载
                         ConvertAnyDialog.this.cardPanel.revalidate();
-                    }, ModalityState.any());
+                    }, ModalityState.stateForComponent(ConvertAnyDialog.this.cardPanel));
                 }
             }.queue();
         }
@@ -160,7 +183,7 @@ public class ConvertAnyDialog extends DialogWrapper {
                         ConvertAnyDialog.this.cardPanel.add(panel, fileType.name());
                         ((CardLayout) ConvertAnyDialog.this.cardPanel.getLayout()).show(ConvertAnyDialog.this.cardPanel, fileType.name());
                         ConvertAnyDialog.this.cardPanel.revalidate();
-                    }, ModalityState.any());
+                    }, ModalityState.stateForComponent(ConvertAnyDialog.this.cardPanel));
                 }
             }.queue();
         }
@@ -180,19 +203,20 @@ public class ConvertAnyDialog extends DialogWrapper {
         final int spacing = table.getIntercellSpacing().width;
         final int sampledRowCount = Math.min(table.getRowCount(), MAX_COLUMN_FIT_ROWS);
         Collections.list(table.getColumnModel().getColumns()).forEach(column -> {
-            final int colIdx = header.getColumnModel().getColumnIndex(column.getIdentifier());
-            // 计算表头宽度 (不超过 200)
+            // 使用模型索引定位列（自动创建的 TableColumn identifier 为 null，getColumnIndex 会抛 IAE）
+            final int colIdx = column.getModelIndex();
+            // 计算表头宽度 (不超过上限)
             final int headerWidth = Math.min(
                     header.getDefaultRenderer()
                             .getTableCellRendererComponent(table, column.getHeaderValue(), Boolean.FALSE, Boolean.FALSE, -1, colIdx)
-                            .getPreferredSize().width, 200
+                            .getPreferredSize().width, MAX_COLUMN_WIDTH
             );
-            // 计算数据最大宽度 (不超过 200)
+            // 计算数据最大宽度 (不超过上限)
             final int dataMaxWidth = IntStream.range(0, sampledRowCount)
                     .map(row -> Math.min(
                             table.getCellRenderer(row, colIdx)
                                     .getTableCellRendererComponent(table, table.getValueAt(row, colIdx), Boolean.FALSE, Boolean.FALSE, row, colIdx)
-                                    .getPreferredSize().width, 200
+                                    .getPreferredSize().width, MAX_COLUMN_WIDTH
                     )).max().orElse(headerWidth);
             // 最终列宽 = max(表头, 数据) + 间距
             column.setPreferredWidth(Math.max(headerWidth, dataMaxWidth) + spacing);
@@ -255,7 +279,7 @@ public class ConvertAnyDialog extends DialogWrapper {
         button.setEnabled(Boolean.TRUE);
         button.setIcon(AllIcons.General.Export);
         button.addActionListener(_ -> this.exportXlsx(table));
-        button.setPreferredSize(new Dimension(35, 35));
+        button.setPreferredSize(new Dimension(EXPORT_BUTTON_SIZE, EXPORT_BUTTON_SIZE));
         return button;
     }
 
@@ -267,7 +291,7 @@ public class ConvertAnyDialog extends DialogWrapper {
      * @return {@link JRadioButton }
      */
     private JRadioButton createRadioButton(final AnyFile fileType, final ButtonGroup group) {
-        final JRadioButton radio = new JRadioButton(StrUtil.toCamelCase(fileType.name().toLowerCase()));
+        final JRadioButton radio = new JRadioButton(StrUtil.toCamelCase(fileType.name().toLowerCase(Locale.ROOT)));
         group.add(radio);
         if (fileType == AnyFile.CLASS) {
             radio.setSelected(Boolean.TRUE);
@@ -361,9 +385,9 @@ public class ConvertAnyDialog extends DialogWrapper {
             new Task.Backgroundable(this.project, BUNDLE.getString("export.xlsx.progress.msg"), Boolean.FALSE) {
                 @Override
                 public void run(@NotNull final ProgressIndicator indicator) {
-                    final String filePath = Convert.toStr(Paths.get(selectedDirectory.getPath(), "export_%s.xlsx".formatted(DatePattern.PURE_DATETIME_FORMATTER.format(LocalDateTime.now()))));
+                    final String filePath = Convert.toStr(Paths.get(selectedDirectory.getPath(), EXPORT_FILE_NAME_TEMPLATE.formatted(DatePattern.PURE_DATETIME_FORMATTER.format(LocalDateTime.now()))));
                     try (final Workbook workbook = new XSSFWorkbook()) {
-                        final Sheet sheet = workbook.createSheet("Data");
+                        final Sheet sheet = workbook.createSheet(EXPORT_SHEET_NAME);
                         final CellStyle cellStyle = workbook.createCellStyle();
                         cellStyle.setAlignment(HorizontalAlignment.CENTER);
                         final Row headerRow = sheet.createRow(0);

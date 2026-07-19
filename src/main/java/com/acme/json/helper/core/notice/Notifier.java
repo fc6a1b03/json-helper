@@ -6,6 +6,7 @@ import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,6 +21,14 @@ import javax.swing.*;
  */
 @SuppressWarnings("unused")
 public class Notifier {
+    /**
+     * 日志
+     */
+    private static final Logger LOG = Logger.getInstance(Notifier.class);
+    /**
+     * 通知组 ID（与 plugin.xml 中 notificationGroup 的 id 一致）
+     */
+    private static final String NOTIFICATION_GROUP_ID = "JSONGenerator.NotificationGroup";
     /**
      * 通知错误
      *
@@ -121,7 +130,7 @@ public class Notifier {
     private static void createBasicNotification(final String content, final NotificationType type, final Project project, final AnAction action) {
         try {
             final Notification notificationBuilder = NotificationGroupManager.getInstance()
-                    .getNotificationGroup("JSONGenerator.NotificationGroup")
+                    .getNotificationGroup(NOTIFICATION_GROUP_ID)
                     .createNotification(content, type)
                     .setIcon(AllIcons.Actions.IntentionBulb);
             if (action != null) {
@@ -129,35 +138,8 @@ public class Notifier {
             }
             notificationBuilder.notify(project);
         } catch (final Exception e) {
-            // 静默处理异常，避免影响主流程
-            logSilently("Notification failed: %s".formatted(e.getMessage()));
-        }
-    }
-
-    /**
-     * 静默日志记录<br/>
-     * 只在开发和调试阶段输出，避免污染生产环境日志
-     *
-     * @param message 消息
-     */
-    private static void logSilently(final String message) {
-        // 只有在开发或内部版本中才输出日志
-        if (isDevelopmentEnvironment()) {
-            System.err.printf("[NOTIFIER SILENT LOG] %s%n", message);
-        }
-    }
-
-    /**
-     * 判断是否为开发环境
-     *
-     * @return boolean
-     */
-    private static boolean isDevelopmentEnvironment() {
-        try {
-            final var application = ApplicationManager.getApplication();
-            return application != null && (application.isInternal() || application.isUnitTestMode());
-        } catch (final Exception e) {
-            return Boolean.FALSE;
+            // 静默处理异常，避免影响主流程（仅在启用 debug 日志时输出）
+            LOG.debug("Notification failed: %s".formatted(e.getMessage()));
         }
     }
 }

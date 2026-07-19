@@ -1,8 +1,6 @@
 package com.acme.json.helper.core.parser.converter;
 
-import cn.hutool.core.convert.ConvertException;
 import cn.hutool.core.lang.Opt;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -18,6 +16,11 @@ import java.util.LinkedHashSet;
  * @date 2025-04-21
  */
 public class CsvConverter extends TableStructure {
+    /**
+     * CSV 映射器（线程安全，构建一次全局复用）
+     */
+    private static final CsvMapper CSV_MAPPER = CsvMapper.builder().build();
+
     /**
      * 标准化为数组
      *
@@ -51,10 +54,10 @@ public class CsvConverter extends TableStructure {
     }
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         try {
             final JSONArray data = normalizeToArray(json);
-            return CsvMapper.builder().build().writer(
+            return CSV_MAPPER.writer(
                     CsvSchema.builder()
                             .addColumns(extractColumns(data))
                             .build()
@@ -67,8 +70,4 @@ public class CsvConverter extends TableStructure {
         }
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.CSV.equals(any);
-    }
 }

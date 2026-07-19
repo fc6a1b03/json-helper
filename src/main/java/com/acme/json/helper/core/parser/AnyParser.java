@@ -5,7 +5,10 @@ import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
+import dev.toonformat.jtoon.DecodeOptions;
+import dev.toonformat.jtoon.Delimiter;
 import dev.toonformat.jtoon.JToon;
+import dev.toonformat.jtoon.PathExpansion;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.InputSource;
 import tools.jackson.databind.JsonNode;
@@ -18,6 +21,7 @@ import java.io.StringReader;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -39,7 +43,34 @@ public class AnyParser {
     private static final Pattern PROPERTIES_PATTERN = Pattern.compile("^(?!\\s*(?:#|$)).+?=.+$", Pattern.MULTILINE);
     private static final Pattern YAML_MAPPING_PATTERN = Pattern.compile("(?m)^\\s*[^\\s:#][^\\r\\n]*:\\s*(?:[^\\r\\n]*)$");
     private static final Pattern TOON_HEADER_PATTERN = Pattern.compile("(?m)^\\s*(?:-\\s+)?(?:[^\\s\\[\\]\\r\\n][^\\[\\r\\n]*)?\\[(?:#?\\d+)(?:[\\t,][^\\]\\r\\n]*)?\\]\\s*:\\s*(?:.*)$");
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
     private static final ThreadLocal<DocumentBuilderFactory> XML_FACTORY = ThreadLocal.withInitial(AnyParser::createXmlFactory);
+    /**
+     * TOON 判定选项（与 ToonConverter 的 RELAXED 选项一致，保证识别与转换同源）
+     */
+    private static final DecodeOptions TOON_DETECT_OPTIONS = new DecodeOptions(2, Delimiter.TAB, Boolean.FALSE, PathExpansion.SAFE);
+    /**
+     * 无识别价值的空白 JSON 样本集合（去除全部空白字符后进行匹配）
+     */
+    private static final Set<String> SKIPPABLE_SAMPLES = Set.of(
+            "{", "{}", "[", "[]", "[\"]", "{\"}", "{\"\"}", "{\"\":}", "{\"\":\"}", "{\"\":\"\"}", "{\"\":\"\",}"
+    );
+    /**
+     * Base64 文本的最小有效长度
+     */
+    private static final int MIN_BASE64_LENGTH = 8;
+    /**
+     * 禁止 DOCTYPE 声明的 XML 特性
+     */
+    private static final String FEATURE_DISALLOW_DOCTYPE = "https://apache.org/xml/features/disallow-doctype-decl";
+    /**
+     * 禁止外部通用实体的 XML 特性
+     */
+    private static final String FEATURE_EXTERNAL_GENERAL_ENTITIES = "https://xml.org/sax/features/external-general-entities";
+    /**
+     * 禁止外部参数实体的 XML 特性
+     */
+    private static final String FEATURE_EXTERNAL_PARAMETER_ENTITIES = "https://xml.org/sax/features/external-parameter-entities";
     private static final List<DetectRule> DETECT_RULES = List.of(
             new DetectRule(AnyFile.XML, AnyParser::looksLikeXml, AnyParser::isXml),
             new DetectRule(AnyFile.TOON, AnyParser::looksLikeToon, AnyParser::isToon),
@@ -99,7 +130,7 @@ public class AnyParser {
     }
 
     private static boolean looksLikeBase64(final String input) {
-        return input.length() >= 8 && BASE64_PATTERN.matcher(input).matches();
+        return input.length() >= MIN_BASE64_LENGTH && BASE64_PATTERN.matcher(input).matches();
     }
 
     private static boolean looksLikeUrlParams(final String input) {
@@ -111,18 +142,7 @@ public class AnyParser {
     }
 
     private static boolean isSkippable(@NotNull final String text) {
-        final String normalized = StrUtil.emptyIfNull(text).trim().replaceAll("\\s+", "");
-        return "{".equals(normalized) ||
-                "{}".equals(normalized) ||
-                "[".equals(normalized) ||
-                "[]".equals(normalized) ||
-                "[\"]".equals(normalized) ||
-                "{\"}".equals(normalized) ||
-                "{\"\"}".equals(normalized) ||
-                "{\"\":}".equals(normalized) ||
-                "{\"\":\"}".equals(normalized) ||
-                "{\"\":\"\"}".equals(normalized) ||
-                "{\"\":\"\",}".equals(normalized);
+        return SKIPPABLE_SAMPLES.contains(WHITESPACE_PATTERN.matcher(StrUtil.emptyIfNull(text).trim()).replaceAll(""));
     }
 
     private static boolean isXml(final String input) {
@@ -137,7 +157,8 @@ public class AnyParser {
 
     private static boolean isToon(final String input) {
         try {
-            JToon.decode(input);
+            // 与 ToonConverter 使用一致的 TAB 分隔选项判定，避免"识别为 TOON 却无法转换"的割裂
+            JToon.decodeToJson(input, TOON_DETECT_OPTIONS);
             return Boolean.TRUE;
         } catch (final Exception e) {
             return Boolean.FALSE;
@@ -205,9 +226,9 @@ public class AnyParser {
         factory.setXIncludeAware(Boolean.FALSE);
         factory.setExpandEntityReferences(Boolean.FALSE);
         setFeatureQuietly(factory, XMLConstants.FEATURE_SECURE_PROCESSING, Boolean.TRUE);
-        setFeatureQuietly(factory, "https://apache.org/xml/features/disallow-doctype-decl", Boolean.TRUE);
-        setFeatureQuietly(factory, "https://xml.org/sax/features/external-general-entities", Boolean.FALSE);
-        setFeatureQuietly(factory, "https://xml.org/sax/features/external-parameter-entities", Boolean.FALSE);
+        setFeatureQuietly(factory, FEATURE_DISALLOW_DOCTYPE, Boolean.TRUE);
+        setFeatureQuietly(factory, FEATURE_EXTERNAL_GENERAL_ENTITIES, Boolean.FALSE);
+        setFeatureQuietly(factory, FEATURE_EXTERNAL_PARAMETER_ENTITIES, Boolean.FALSE);
         return factory;
     }
 

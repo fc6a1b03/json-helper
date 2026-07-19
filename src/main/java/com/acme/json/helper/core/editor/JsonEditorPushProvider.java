@@ -32,41 +32,45 @@ import static com.acme.json.helper.ui.MainToolWindowFactory.PROJECT_NAME;
 public class JsonEditorPushProvider {
     /**
      * 将内容推送到JSON编辑器
+     * <p>
+     * 统一调度到 EDT 执行（工具窗口查询、激活与内容填充均为 UI 操作）
      *
      * @param project 项目
      * @param content 内容
      */
     public static void pushToJsonEditor(final Project project, final String content) {
-        // 构建编辑器配置对象，关联当前项目及JSON辅助工具窗口
-        final EditorConfig config = new EditorConfig(
-                project,
-                Opt.ofNullable(project)
-                        // 获取项目关联的`Json Helper`工具窗口实例
-                        .map(p -> ToolWindowManager.getInstance(p).getToolWindow(PROJECT_NAME))
-                        .orElse(null)
-        );
-        // 工具窗口对象
-        final ToolWindow toolWindow = config.toolWindow();
-        if (Objects.isNull(toolWindow)) {
-            return;
-        }
-        // 工具窗口未打开则会自动打开
-        Opt.ofNullable(config.toolWindow())
-                .filter(item -> !item.isVisible())
-                .ifPresent(ToolWindow::show);
-        // 窗口激活时执行内容填充
-        toolWindow.activate(() -> {
-            // 编辑器内容更新策略：
-            // 1. 优先查找现有可用编辑器（如已打开的JSON预览标签页）
-            // 2. 存在则直接更新内容，否则创建新标签页并初始化内容
-            ApplicationManager.getApplication().invokeLater(() ->
-                    findReusableEditor(config).ifPresentOrElse(
-                            // 更新现有编辑器
-                            editor -> updateEditorContent(config, editor, content),
-                            // 新建标签页流程
-                            () -> createNewEditorTab(config, content)
-                    )
+        ApplicationManager.getApplication().invokeLater(() -> {
+            // 构建编辑器配置对象，关联当前项目及JSON辅助工具窗口
+            final EditorConfig config = new EditorConfig(
+                    project,
+                    Opt.ofNullable(project)
+                            // 获取项目关联的`Json Helper`工具窗口实例
+                            .map(p -> ToolWindowManager.getInstance(p).getToolWindow(PROJECT_NAME))
+                            .orElse(null)
             );
+            // 工具窗口对象
+            final ToolWindow toolWindow = config.toolWindow();
+            if (Objects.isNull(toolWindow)) {
+                return;
+            }
+            // 工具窗口未打开则会自动打开
+            Opt.ofNullable(config.toolWindow())
+                    .filter(item -> !item.isVisible())
+                    .ifPresent(ToolWindow::show);
+            // 窗口激活时执行内容填充
+            toolWindow.activate(() -> {
+                // 编辑器内容更新策略：
+                // 1. 优先查找现有可用编辑器（如已打开的JSON预览标签页）
+                // 2. 存在则直接更新内容，否则创建新标签页并初始化内容
+                ApplicationManager.getApplication().invokeLater(() ->
+                        findReusableEditor(config).ifPresentOrElse(
+                                // 更新现有编辑器
+                                editor -> updateEditorContent(config, editor, content),
+                                // 新建标签页流程
+                                () -> createNewEditorTab(config, content)
+                        )
+                );
+            });
         });
     }
 

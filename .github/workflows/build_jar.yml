@@ -19,7 +19,7 @@ jobs:
 
     env:
       JAVA_VERSION: "25"
-      GRADLE_VERSION: "9.4.1"
+      GRADLE_VERSION: "9.6.1"
 
     steps:
       - name: Checkout code
@@ -73,6 +73,9 @@ jobs:
 
       - name: Print build versions
         run: gradle printAllVersions --no-daemon --console=plain
+
+      - name: Run unit tests
+        run: gradle test --no-daemon --console=plain
 
       - name: Build plugin
         run: gradle clean buildPlugin verifyPluginStructure --no-daemon --console=plain

@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDirectory;
@@ -33,13 +34,13 @@ public class CreateClassFromJsonAction extends AnAction {
     public void update(@NotNull final AnActionEvent e) {
         e.getPresentation().setText(BUNDLE.getString("action.create.class.from.json.text"));
         e.getPresentation().setDescription(BUNDLE.getString("action.create.class.from.json.desc"));
-        e.getPresentation().setEnabledAndVisible(Objects.nonNull(e.getProject()) && Objects.nonNull(this.getPsiDirectory(e.getDataContext().getData(CommonDataKeys.PSI_ELEMENT))));
+        e.getPresentation().setEnabledAndVisible(Objects.nonNull(e.getProject()) && Objects.nonNull(this.getPsiDirectory(e.getData(CommonDataKeys.PSI_ELEMENT))));
     }
 
     @Override
     public void actionPerformed(@NotNull final AnActionEvent e) {
         final Project project = e.getProject();
-        final PsiDirectory targetDirectory = this.getPsiDirectory(e.getDataContext().getData(CommonDataKeys.PSI_ELEMENT));
+        final PsiDirectory targetDirectory = this.getPsiDirectory(e.getData(CommonDataKeys.PSI_ELEMENT));
         if (Objects.isNull(project) || Objects.isNull(targetDirectory)) {
             return;
         }
@@ -49,15 +50,18 @@ public class CreateClassFromJsonAction extends AnAction {
 
     /**
      * 获取PSI目录
+     * <p>
+     * 可能在 BGT（action update）被调用，PSI 读取必须持有读锁
+     *
      * @param selectedElement 选定元素
      * @return {@link PsiDirectory }
      */
     private PsiDirectory getPsiDirectory(final PsiElement selectedElement) {
-        return switch (selectedElement) {
+        return ReadAction.computeBlocking(() -> switch (selectedElement) {
             case final PsiDirectory directory -> directory;
             case final PsiFile file -> file.getContainingDirectory();
             case final PsiClass file -> file.getContainingFile().getContainingDirectory();
             case null, default -> null;
-        };
+        });
     }
 }

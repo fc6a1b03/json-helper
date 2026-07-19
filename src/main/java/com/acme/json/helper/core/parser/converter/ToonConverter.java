@@ -1,7 +1,5 @@
 package com.acme.json.helper.core.parser.converter;
 
-import cn.hutool.core.convert.ConvertException;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.acme.json.helper.core.json.JsonFormatter;
 import dev.toonformat.jtoon.DecodeOptions;
 import dev.toonformat.jtoon.Delimiter;
@@ -23,7 +21,7 @@ public class ToonConverter implements DataFormatConverter {
     private static final EncodeOptions ENCODE_OPTIONS = new EncodeOptions(2, Delimiter.TAB, Boolean.FALSE, KeyFolding.OFF, Integer.MAX_VALUE);
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         return JToon.encodeJson(json, ENCODE_OPTIONS);
     }
 
@@ -40,8 +38,4 @@ public class ToonConverter implements DataFormatConverter {
         }
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.TOON.equals(any);
-    }
 }

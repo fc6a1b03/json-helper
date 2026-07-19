@@ -1,8 +1,12 @@
-<idea-plugin package="com.acme.json.helper">
+<idea-plugin package="com.acme.json.helper" url="https://github.com/fc6a1b03/json-helper">
     <id>com.acme.json.helper</id>
     <name>Json Helper</name>
     <vendor email="asd1161575755@outlook.com" url="https://github.com/fc6a1b03/json-helper">拒绝者</vendor>
+
+    <!-- 插件描述：带预览图的富文本，patchPluginXml 不会覆盖（build.gradle 未设置 description） -->
     <description><![CDATA[
+        Json Helper is an IntelliJ IDEA plugin for editing, repairing, querying, and converting JSON,
+        with Java class generation, JsonPath querying, tree navigation, and multi-format export.
         <div style="max-width: 600px; margin: 0 auto; padding: 10px;">
             <a href="https://github.com/fc6a1b03/json-helper" style="color: #2B65EC; text-decoration: none; font-weight: 500;">Github</a>
             <p style="color: #666; line-height: 1.5; margin: 8px 0 12px;">这个工具支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON 数据，还支持通过 JsonPath 进行高效查询和处理</p>
@@ -23,13 +27,17 @@
             <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview3.gif" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
         </div>
     ]]></description>
+
+    <!-- 捆绑插件依赖（与 build.gradle 中 bundledPlugins 保持一致） -->
     <depends>org.toml.lang</depends>
     <depends>com.intellij.java</depends>
     <depends>com.intellij.gradle</depends>
     <depends>com.intellij.properties</depends>
     <depends>com.intellij.modules.json</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
+
     <resource-bundle>messages.JsonHelperBundle</resource-bundle>
+
     <actions>
         <!-- 代码截图 -->
         <action id="CodeScreenshot"
@@ -67,6 +75,7 @@
             <add-to-group group-id="GoToTargetEx"/>
         </action>
     </actions>
+
     <extensions defaultExtensionNs="com.intellij">
         <!-- 注册窗口 -->
         <toolWindow id="Json Helper"
@@ -89,5 +98,7 @@
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ProjectSearchFactory"/>
         <!-- HTTP搜索器 -->
         <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.HttpRequestSearchFactory"/>
+        <!-- 端口搜索器 -->
+        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.PortSearchFactory"/>
     </extensions>
 </idea-plugin>

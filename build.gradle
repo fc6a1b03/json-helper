@@ -4,8 +4,8 @@ plugins {
     id "org.jetbrains.intellij.platform"
 }
 
-group "com.acme"
-version "${gradle.ext.versions.ver}"
+group = "com.acme"
+version = "${gradle.ext.versions.ver}"
 
 repositories {
     mavenCentral()
@@ -16,10 +16,11 @@ repositories {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(gradle.ext.versions.jvm)
     }
 }
 
+// 统一 commons-lang3 版本，避免传递依赖引入旧版
 configurations.configureEach {
     resolutionStrategy {
         force "org.apache.commons:commons-lang3:${gradle.ext.versions.commonsLang3}"
@@ -27,7 +28,7 @@ configurations.configureEach {
 }
 
 dependencies {
-    /* BOM依赖 */
+    /* BOM 依赖 */
     implementation platform("cn.hutool:hutool-bom:${gradle.ext.versions.hutool}")
     implementation platform("tools.jackson:jackson-bom:${gradle.ext.versions.jackson}")
     /* IntelliJ 平台依赖 */
@@ -43,6 +44,9 @@ dependencies {
                 "com.intellij.modules.json",
                 "org.jetbrains.plugins.yaml"
         ])
+        /* JUnit 测试框架（版本表统一管理，走 JUnit BOM） */
+        // 注意：不使用 IGP testFramework——官方文档明确 JUnit5 类型存在已知问题
+        // （JUnit5 Test Framework refers to JUnit4），纯单元测试直接声明 JUnit 依赖
     }
     /* 业务依赖 */
     implementation "cn.hutool:hutool-core"
@@ -58,30 +62,23 @@ dependencies {
     implementation "org.apache.poi:poi-ooxml:${gradle.ext.versions.apachePoi}"
     implementation "io.github.haibiiin:json-repair:${gradle.ext.versions.jsonRepair}"
     implementation "com.alibaba.fastjson2:fastjson2:${gradle.ext.versions.fastjson2}"
+    /* 测试依赖（JUnit BOM 统一版本） */
+    testImplementation platform("org.junit:junit-bom:${gradle.ext.versions.junit}")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 intellijPlatform {
     pluginConfiguration {
-        id = "com.acme.json.helper"
-        name = "Json Helper"
+        // id、name、vendor、description 以 plugin.xml 为准；patchPluginXml 仅覆盖此处显式设置的字段
         version = project.version.toString()
-        ideaVersion {
-            sinceBuild = gradle.ext.versions.sinceBuild
-        }
-        vendor {
-            name = "拒绝者"
-            email = "asd1161575755@outlook.com"
-            url = "https://github.com/fc6a1b03/json-helper"
-        }
-        description = """
-            Json Helper is an IntelliJ IDEA plugin for editing, repairing, querying, and converting JSON,
-            with Java model generation, tree navigation, structure copy, JWT and path parsing, plus export
-            to XML, YAML, TOML, Properties, CSV, and XLSX.
-        """.stripIndent().trim()
+        // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
             <ul>
-                <li>Upgrade the build baseline to IntelliJ IDEA 2026.1, Java 25, and Gradle 9.4.1.</li>
-                <li>Harden editor, search, dialog, and screenshot flows to reduce UI freezes and host-side impact.</li>
+                <li>Upgrade the build baseline to IntelliJ IDEA 2026.2, Java 25, Gradle 9.6.1, and IntelliJ Platform Gradle Plugin 2.18.1.</li>
+                <li>Rebuild core flows against the 2026.2 platform APIs with a focus on responsiveness and low overhead.</li>
+                <li>Add port search to Search Everywhere and establish a JUnit 6 test suite over all core converters and parsers.</li>
+                <li>Upgrade Jackson, Hutool, Auth0 JWT, and Fastjson2 to their latest releases.</li>
             </ul>
         """.stripIndent()
     }
@@ -89,17 +86,15 @@ intellijPlatform {
 
 runIde {
     javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(gradle.ext.versions.jvm)
     }
     jvmArgs += [
             "-Xms1g",
             "-Xmx4g",
             "-XX:+UseZGC",
-            "-Xshare:off",
             "-Dfile.encoding=UTF-8",
             "-Duser.timezone=GMT+8",
             "-Didea.wsl.disable=true",
-            "-XX:ReduceInitialCardSetAllocation=10",
             "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
             "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
@@ -118,50 +113,65 @@ runIde {
     systemProperty "idea.plugins.developer.mode.debug", "true"
 }
 
+/* 版本打印任务：CI 与本地排查统一从这些任务读取版本信息 */
+/* 配置阶段捕获取值，避免执行阶段访问 project（Gradle 10 将禁止） */
 tasks.register("printVersion") {
+    final def projectVersion = project.version
     doLast {
-        println project.version
+        println projectVersion
     }
 }
 
 tasks.register("printJavaVersion") {
+    final def javaVersion = java.toolchain.languageVersion.get()
     doLast {
-        println java.toolchain.languageVersion.get()
+        println javaVersion
     }
 }
 
 tasks.register("printGradleVersion") {
+    final def gradleVersion = gradle.gradleVersion
     doLast {
-        println gradle.gradleVersion
+        println gradleVersion
     }
 }
 
 tasks.register("printIdeaVersion") {
+    final def ideaVersion = gradle.ext.versions.idea
     doLast {
-        println gradle.ext.versions.idea
+        println ideaVersion
     }
 }
 
 tasks.register("printAllVersions") {
+    final def projectVersion = project.version
+    final def ideaVersion = gradle.ext.versions.idea
+    final def javaVersion = java.toolchain.languageVersion.get()
+    final def gradleVersion = gradle.gradleVersion
     doLast {
-        println "Project Version: ${project.version}"
-        println "Platform Version: ${gradle.ext.versions.idea}"
-        println "Java Version: ${java.toolchain.languageVersion.get()}"
-        println "Gradle Version: ${gradle.gradleVersion}"
+        println "Project Version: ${projectVersion}"
+        println "Platform Version: ${ideaVersion}"
+        println "Java Version: ${javaVersion}"
+        println "Gradle Version: ${gradleVersion}"
     }
 }
 
-tasks.register("cleanIntellijPlatformSandbox", Delete) {
-    delete layout.projectDirectory.dir(".intellijPlatform/sandbox")
-}
-
-tasks.named("prepareSandbox").configure {
-    dependsOn("cleanIntellijPlatformSandbox")
+// IGP 2.13+ 内置 cleanSandbox 任务；prepareSandbox 前强制清理，保证沙箱目录干净
+tasks.named("prepareSandbox") {
+    dependsOn("cleanSandbox")
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 25
     options.encoding = "UTF-8"
-    options.incremental = true
-    options.compilerArgs += ["-Xdoclint:none"]
+    options.release = gradle.ext.versions.jvm
+    options.compilerArgs += ["-Xdoclint:none", "-Xlint:deprecation"]
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "failed", "skipped"
+        showStandardStreams = false
+        exceptionFormat = "full"
+    }
 }

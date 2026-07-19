@@ -2,7 +2,6 @@ package com.acme.json.helper.core.parser.converter;
 
 import cn.hutool.core.convert.ConvertException;
 import cn.hutool.core.lang.Opt;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -22,7 +21,7 @@ public interface DataFormatConverter {
      * @return {@link String }
      * @throws ConvertException 转换异常
      */
-    String convert(final String json) throws ConvertException;
+    String convert(final String json);
 
     /**
      * 反向转换
@@ -32,13 +31,6 @@ public interface DataFormatConverter {
     default String reverseConvert(final String any) {
         return any;
     }
-
-    /**
-     * 支持
-     * @param any 任何
-     * @return boolean
-     */
-    boolean support(final AnyFile any);
 
     /**
      * JSON到对象

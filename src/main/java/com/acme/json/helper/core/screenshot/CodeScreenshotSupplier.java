@@ -50,6 +50,14 @@ public class CodeScreenshotSupplier {
      * 图片内边距配置
      */
     private static final Insets IMAGE_PADDING = new Insets(16, 16, 16, 16);
+    /**
+     * 图片格式
+     */
+    private static final String PNG_FORMAT = "png";
+    /**
+     * 离屏渲染窗口坐标（移出可视区域，避免渲染窗口闪现）
+     */
+    private static final int OFFSCREEN_LOCATION = -9999;
 
     /**
      * 创建图像
@@ -196,14 +204,14 @@ public class CodeScreenshotSupplier {
     private static void saveToFile(final BufferedImage image, final Project project) {
         Opt.ofNullable(
                         FileChooserFactory.getInstance().createSaveFileDialog(
-                                        new FileSaverDescriptor(BUNDLE.getString("show.clipboard.file.saver.descriptor"), "", "png"), project
+                                        new FileSaverDescriptor(BUNDLE.getString("show.clipboard.file.saver.descriptor"), "", PNG_FORMAT), project
                                 ).save(buildDefaultFileName())
                 ).map(wrapper -> Objects.requireNonNull(wrapper).getFile())
                 .ifPresent(file -> CompletableFuture.runAsync(() -> {
                     try (final FileOutputStream fos = new FileOutputStream(file)) {
-                        ImageIO.write(image, "png", fos);
+                        ImageIO.write(image, PNG_FORMAT, fos);
                     } catch (final Exception t) {
-                        Notifier.notifyError("Failed to write file: %s".formatted(t.getClass().getSimpleName()), project);
+                        Notifier.notifyError(BUNDLE.getString("screenshot.save.failed").formatted(t.getClass().getSimpleName()), project);
                     }
                 }, AppExecutorUtil.getAppExecutorService()));
     }
@@ -275,7 +283,7 @@ public class CodeScreenshotSupplier {
             window = new JWindow();
             window.getContentPane().add(component);
             window.pack();
-            window.setLocation(-9999, -9999);
+            window.setLocation(OFFSCREEN_LOCATION, OFFSCREEN_LOCATION);
             window.setSize(component.getPreferredSize());
             window.setVisible(Boolean.TRUE);
             final BufferedImage image = new BufferedImage(component.getWidth(), component.getHeight(), BufferedImage.TYPE_INT_ARGB);

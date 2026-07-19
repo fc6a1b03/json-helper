@@ -19,6 +19,14 @@ import java.util.regex.Pattern;
  */
 public class PathParser {
     private static final Pattern WEB_PATH_PATTERN = Pattern.compile("^(https?|ftp)://[^\\s/$.?#].\\S*$");
+    /**
+     * file:// 协议前缀
+     */
+    private static final String FILE_PROTOCOL_PREFIX = "file://";
+    /**
+     * HTTP 请求超时（毫秒），防止慢响应挂起后台线程
+     */
+    private static final int HTTP_TIMEOUT_MS = 5000;
 
     /**
      * 将Path转换为JSON
@@ -58,14 +66,14 @@ public class PathParser {
      */
     private static boolean isLocalPath(final String path) {
         try {
-            return Opt.of(path.startsWith("file://")).filter(i -> i).orElseGet(() -> Paths.get(path).isAbsolute());
+            return Opt.of(path.startsWith(FILE_PROTOCOL_PREFIX)).filter(i -> i).orElseGet(() -> Paths.get(path).isAbsolute());
         } catch (final Exception ignored) {
             return Boolean.FALSE;
         }
     }
 
     /**
-     * 异步获取网络内容（HTTP GET请求）
+     * 获取网络内容（同步 HTTP GET，由调用方保证在后台线程执行）
      * <br/>
      * 特性：
      * - 自动关闭HTTP响应连接
@@ -77,7 +85,7 @@ public class PathParser {
      * @return CompletableFuture<String> 异步结果容器，成功时包含网页内容字符串，失败返回null
      */
     private static String fetchWebContent(final String url) {
-        try (final HttpResponse response = HttpUtil.createGet(url).execute()) {
+        try (final HttpResponse response = HttpUtil.createGet(url).timeout(HTTP_TIMEOUT_MS).execute()) {
             // 使用响应状态码过滤，仅`>= 200 && < 300`状态码视为成功
             return Opt.of(response.isOk()).filter(i -> i).map(_ -> response.body()).orElse("");
         } catch (final Exception ignored) {
@@ -86,7 +94,7 @@ public class PathParser {
     }
 
     /**
-     * 异步读取本地文件内容
+     * 读取本地文件内容（同步 IO，由调用方保证在后台线程执行）
      * <br/>
      * 特性：
      * - 自动处理文件编码（UTF-8）
@@ -101,7 +109,7 @@ public class PathParser {
     private static String readLocalFile(final String path) {
         try {
             // 双重路径处理逻辑：优先识别`file://`协议格式
-            return Opt.of(path.startsWith("file://")).filter(i -> i)
+            return Opt.of(path.startsWith(FILE_PROTOCOL_PREFIX)).filter(i -> i)
                     .map(_ -> FileUtil.readUtf8String(Paths.get(URI.create(path)).toFile()))
                     .orElseGet(() -> FileUtil.readUtf8String(path));
         } catch (final Exception ignored) {

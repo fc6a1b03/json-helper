@@ -8,13 +8,13 @@ import com.acme.json.helper.common.TemporalTypeHandler;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
-import kotlin.jvm.functions.Function0;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static java.util.Map.entry;
 
@@ -41,7 +41,7 @@ public class TypeResolver {
      * <li>short类型通过Convert.toShort进行范围适配</li>
      * <li>虽然String不是基本类型，但因其高频使用特性特别包含在此映射表中</li>
      */
-    private static final Map<String, Function0<Object>> DEFAULTS = Map.ofEntries(
+    private static final Map<String, Supplier<Object>> DEFAULTS = Map.ofEntries(
             // 原始类型
             entry("char", RandomUtil::randomChar),
             entry("boolean", RandomUtil::randomBoolean),
@@ -87,7 +87,7 @@ public class TypeResolver {
     public static Object getDefault(final PsiType type) {
         return Opt.ofNullable(type)
                 .map(t -> DEFAULTS.get(t.getCanonicalText()))
-                .map(Function0::invoke).orElse(null);
+                .map(Supplier::get).orElse(null);
     }
 
     /**

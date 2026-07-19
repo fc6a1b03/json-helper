@@ -105,16 +105,6 @@ public class TemporalTypeHandler {
         }
 
         /**
-         * 解析内置格式
-         *
-         * @param pattern 图案
-         * @return {@link DateTimeFormatter }
-         */
-        private static DateTimeFormatter parseBuiltinFormat(final String pattern) {
-            return BuiltinFormat.valueOf(pattern).formatter();
-        }
-
-        /**
          * 格式化程序
          *
          * @return {@link DateTimeFormatter }

@@ -1,7 +1,5 @@
 package com.acme.json.helper.core.parser.converter;
 
-import cn.hutool.core.convert.ConvertException;
-import com.acme.json.helper.common.enums.AnyFile;
 import com.alibaba.fastjson2.JSON;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.dataformat.javaprop.JavaPropsMapper;
@@ -18,7 +16,7 @@ public class PropertiesConverter implements DataFormatConverter {
     private static final JavaPropsMapper properties = new JavaPropsMapper();
 
     @Override
-    public String convert(final String json) throws ConvertException {
+    public String convert(final String json) {
         try {
             return properties.writeValueAsString(JSON.parse(json));
         } catch (final Exception e) {
@@ -31,8 +29,4 @@ public class PropertiesConverter implements DataFormatConverter {
         return JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValueAsString(properties.readTree(any));
     }
 
-    @Override
-    public boolean support(final AnyFile any) {
-        return AnyFile.PROPERTIES.equals(any);
-    }
 }

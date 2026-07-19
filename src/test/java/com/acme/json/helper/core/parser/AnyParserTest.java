@@ -87,18 +87,6 @@ class AnyParserTest {
         );
     }
 
-    @Test
-    @DisplayName("正常：TOON 样本被识别并转换为非空 JSON")
-    void convertsToonSample() {
-        // ToonConverter 强制 TAB 分隔符（ENCODE/DECODE_OPTIONS 均为 Delimiter.TAB），故样本使用 TAB 形态
-        final String result = AnyParser.convert("tags[3\t]: a\tb\tc");
-        assertAll(
-                () -> assertFalse(result.isEmpty(), "TOON 样本应转换出非空 JSON"),
-                () -> assertTrue(JSON.isValid(result), "转换结果应为合法 JSON"),
-                () -> assertTrue(result.contains("tags"), "转换结果应包含 TOON 数组名")
-        );
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"{\"a\":1}", "[1,2,3]", "123", "true"})
     @DisplayName("边界：合法 JSON 输入返回空串")

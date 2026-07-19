@@ -14,18 +14,18 @@
 | Artifact ID | `json-helper`                                   |
 | 插件 ID     | `com.acme.json.helper`                          |
 | 作者        | 拒绝者                                          |
-| 当前版本    | `0.14.5`（定义在 `settings.gradle` 的版本表中） |
+| 当前版本    | `0.14.9`（定义在 `settings.gradle` 的版本表中） |
 | 许可证      | MIT                                             |
 | GitHub      | https://github.com/fc6a1b03/json-helper         |
 
 **核心功能：**
 
-- JSON 编辑、格式化、压缩、修复、转义与反转义
+- JSON 编辑、格式化、压缩、转义与反转义
 - 从 JSON 生成 Java Class / Record
 - 从 Java 类字段复制 JSON 结构
 - JsonPath / JMESPath 查询与树形浏览
 - URL、JWT、本地文件路径、Web 路径自动解析为 JSON
-- JSON 与 XML / YAML / TOML / Properties / CSV / XLSX / TOON / Base64 / URL Params 互转
+- JSON 与 XML / YAML / TOML / Properties / CSV / XLSX / Base64 / URL Params 互转
 - Search Everywhere 集成：项目搜索、HTTP 请求文件搜索、端口搜索
 - 代码截图复制
 
@@ -49,8 +49,6 @@
 | Fastjson2            | 2.0.61 | JSON 解析与校验          |
 | Auth0 JWT            | 4.5.1  | JWT Token 解析           |
 | Apache POI           | 5.5.1  | Excel 文件支持           |
-| json-repair          | 0.4.0  | 畸形 JSON 修复           |
-| JToon                | 1.0.9  | TOON 格式处理            |
 | JUnit                | 6.1.2  | 单元测试（BOM，test 域） |
 | Apache Commons Lang3 | 3.20.0 | 通用工具（强制统一版本） |
 
@@ -70,7 +68,7 @@ src/main/
 ├── java/com/acme/json/helper/
 │   ├── common/                    # 通用工具类和枚举
 │   │   ├── enums/
-│   │   │   ├── AnyFile.java       # 支持的文件类型枚举 (JSON, XML, YAML, TOML, TOON, etc.)
+│   │   │   ├── AnyFile.java       # 支持的文件类型枚举 (JSON, XML, YAML, TOML, etc.)
 │   │   │   └── SupportedLanguages.java  # 支持的语言枚举
 │   │   ├── ActionEventCheck.java  # 动作事件检查（sealed interface Check）
 │   │   ├── Clipboard.java         # 剪贴板操作
@@ -88,7 +86,6 @@ src/main/
 │   │   │   ├── JsonEscaper.java         # JSON 转义
 │   │   │   ├── JsonUnEscaper.java       # JSON 反转义
 │   │   │   ├── JsonFormatter.java       # JSON 格式化
-│   │   │   ├── JsonRepairer.java        # JSON 修复
 │   │   │   └── JsonSearchEngine.java    # JSON 搜索引擎 (JsonPath/JMESPath)
 │   │   ├── notice/
 │   │   │   └── Notifier.java      # 线程安全通知系统
@@ -103,7 +100,7 @@ src/main/
 │   │   │   └── converter/         # 格式转换器（实现 DataFormatConverter）
 │   │   │       ├── DataFormatConverter.java  # 转换器接口
 │   │   │       ├── XmlConverter.java / YamlConverter.java / TomlConverter.java
-│   │   │       ├── CsvConverter.java / XlsxConverter.java / ToonConverter.java
+│   │   │       ├── CsvConverter.java / XlsxConverter.java
 │   │   │       ├── PropertiesConverter.java / Base64Converter.java / UrlParamsConverter.java
 │   │   │       ├── ClassConverter.java / RecordConverter.java
 │   │   │       └── JavaStructure.java / TableStructure.java  # 结构模型
@@ -209,7 +206,7 @@ build/distributions/json-helper-x.x.x.zip
    ```java
    public sealed interface JsonOperation permits
        JsonCompressor, JsonEscaper, JsonFormatter,
-       JsonSearchEngine, JsonUnEscaper, JsonRepairer { }
+       JsonSearchEngine, JsonUnEscaper { }
    ```
    新增实现类时必须同步修改 `permits` 子句。
 
@@ -280,7 +277,7 @@ String text = BUNDLE.getString("key.name");
 1. `./gradlew runIde` 启动带插件的沙箱 IDE
 2. 测试编辑器右键菜单中的所有动作（复制 JSON、推送面板、代码截图等）
 3. 验证 "Json Helper" 工具窗口功能（编辑、格式化、查询、树形浏览）
-4. 检查各种格式转换（XML/YAML/TOML/CSV/XLSX/TOON 等）
+4. 检查各种格式转换（XML/YAML/TOML/CSV/XLSX 等）
 5. 提交前至少跑通 `./gradlew clean buildPlugin verifyPluginProjectConfiguration verifyPluginStructure`
 
 ## 部署 / CI-CD
@@ -376,12 +373,11 @@ public sealed interface Check permits Check.Failed, Check.Success {
 1. **本地数据处理**: 所有 JSON、Java 代码处理均在本地完成，无外部数据传输
 2. **HTTP 请求搜索**: 仅扫描本地项目文件，不发起真实请求
 3. **剪贴板操作**: 需用户显式触发
-4. **文件操作**: 处理前校验 JSON 格式；畸形输入走 `JsonRepairer` 修复路径
+4. **文件操作**: 处理前校验 JSON 格式
 
 ## 相关文档
 
 - [README.md](README.md) - 面向用户的项目说明（含预览图）
-- [doc/2026.1-java25-audit.md](doc/2026.1-java25-audit.md) - 2026.1 / Java 25 基线审计
 - [IntelliJ Platform Gradle Plugin](https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html)
 - [IntelliJ Platform SDK](https://plugins.jetbrains.com/docs/intellij/welcome.html)
 - [API Changes List 2026](https://plugins.jetbrains.com/docs/intellij/api-changes-list-2026.html)

@@ -370,9 +370,6 @@ public class MainPanel {
         // 去转义菜单
         this.addJsonAction(group, "json.un.escaping.json", "json.un.escaping.json.desc",
                 AllIcons.Actions.SearchNewLine, new JsonUnEscaper(), redoButton, undoButton, editor);
-        // 修复菜单
-        this.addJsonAction(group, "json.repair.json", "json.repair.json.desc",
-                AllIcons.Toolwindows.ToolWindowBuild, new JsonRepairer(), redoButton, undoButton, editor);
         // 分隔符
         group.addSeparator();
         // 差异对比菜单

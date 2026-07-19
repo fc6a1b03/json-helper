@@ -24,7 +24,10 @@ import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.util.io.FileUtilRt;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.Icon;
+import javax.swing.filechooser.FileSystemView;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.FileVisitOption;
@@ -45,6 +48,7 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.SequencedCollection;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,6 +69,10 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
      * Git 仓库缓存容量（LRU 策略，超出后淘汰最久未访问项）
      */
     private static final int GIT_CACHE_CAPACITY = 20;
+    /**
+     * 应用图标缓存（按可执行路径缓存系统提取图标，避免重复系统调用）
+     */
+    private static final Map<String, Icon> APP_ICON_CACHE = new ConcurrentHashMap<>();
     /**
      * HTTP 文件扫描最大目录深度
      */
@@ -140,6 +148,33 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
 
     public static SearchCache getInstance(@NotNull final Project project) {
         return project.getService(SearchCache.class);
+    }
+
+    /**
+     * 解析应用图标（提取可执行文件内嵌的系统图标，失败时回退默认图标）
+     * <p>
+     * 在后台线程加载端口数据时调用，按可执行路径缓存，渲染层零成本
+     *
+     * @param path 应用路径或完整命令行
+     * @return 应用图标
+     */
+    private static Icon resolveAppIcon(final String path) {
+        // 命令行形态取首段作为可执行路径
+        final String executable = StrUtil.isEmpty(path) ? "" : path.split(" ")[0];
+        if (executable.isEmpty()) {
+            return AllIcons.Actions.Execute;
+        }
+        return APP_ICON_CACHE.computeIfAbsent(executable, key -> {
+            try {
+                if (!new File(key).exists()) {
+                    return AllIcons.Actions.Execute;
+                }
+                final Icon icon = FileSystemView.getFileSystemView().getSystemIcon(new File(key));
+                return Objects.nonNull(icon) ? icon : AllIcons.Actions.Execute;
+            } catch (final Exception ignored) {
+                return AllIcons.Actions.Execute;
+            }
+        });
     }
 
     /**
@@ -543,7 +578,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
         for (final ProcessInfo info : processMap.values()) {
             final String name = pidToName.getOrDefault(info.pid(), BUNDLE.getString("search.pid.prefix") + info.pid());
             final String path = pidToPath.getOrDefault(info.pid(), "");
-            result.add(new PortSearchItem(info.port(), info.pid(), name, path, AllIcons.Actions.Execute));
+            result.add(new PortSearchItem(info.port(), info.pid(), name, path, resolveAppIcon(path)));
         }
     }
 
@@ -659,7 +694,7 @@ public final class SearchCache implements Supplier<SequencedCollection<ProjectNa
         for (final ProcessInfo info : processMap.values()) {
             final String cmd = pidToCmd.getOrDefault(info.pid(), info.name());
             result.add(
-                    new PortSearchItem(info.port(), info.pid(), StrUtil.isNotEmpty(info.name()) ? info.name() : BUNDLE.getString("search.unknown.app"), cmd, AllIcons.Actions.Execute)
+                    new PortSearchItem(info.port(), info.pid(), StrUtil.isNotEmpty(info.name()) ? info.name() : BUNDLE.getString("search.unknown.app"), cmd, resolveAppIcon(cmd))
             );
         }
     }

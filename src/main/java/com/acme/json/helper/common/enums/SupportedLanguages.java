@@ -20,7 +20,6 @@ import java.util.Map;
  */
 public enum SupportedLanguages {
     YAML(YAMLFileType.YML, AnyFile.YAML),
-    TOON(YAMLFileType.YML, AnyFile.TOON),
     XML(XmlFileType.INSTANCE, AnyFile.XML),
     TOML(TomlFileType.INSTANCE, AnyFile.TOML),
     JSON(JsonFileType.INSTANCE, AnyFile.JSON),

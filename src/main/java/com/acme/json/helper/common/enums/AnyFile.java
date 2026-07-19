@@ -50,10 +50,6 @@ public enum AnyFile {
      */
     XLSX,
     /**
-     * 面向令牌的对象表示法
-     */
-    TOON,
-    /**
      * Base64编码
      */
     BASE64,
@@ -70,7 +66,7 @@ public enum AnyFile {
     public String extension() {
         return switch (this) {
             case CLASS, RECORD -> "java";
-            case JSON, XML, YAML, TOML, CSV, XLSX, TOON, PROPERTIES -> this.name().toLowerCase(Locale.ROOT);
+            case JSON, XML, YAML, TOML, CSV, XLSX, PROPERTIES -> this.name().toLowerCase(Locale.ROOT);
             default -> "txt";
         };
     }

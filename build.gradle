@@ -58,9 +58,7 @@ dependencies {
     implementation "tools.jackson.dataformat:jackson-dataformat-yaml"
     implementation "tools.jackson.dataformat:jackson-dataformat-properties"
     implementation "com.auth0:java-jwt:${gradle.ext.versions.auth0}"
-    implementation "dev.toonformat:jtoon:${gradle.ext.versions.toon}"
     implementation "org.apache.poi:poi-ooxml:${gradle.ext.versions.apachePoi}"
-    implementation "io.github.haibiiin:json-repair:${gradle.ext.versions.jsonRepair}"
     implementation "com.alibaba.fastjson2:fastjson2:${gradle.ext.versions.fastjson2}"
     /* 测试依赖（JUnit BOM 统一版本） */
     testImplementation platform("org.junit:junit-bom:${gradle.ext.versions.junit}")
@@ -77,7 +75,9 @@ intellijPlatform {
             <ul>
                 <li>Upgrade the build baseline to IntelliJ IDEA 2026.2, Java 25, Gradle 9.6.1, and IntelliJ Platform Gradle Plugin 2.18.1.</li>
                 <li>Rebuild core flows against the 2026.2 platform APIs with a focus on responsiveness and low overhead.</li>
-                <li>Add port search to Search Everywhere and establish a JUnit 6 test suite over all core converters and parsers.</li>
+                <li>Enhance port search with well-known service detection, real process icons, and one-click process termination.</li>
+                <li>Remove TOON and broken-JSON repair features to keep the tool focused.</li>
+                <li>Establish a JUnit 6 test suite over all core converters and parsers.</li>
                 <li>Upgrade Jackson, Hutool, Auth0 JWT, and Fastjson2 to their latest releases.</li>
             </ul>
         """.stripIndent()

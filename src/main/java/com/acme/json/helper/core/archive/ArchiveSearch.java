@@ -58,14 +58,6 @@ public record ArchiveSearch(Project project) implements WeightedSearchEverywhere
      */
     private static final int MIN_CONTENT_PATTERN_LENGTH = 3;
     /**
-     * 单条目参与内容匹配的最大体积（字节）
-     */
-    private static final long MAX_CONTENT_SCAN_SIZE = 256L * 1024;
-    /**
-     * 单次搜索全局内容扫描条目数上限（超出后仅按条目名匹配）
-     */
-    private static final int MAX_SCAN_ENTRIES = 3000;
-    /**
      * 参与内容匹配的文本类条目扩展名
      */
     static final Set<String> TEXT_ENTRY_EXTENSIONS = Set.of(
@@ -73,7 +65,7 @@ public record ArchiveSearch(Project project) implements WeightedSearchEverywhere
             "java", "kt", "kts", "groovy", "scala", "py", "js", "ts", "jsx", "tsx", "vue",
             "html", "htm", "css", "scss", "less", "sql", "sh", "bat", "ps1", "cmd",
             "c", "h", "cpp", "hpp", "cs", "go", "rs", "rb", "php", "swift", "lua",
-            "ini", "conf", "cfg", "log", "gradle", "env", "gitignore"
+            "ini", "conf", "cfg", "log", "gradle", "env", "gitignore", "mf"
     );
 
     /**

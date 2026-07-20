@@ -69,7 +69,8 @@ public class PluginSettings implements Configurable {
                 || component.getPortSearch() != settings.portSearchEnabled
                 || component.getProjectSearch() != settings.projectSearchEnabled
                 || component.getHttpSearch() != settings.httpSearchEnabled
-                || component.getArchiveNode() != settings.archiveNodeEnabled;
+                || component.getArchiveNode() != settings.archiveNodeEnabled
+                || component.getRainbowBracketPair() != settings.rainbowBracketPairEnabled;
     }
 
     @Override
@@ -85,6 +86,7 @@ public class PluginSettings implements Configurable {
         settings.projectSearchEnabled = component.getProjectSearch();
         settings.httpSearchEnabled = component.getHttpSearch();
         settings.archiveNodeEnabled = component.getArchiveNode();
+        settings.rainbowBracketPairEnabled = component.getRainbowBracketPair();
         // 压缩包节点开关变更后刷新全部打开项目的项目树（平台对 TreeStructureProvider 结果有节点缓存，需主动刷新）
         if (previousArchiveNodeEnabled != settings.archiveNodeEnabled) {
             for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
@@ -102,6 +104,7 @@ public class PluginSettings implements Configurable {
         component.setProjectSearch(settings.projectSearchEnabled);
         component.setHttpSearch(settings.httpSearchEnabled);
         component.setArchiveNode(settings.archiveNodeEnabled);
+        component.setRainbowBracketPair(settings.rainbowBracketPairEnabled);
     }
 
     @Override
@@ -124,12 +127,14 @@ public class PluginSettings implements Configurable {
         private final JBCheckBox httpSearch = new JBCheckBox(BUNDLE.getString("http.search.group.name"));
         private final JBCheckBox portSearch = new JBCheckBox(BUNDLE.getString("port.search.group.name"));
         private final JBCheckBox archiveNode = new JBCheckBox(BUNDLE.getString("plugin.setting.archive.node"));
+        private final JBCheckBox rainbowBracketPair = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.bracket.pair"));
 
         public PluginSettingsComponent() {
             mainPanel = FormBuilder.createFormBuilder()
                     .addComponent(of(BUNDLE.getString("plugin.setting.title1"), copyJson, jsonHelper), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title2"), projectSearch, httpSearch, portSearch), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title3"), archiveNode), 1)
+                    .addComponent(of(BUNDLE.getString("plugin.setting.title4"), rainbowBracketPair), 1)
                     .addComponentFillVertically(new JPanel(), 0)
                     .getPanel();
         }
@@ -210,6 +215,14 @@ public class PluginSettings implements Configurable {
 
         public void setArchiveNode(final boolean status) {
             archiveNode.setSelected(status);
+        }
+
+        public boolean getRainbowBracketPair() {
+            return rainbowBracketPair.isSelected();
+        }
+
+        public void setRainbowBracketPair(final boolean status) {
+            rainbowBracketPair.setSelected(status);
         }
     }
 }

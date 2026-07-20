@@ -1,6 +1,8 @@
 package com.acme.json.helper.core.archive;
 
 import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.io.FileUtil;
+import com.intellij.openapi.vfs.JarFileSystem;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -126,6 +128,19 @@ public enum ArchiveFormats {
      */
     public boolean isTarFamily() {
         return this == TAR || this == TAR_GZ || this == TAR_BZ2 || this == TAR_XZ;
+    }
+
+    /**
+     * 拼接 zip 系条目在 JarFileSystem 中的 VFS 路径（系统无关路径 + 分隔符 + 条目路径）
+     * <p>
+     * 打开器、树节点、内容索引三处共用的路径规则，统一在此维护
+     *
+     * @param archiveFile 压缩包文件
+     * @param entryPath   条目路径（空串表示压缩包根）
+     * @return VFS 路径
+     */
+    public static String zipEntryVfsPath(final File archiveFile, final String entryPath) {
+        return FileUtil.toSystemIndependentName(archiveFile.getAbsolutePath()) + JarFileSystem.JAR_SEPARATOR + entryPath;
     }
 
     /**

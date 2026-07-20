@@ -74,14 +74,11 @@ intellijPlatform {
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
             <ul>
-                <li>Upgrade the build baseline to IntelliJ IDEA 2026.2, Java 25, Gradle 9.6.1, and IntelliJ Platform Gradle Plugin 2.18.1.</li>
-                <li>Rebuild core flows against the 2026.2 platform APIs with a focus on responsiveness and low overhead.</li>
-                <li>Enhance port search with well-known service detection, real process icons, and one-click process termination.</li>
-                <li>Add settings switches for port, project, and HTTP search contributors.</li>
-                <li>Browse archives (zip / 7z / jar / tar) as expandable folders in the project tree, search their entries in Search Everywhere, and open entries read-only.</li>
-                <li>Remove TOON and broken-JSON repair features to keep the tool focused.</li>
-                <li>Establish a JUnit 6 test suite over all core converters and parsers.</li>
-                <li>Upgrade Jackson, Hutool, Auth0 JWT, and Fastjson2 to their latest releases.</li>
+                <li>修复压缩包内 .class 条目打开仅显示反编译桩的问题：条目改经平台 JarFileSystem（zip 系）或临时真实文件（7z/tar 系）打开，获得完整 Fernflower 反编译。</li>
+                <li>压缩包内容搜索支持 zip 系 .class 反编译文本（trigram 索引），命中行号与打开定位一致；内容索引改为后台异步构建，不再被输入取消打断。</li>
+                <li>修复 MANIFEST.MF 等包内文本内容无法被搜索命中的问题。</li>
+                <li>搜索结果打开条目时项目树自动展开压缩包并选中对应节点，编辑器内精确定位命中行。</li>
+                <li>端口搜索结束进程改为两阶段点击确认（防误触），同进程端口项联动提示，结束后自动刷新列表。</li>
             </ul>
         """.stripIndent()
     }

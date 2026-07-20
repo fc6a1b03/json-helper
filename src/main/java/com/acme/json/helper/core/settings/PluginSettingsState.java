@@ -34,6 +34,10 @@ public class PluginSettingsState implements PersistentStateComponent<PluginSetti
     public boolean archiveNodeEnabled = Boolean.TRUE;
     /** 彩虹括号配对高亮开关（默认开启） */
     public boolean rainbowBracketPairEnabled = Boolean.TRUE;
+    /** 颜色字面量 Gutter 色块高亮开关（默认开启） */
+    public boolean colorHighlighterEnabled = Boolean.TRUE;
+    /** 彩虹变量高亮开关（默认开启） */
+    public boolean rainbowVariableEnabled = Boolean.TRUE;
 
     @NotNull
     public static PluginSettingsState getInstance() {

@@ -74,11 +74,10 @@ intellijPlatform {
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
             <ul>
-                <li>修复压缩包内 .class 条目打开仅显示反编译桩的问题：条目改经平台 JarFileSystem（zip 系）或临时真实文件（7z/tar 系）打开，获得完整 Fernflower 反编译。</li>
-                <li>压缩包内容搜索支持 zip 系 .class 反编译文本（trigram 索引），命中行号与打开定位一致；内容索引改为后台异步构建，不再被输入取消打断。</li>
-                <li>修复 MANIFEST.MF 等包内文本内容无法被搜索命中的问题。</li>
-                <li>搜索结果打开条目时项目树自动展开压缩包并选中对应节点，编辑器内精确定位命中行。</li>
-                <li>端口搜索结束进程改为两阶段点击确认（防误触），同进程端口项联动提示，结束后自动刷新列表。</li>
+                <li>新增彩虹变量高亮：Java 方法内参数与局部变量按名稳定着色，支持浅色/深色主题双变体，设置面板可开关。</li>
+                <li>新增颜色字面量高亮：识别 #RGB/#RRGGBB(#AA)/rgb()/rgba() 颜色字面量并在行号栏显示色块，点击色块弹出调色板修改并回写。</li>
+                <li>两个功能均后台线程分析、300ms 防抖、EDT 仅做绘制，大文件自动跳过，不影响 IDE 流畅度。</li>
+                <li>修复索引未就绪时变量着色触发 IndexNotReadyException 的问题（改走 smart mode 排队执行）。</li>
             </ul>
         """.stripIndent()
     }

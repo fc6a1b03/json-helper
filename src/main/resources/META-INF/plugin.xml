@@ -108,6 +108,10 @@
         <iconProvider implementation="com.acme.json.helper.core.archive.ArchiveIconProvider"/>
         <!-- 彩虹括号配对高亮：编辑器工厂监听器 -->
         <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowBracketPairEditorFactoryListener"/>
+        <!-- 彩虹变量高亮：编辑器工厂监听器 -->
+        <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowVariableEditorFactoryListener"/>
+        <!-- 颜色字面量色块高亮：编辑器工厂监听器 -->
+        <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.ColorHighlighterEditorFactoryListener"/>
         <!-- 彩虹括号配对高亮：默认颜色 -->
         <additionalTextAttributes scheme="Default" file="colorSchemes/RainbowBracketPairDefault.xml"/>
         <additionalTextAttributes scheme="Darcula" file="colorSchemes/RainbowBracketPairDefault.xml"/>

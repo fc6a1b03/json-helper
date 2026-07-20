@@ -74,14 +74,12 @@ intellijPlatform {
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
             <ul>
-                <li>Upgrade the build baseline to IntelliJ IDEA 2026.2, Java 25, Gradle 9.6.1, and IntelliJ Platform Gradle Plugin 2.18.1.</li>
-                <li>Rebuild core flows against the 2026.2 platform APIs with a focus on responsiveness and low overhead.</li>
-                <li>Enhance port search with well-known service detection, real process icons, and one-click process termination.</li>
-                <li>Add settings switches for port, project, and HTTP search contributors.</li>
-                <li>Browse archives (zip / 7z / jar / tar) as expandable folders in the project tree, search their entries in Search Everywhere, and open entries read-only.</li>
-                <li>Remove TOON and broken-JSON repair features to keep the tool focused.</li>
-                <li>Establish a JUnit 6 test suite over all core converters and parsers.</li>
-                <li>Upgrade Jackson, Hutool, Auth0 JWT, and Fastjson2 to their latest releases.</li>
+                <li>新增彩虹括号配对高亮：在编辑器中实时高亮光标附近的 {}、[]、() 配对括号，支持在 Color Scheme 中自定义颜色。</li>
+                <li>颜色设置页命名为“括号配色”，提供花括号、方括号、圆括号三类颜色键。</li>
+                <li>高亮刷新增加 50ms Alarm 防抖与 lastPair 缓存，避免光标在同一括号对内移动时重复创建 RangeHighlighter。</li>
+                <li>修复颜色设置页预览因 SyntaxHighlighter 为空导致的 NullPointerException。</li>
+                <li>加强 EditorHighlighter 与 TextAttributes 的 null 防护，避免极端边界下抛出空指针异常。</li>
+                <li>释放逻辑统一走 ProjectDisposableService，消除 Alarm 无参构造 deprecation 警告与潜在的监听器泄漏。</li>
             </ul>
         """.stripIndent()
     }

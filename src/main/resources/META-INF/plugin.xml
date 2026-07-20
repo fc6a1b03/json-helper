@@ -106,5 +106,12 @@
         <treeStructureProvider implementation="com.acme.json.helper.core.archive.ArchiveTreeProvider"/>
         <!-- 项目树压缩包图标 -->
         <iconProvider implementation="com.acme.json.helper.core.archive.ArchiveIconProvider"/>
+        <!-- 彩虹括号配对高亮：编辑器工厂监听器 -->
+        <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowBracketPairEditorFactoryListener"/>
+        <!-- 彩虹括号配对高亮：默认颜色 -->
+        <additionalTextAttributes scheme="Default" file="colorSchemes/RainbowBracketPairDefault.xml"/>
+        <additionalTextAttributes scheme="Darcula" file="colorSchemes/RainbowBracketPairDefault.xml"/>
+        <!-- 彩虹括号配对高亮：颜色设置页 -->
+        <colorSettingsPage implementation="com.acme.json.helper.core.rainbow.RainbowBracketPairColorSettingsPage"/>
     </extensions>
 </idea-plugin>

@@ -70,7 +70,9 @@ public class PluginSettings implements Configurable {
                 || component.getProjectSearch() != settings.projectSearchEnabled
                 || component.getHttpSearch() != settings.httpSearchEnabled
                 || component.getArchiveNode() != settings.archiveNodeEnabled
-                || component.getRainbowBracketPair() != settings.rainbowBracketPairEnabled;
+                || component.getRainbowBracketPair() != settings.rainbowBracketPairEnabled
+                || component.getRainbowVariable() != settings.rainbowVariableEnabled
+                || component.getColorHighlighter() != settings.colorHighlighterEnabled;
     }
 
     @Override
@@ -87,6 +89,8 @@ public class PluginSettings implements Configurable {
         settings.httpSearchEnabled = component.getHttpSearch();
         settings.archiveNodeEnabled = component.getArchiveNode();
         settings.rainbowBracketPairEnabled = component.getRainbowBracketPair();
+        settings.rainbowVariableEnabled = component.getRainbowVariable();
+        settings.colorHighlighterEnabled = component.getColorHighlighter();
         // 压缩包节点开关变更后刷新全部打开项目的项目树（平台对 TreeStructureProvider 结果有节点缓存，需主动刷新）
         if (previousArchiveNodeEnabled != settings.archiveNodeEnabled) {
             for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
@@ -105,6 +109,8 @@ public class PluginSettings implements Configurable {
         component.setHttpSearch(settings.httpSearchEnabled);
         component.setArchiveNode(settings.archiveNodeEnabled);
         component.setRainbowBracketPair(settings.rainbowBracketPairEnabled);
+        component.setRainbowVariable(settings.rainbowVariableEnabled);
+        component.setColorHighlighter(settings.colorHighlighterEnabled);
     }
 
     @Override
@@ -128,13 +134,15 @@ public class PluginSettings implements Configurable {
         private final JBCheckBox portSearch = new JBCheckBox(BUNDLE.getString("port.search.group.name"));
         private final JBCheckBox archiveNode = new JBCheckBox(BUNDLE.getString("plugin.setting.archive.node"));
         private final JBCheckBox rainbowBracketPair = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.bracket.pair"));
+        private final JBCheckBox rainbowVariable = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.variable"));
+        private final JBCheckBox colorHighlighter = new JBCheckBox(BUNDLE.getString("plugin.setting.color.highlighter"));
 
         public PluginSettingsComponent() {
             mainPanel = FormBuilder.createFormBuilder()
                     .addComponent(of(BUNDLE.getString("plugin.setting.title1"), copyJson, jsonHelper), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title2"), projectSearch, httpSearch, portSearch), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title3"), archiveNode), 1)
-                    .addComponent(of(BUNDLE.getString("plugin.setting.title4"), rainbowBracketPair), 1)
+                    .addComponent(of(BUNDLE.getString("plugin.setting.title4"), rainbowBracketPair, rainbowVariable, colorHighlighter), 1)
                     .addComponentFillVertically(new JPanel(), 0)
                     .getPanel();
         }
@@ -223,6 +231,22 @@ public class PluginSettings implements Configurable {
 
         public void setRainbowBracketPair(final boolean status) {
             rainbowBracketPair.setSelected(status);
+        }
+
+        public boolean getRainbowVariable() {
+            return rainbowVariable.isSelected();
+        }
+
+        public void setRainbowVariable(final boolean status) {
+            rainbowVariable.setSelected(status);
+        }
+
+        public boolean getColorHighlighter() {
+            return colorHighlighter.isSelected();
+        }
+
+        public void setColorHighlighter(final boolean status) {
+            colorHighlighter.setSelected(status);
         }
     }
 }

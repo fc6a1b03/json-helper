@@ -7,6 +7,7 @@ import com.acme.json.helper.core.search.item.PortSearchItem;
 import com.acme.json.helper.core.settings.PluginSettings;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManager;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -18,16 +19,18 @@ import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.Processor;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
  * 端口搜索实现<br/>
- * 用于搜索本地运行的端口进程，支持点击杀死进程
+ * 用于搜索本地运行的端口进程，两阶段点击确认后杀死进程（防误触）
  *
  * @param project 项目信息
  * @author 拒绝者
@@ -77,7 +80,24 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
     /**
      * 杀进程命令超时（毫秒），防止系统命令挂起导致后台线程永久阻塞
      */
-    private static final long PROCESS_KILL_TIMEOUT_MS = 3000;
+    private static final long PROCESS_KILL_TIMEOUT_MS = 3000L;
+    /**
+     * 确认态有效时长（毫秒），超时后需重新进入确认态（防残留误导）
+     */
+    private static final long CONFIRM_TIMEOUT_MS = 5000L;
+    /**
+     * 待确认的进程 PID（-1 表示无确认态；首次点击进入确认态，确认态内二次点击才执行结束。
+     * 按进程而非端口：同进程的所有端口项一同进入确认态，与"按 PID 结束整个进程"语义一致）
+     */
+    private static volatile long pendingConfirmPid = -1L;
+    /**
+     * 确认态进入时间（毫秒时间戳）
+     */
+    private static volatile long pendingConfirmAt;
+    /**
+     * 结束后延迟刷新时长（毫秒；进程退出与端口释放存在延迟，立即刷新仍会列出失效项）
+     */
+    private static final long KILLED_REFRESH_DELAY_MS = 1000L;
     /**
      * 端口号精确匹配权重
      */
@@ -198,19 +218,62 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
     }
 
     /**
-     * 处理选中的端口进程项
+     * 处理选中的端口进程项（两阶段点击确认，防误触）
      * <p>
-     * 点击后杀死对应的进程
+     * 首次点击：该项进入确认态，行内显示红色"再次点击确认结束"提示，搜索面板保持打开；
+     * 确认态内二次点击同一项：执行结束并刷新面板剔除失效项；
+     * 点击其他项或超时自动退出确认态
      *
      * @param item       要处理的端口进程项
      * @param modifiers  键盘修饰符
      * @param searchText 搜索文本
-     * @return 始终返回 true
+     * @return 始终返回 false（保持搜索窗口打开）
      */
     @Override
     public boolean processSelectedItem(@NotNull final PortSearchItem item, final int modifiers, @NotNull final String searchText) {
-        killProcess(item.pid(), item.appName());
-        return Boolean.TRUE;
+        if (isPendingConfirm(item)) {
+            // 确认态内二次点击：执行结束并清除确认态，立即刷新恢复普通渲染
+            pendingConfirmPid = -1L;
+            killProcess(item.pid(), item.appName());
+            this.refreshSearchEverywhere();
+            return Boolean.FALSE;
+        }
+        // 首次点击：进入确认态并刷新列表（该项行内显示红色确认提示）
+        pendingConfirmPid = item.pid();
+        pendingConfirmAt = System.currentTimeMillis();
+        this.refreshSearchEverywhere();
+        return Boolean.FALSE;
+    }
+
+    /**
+     * 判断该项是否处于有效的结束确认态（确认态超时自动失效）
+     *
+     * @param item 端口进程项
+     * @return boolean
+     */
+    private static boolean isPendingConfirm(final PortSearchItem item) {
+        return pendingConfirmPid == item.pid() && System.currentTimeMillis() - pendingConfirmAt <= CONFIRM_TIMEOUT_MS;
+    }
+
+    /**
+     * 刷新 Search Everywhere 搜索面板
+     * <p>
+     * setSearchText 仅修改 VM 状态不触发查询链；与平台 findElementsForPattern 一致，
+     * 直接操作搜索框文档产生真实 DocumentEvent，驱动重新查询（进程结束后剔除已失效项）
+     */
+    private void refreshSearchEverywhere() {
+        final var popupInstance = SearchEverywhereManager.getInstance(this.project).getCurrentlyShownPopupInstance();
+        if (Objects.isNull(popupInstance)) {
+            return;
+        }
+        try {
+            final var document = popupInstance.getSearchFieldDocument();
+            final int length = document.getLength();
+            document.insertString(length, " ", null);
+            document.remove(length, 1);
+        } catch (final BadLocationException ignored) {
+            // 文档长度在两次操作间被并发修改时放弃本次刷新
+        }
     }
 
     /**
@@ -237,19 +300,21 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
                     process.destroyForcibly();
                 }
                 final int exitCode = finished ? process.exitValue() : -1;
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    if (exitCode == 0) {
-                        Notifier.notifyInfo(
-                                BUNDLE.getString("port.search.process.killed").formatted(appName, pid), this.project
-                        );
-                        // 刷新缓存
-                        this.cache().invalidatePortCache();
-                    } else {
-                        Notifier.notifyError(
-                                BUNDLE.getString("port.search.process.kill.failed").formatted(appName, pid), this.project
-                        );
-                    }
-                });
+                if (exitCode == 0) {
+                    // 成功：进程退出与端口释放存在延迟，延迟后统一回调（先刷新列表，再弹终止通知）
+                    AppExecutorUtil.getAppScheduledExecutorService().schedule(
+                            () -> ApplicationManager.getApplication().invokeLater(() -> {
+                                this.cache().invalidatePortCache();
+                                this.refreshSearchEverywhere();
+                                Notifier.notifyInfo(
+                                        BUNDLE.getString("port.search.process.killed").formatted(appName, pid), this.project
+                                );
+                            }), KILLED_REFRESH_DELAY_MS, TimeUnit.MILLISECONDS);
+                } else {
+                    ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyError(
+                            BUNDLE.getString("port.search.process.kill.failed").formatted(appName, pid), this.project
+                    ));
+                }
             } catch (final Exception e) {
                 LOG.warn("Failed to kill process", e);
                 ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyError(
@@ -277,6 +342,15 @@ public record PortSearch(Project project) implements WeightedSearchEverywhereCon
                                                  final boolean selected,
                                                  final boolean hasFocus) {
                 if (Objects.isNull(value)) {
+                    return;
+                }
+
+                // 确认态：整行渲染为红色确认提示（再次点击才真正结束进程）
+                if (isPendingConfirm(value)) {
+                    this.setIcon(AllIcons.General.Warning);
+                    this.append(BUNDLE.getString("port.search.kill.confirm.again")
+                                    .formatted(value.appName(), value.pid(), value.port()),
+                            new SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, JBColor.RED));
                     return;
                 }
 

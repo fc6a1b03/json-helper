@@ -74,10 +74,9 @@ intellijPlatform {
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
             <ul>
-                <li>新增彩虹变量高亮：Java 方法内参数与局部变量按名稳定着色，支持浅色/深色主题双变体，设置面板可开关。</li>
-                <li>新增颜色字面量高亮：识别 #RGB/#RRGGBB(#AA)/rgb()/rgba() 颜色字面量并在行号栏显示色块，点击色块弹出调色板修改并回写。</li>
-                <li>两个功能均后台线程分析、300ms 防抖、EDT 仅做绘制，大文件自动跳过，不影响 IDE 流畅度。</li>
-                <li>修复索引未就绪时变量着色触发 IndexNotReadyException 的问题（改走 smart mode 排队执行）。</li>
+                <li>修复颜色字面量高亮监听器在项目关闭时因 DocumentListener 双重移除导致的 "Can't remove document listener" 异常。</li>
+                <li>移除 addDocumentListener 的 parent disposable，生命周期统一由 EditorFactoryListener.editorReleased 显式管理。</li>
+                <li>增加 disposed 标志防止 dispose 被重复调用。</li>
             </ul>
         """.stripIndent()
     }

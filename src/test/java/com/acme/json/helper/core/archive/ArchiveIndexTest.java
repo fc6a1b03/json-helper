@@ -1,5 +1,7 @@
 package com.acme.json.helper.core.archive;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,17 +12,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 压缩包格式识别与条目索引单元测试
@@ -103,6 +101,57 @@ class ArchiveIndexTest {
             }
         };
         assertFalse(ArchiveIndex.isIndexable(huge, ArchiveFormats.ZIP), "超大包应拒绝索引");
+    }
+
+    @Test
+    @DisplayName("正常：zip 条目构建索引时顺带提取头部注释与修改时间")
+    void extractsZipEntryCommentAndTime() throws IOException {
+        final File zip = tempDir.resolve("comment.zip").toFile();
+        try (final ZipOutputStream output = new ZipOutputStream(new FileOutputStream(zip))) {
+            output.putNextEntry(new ZipEntry("src/App.java"));
+            output.write("// zip entry comment\npublic class App {}".getBytes(StandardCharsets.UTF_8));
+            output.closeEntry();
+            output.putNextEntry(new ZipEntry("data.bin"));
+            output.write(new byte[]{0, 1, 2, 3});
+            output.closeEntry();
+        }
+        final ArchiveIndex index = ArchiveIndex.build(zip, ArchiveFormats.ZIP);
+        assertNotNull(index, "索引应构建成功");
+        final ArchiveIndex.Node app = index.find("src/App.java");
+        final ArchiveIndex.Node bin = index.find("data.bin");
+        final ArchiveIndex.Node srcDir = index.find("src");
+        assertAll(
+                () -> assertNotNull(app, "应能定位 java 条目"),
+                () -> assertEquals("zip entry comment", app.comment(), "zip 文本条目应提取头部注释"),
+                () -> assertTrue(app.lastModified() > 0, "条目应带修改时间"),
+                () -> assertNotNull(bin, "应能定位 bin 条目"),
+                () -> assertNull(bin.comment(), "非文本白名单条目不提取注释"),
+                () -> assertNotNull(srcDir, "应能定位合成目录"),
+                () -> assertNull(srcDir.comment(), "合成目录无注释"),
+                () -> assertEquals(0L, srcDir.lastModified(), "合成目录无修改时间")
+        );
+    }
+
+    @Test
+    @DisplayName("正常：tar 条目流式构建索引时顺带提取头部注释与修改时间")
+    void extractsTarEntryCommentAndTime() throws IOException {
+        final File tar = tempDir.resolve("comment.tar").toFile();
+        final byte[] content = "# tar comment\nprint(1)".getBytes(StandardCharsets.UTF_8);
+        try (final TarArchiveOutputStream output = new TarArchiveOutputStream(new FileOutputStream(tar))) {
+            final TarArchiveEntry entry = new TarArchiveEntry("src/run.py");
+            entry.setSize(content.length);
+            output.putArchiveEntry(entry);
+            output.write(content);
+            output.closeArchiveEntry();
+        }
+        final ArchiveIndex index = ArchiveIndex.build(tar, ArchiveFormats.TAR);
+        assertNotNull(index, "索引应构建成功");
+        final ArchiveIndex.Node py = index.find("src/run.py");
+        assertAll(
+                () -> assertNotNull(py, "应能定位 py 条目"),
+                () -> assertEquals("tar comment", py.comment(), "tar 文本条目应提取头部注释"),
+                () -> assertTrue(py.lastModified() > 0, "条目应带修改时间")
+        );
     }
 
     /**

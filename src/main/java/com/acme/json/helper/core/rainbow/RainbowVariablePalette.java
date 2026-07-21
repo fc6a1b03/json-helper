@@ -3,7 +3,7 @@ package com.acme.json.helper.core.rainbow;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.List;
 
 /**

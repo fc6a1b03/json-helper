@@ -22,15 +22,10 @@ import com.intellij.util.Alarm;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.Icon;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Graphics;
-import java.util.ArrayList;
+import javax.swing.*;
+import java.awt.*;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.ResourceBundle;
 
 /**
  * 颜色字面量高亮监听器（每编辑器一个）。

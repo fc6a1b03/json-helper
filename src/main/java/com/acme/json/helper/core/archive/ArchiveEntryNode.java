@@ -1,5 +1,7 @@
 package com.acme.json.helper.core.archive;
 
+import com.acme.json.helper.core.fileinfo.FileInfoDisplay;
+import com.acme.json.helper.core.settings.PluginSettings;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
@@ -66,6 +68,13 @@ public final class ArchiveEntryNode extends AbstractTreeNode<ArchiveIndex.Node> 
         }
         presentation.setPresentableText(node.name());
         presentation.addText(node.name(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
+        // 文件条目追加灰色辅助文本（头部注释摘要 + 修改时间）；索引内存数据，渲染零 I/O
+        if (PluginSettings.of().fileInfoNodeEnabled && !node.directory()) {
+            final String suffix = FileInfoDisplay.format(node.comment(), node.lastModified());
+            if (Objects.nonNull(suffix)) {
+                presentation.addText(suffix, SimpleTextAttributes.GRAYED_ATTRIBUTES);
+            }
+        }
         presentation.setIcon(node.directory()
                 ? AllIcons.Nodes.Folder
                 : FileTypeManager.getInstance().getFileTypeByFileName(node.name()).getIcon());

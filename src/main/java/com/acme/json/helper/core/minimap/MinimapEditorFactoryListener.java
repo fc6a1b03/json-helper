@@ -10,13 +10,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
+import javax.swing.*;
+import java.awt.*;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.swing.SwingUtilities;
 
 /**
  * 编辑器工厂监听器：编辑器创建时在右侧挂载代码缩略图面板，释放时移除并 dispose。

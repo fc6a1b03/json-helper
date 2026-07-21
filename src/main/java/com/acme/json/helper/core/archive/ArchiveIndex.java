@@ -1,13 +1,10 @@
 package com.acme.json.helper.core.archive;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 压缩包条目索引（目录树结构）
@@ -55,12 +52,14 @@ public final class ArchiveIndex {
     /**
      * 条目节点
      *
-     * @param path      包内完整路径（目录以 / 结尾归一）
-     * @param name      节点名称（路径末段）
-     * @param directory 是否目录
-     * @param size      解压后大小（字节）
+     * @param path         包内完整路径（目录以 / 结尾归一）
+     * @param name         节点名称（路径末段）
+     * @param directory    是否目录
+     * @param size         解压后大小（字节）
+     * @param lastModified 条目最后修改时间（毫秒；无时间信息/合成目录为 0）
+     * @param comment      头部注释摘要（无注释/目录为 null）
      */
-    public record Node(String path, String name, boolean directory, long size) {
+    public record Node(String path, String name, boolean directory, long size, long lastModified, @Nullable String comment) {
     }
 
     /**
@@ -100,12 +99,12 @@ public final class ArchiveIndex {
                 continue;
             }
             final String name = path.substring(path.lastIndexOf('/') + 1);
-            nodesByPath.putIfAbsent(path, new Node(path, name, raw.directory(), raw.size()));
+            nodesByPath.putIfAbsent(path, new Node(path, name, raw.directory(), raw.size(), raw.lastModified(), raw.comment()));
             // 逐层合成祖先目录节点
             String ancestor = path.contains("/") ? path.substring(0, path.lastIndexOf('/')) : "";
             while (!ancestor.isEmpty()) {
                 final String ancestorName = ancestor.substring(ancestor.lastIndexOf('/') + 1);
-                nodesByPath.putIfAbsent(ancestor, new Node(ancestor, ancestorName, true, 0));
+                nodesByPath.putIfAbsent(ancestor, new Node(ancestor, ancestorName, true, 0, 0L, null));
                 ancestor = ancestor.contains("/") ? ancestor.substring(0, ancestor.lastIndexOf('/')) : "";
             }
         }

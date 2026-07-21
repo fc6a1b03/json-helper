@@ -73,6 +73,10 @@ intellijPlatform {
         version = project.version.toString()
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
+            <b>0.18.2</b>
+            <ul>
+                <li>修复默认隐藏原始滚动条在部分编辑器（Json Helper 面板、git diff 视图等）不生效：编辑器创建后平台仍会初始化滚动条配置覆盖宽度归零，现于 EDT 队尾补应用一次。</li>
+            </ul>
             <b>0.18.1</b>
             <ul>
                 <li>修复新建空文件或编辑器初始化瞬态，代码地图渲染偶发数组越界异常。</li>

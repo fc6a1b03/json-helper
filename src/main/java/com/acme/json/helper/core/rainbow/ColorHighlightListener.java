@@ -69,6 +69,7 @@ final class ColorHighlightListener implements DocumentListener {
     private final ProjectDisposableService disposable;
     private final Alarm refreshAlarm;
     private final List<RangeHighlighter> activeHighlighters = new ArrayList<>();
+    private volatile boolean disposed;
 
     /**
      * 构造监听器并注册到编辑器。
@@ -83,7 +84,8 @@ final class ColorHighlightListener implements DocumentListener {
         this.disposable = ProjectDisposableService.getInstance(project);
         // 池化线程 Alarm：扫描在后台线程执行，不占用 EDT
         this.refreshAlarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, disposable);
-        document.addDocumentListener(this, disposable);
+        // 生命周期由 EditorFactoryListener.editorReleased 显式管理，不挂 parent disposable 避免双重移除
+        this.document.addDocumentListener(this);
         scheduleRefresh();
     }
 
@@ -96,6 +98,10 @@ final class ColorHighlightListener implements DocumentListener {
      * 清理监听器、取消防抖任务并移除全部高亮。
      */
     void dispose() {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
         refreshAlarm.cancelAllRequests();
         document.removeDocumentListener(this);
         clearHighlighters();

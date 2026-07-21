@@ -67,6 +67,7 @@ final class RainbowVariableHighlighter implements DocumentListener {
     private final Document document;
     private final Alarm refreshAlarm;
     private final List<RangeHighlighter> activeHighlighters = new ArrayList<>();
+    private volatile boolean disposed;
 
     /**
      * 构造监听器并注册到编辑器文档。
@@ -80,8 +81,8 @@ final class RainbowVariableHighlighter implements DocumentListener {
         this.document = editor.getDocument();
         // 后台线程 Alarm：防抖回调直接在池线程执行，PSI 遍历不占用 EDT
         this.refreshAlarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, ProjectDisposableService.getInstance(project));
-        // 随项目销毁自动注销，dispose 中的显式移除作为兜底
-        this.document.addDocumentListener(this, ProjectDisposableService.getInstance(project));
+        // 生命周期由 EditorFactoryListener.editorReleased 显式管理，不挂 parent disposable 避免双重移除
+        this.document.addDocumentListener(this);
         // 延迟调度首次刷新，避免在编辑器尚未初始化完成时访问 PSI
         scheduleRefresh();
     }
@@ -95,6 +96,10 @@ final class RainbowVariableHighlighter implements DocumentListener {
      * 清理监听器和高亮。
      */
     void dispose() {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
         document.removeDocumentListener(this);
         refreshAlarm.cancelAllRequests();
         clearHighlighters();

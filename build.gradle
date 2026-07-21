@@ -73,6 +73,13 @@ intellijPlatform {
         version = project.version.toString()
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
+            <b>0.18.1</b>
+            <ul>
+                <li>修复新建空文件或编辑器初始化瞬态，代码地图渲染偶发数组越界异常。</li>
+                <li>修复软换行文件（如 Markdown 表格长行）中代码地图视口框位置错位。</li>
+                <li>优化代码地图拖拽手感：视口框 1:1 跟随鼠标（与原生滚动条一致），拖拽全程灵敏度恒定，点击定位改为即时滚动消除顿挫。</li>
+            </ul>
+            <b>0.18.0</b>
             <ul>
                 <li>新增代码地图（minimap）：编辑器右侧显示代码缩略图，自研油墨权重纹理渲染（字符骨架清晰可辨）、行数据缓存局部失效、增量编辑不重扫全文。</li>
                 <li>渲染全量移出 EDT（非阻塞 ReadAction + smart mode），150ms 防抖，大文件自动跳过，不影响编辑器流畅度。</li>

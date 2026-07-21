@@ -1,6 +1,7 @@
 package com.acme.json.helper.core.minimap;
 
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.VisualPosition;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -16,9 +17,9 @@ import org.jetbrains.annotations.NotNull;
 public record MinimapScrollState(int viewportStart, int viewportHeight, int documentHeight, int drawHeight) {
     /**
      * 由编辑器当前滚动位置与 minimap 视图计算滚动状态。
-     * <p>视口缩略起点/高度 = 可视区域 y/高 ÷ 编辑器行高 × 每行缩略像素；
-     * 绘制窗口高 = min(文档缩略总高, 编辑器组件可视高)——面板与编辑器组件同高，
-     * 决定缩略图在面板上的最大绘制高度（滚动模式下超出部分按视口平移采样）。</p>
+     * <p>编辑器滚动坐标是视觉行系（软换行把一个逻辑行折成多个视觉行），minimap 按逻辑行渲染，
+     * 必须沿 视觉 y → 视觉行 → 逻辑行 → 缩略 y 换算，否则软换行密集区（如 Markdown 表格）视口框严重错位；
+     * 绘制窗口高 = min(文档缩略总高, 编辑器组件可视高)。</p>
      *
      * @param editor 编辑器实例
      * @param view   minimap 视图
@@ -27,12 +28,14 @@ public record MinimapScrollState(int viewportStart, int viewportHeight, int docu
     @NotNull
     public static MinimapScrollState of(@NotNull final Editor editor, @NotNull final MinimapView view) {
         final var visibleArea = editor.getScrollingModel().getVisibleArea();
-        final var lineHeight = editor.getLineHeight();
         final var pixelsPerLine = view.pixelsPerLine();
-        // 行高恒为正，防御性判零避免极端状态除零
-        final var viewportStart = lineHeight > 0 ? visibleArea.y / lineHeight * pixelsPerLine : 0;
-        final var viewportHeight = lineHeight > 0 ? visibleArea.height / lineHeight * pixelsPerLine : 0;
+        final var startLine = editor.visualToLogicalPosition(new VisualPosition(editor.yToVisualLine(visibleArea.y), 0)).line;
+        final var endLine = editor.visualToLogicalPosition(new VisualPosition(editor.yToVisualLine(visibleArea.y + visibleArea.height), 0)).line;
         final var documentHeight = view.documentHeight();
+        final var viewportStart = view.logicalLineToY(startLine);
+        // 视口下沿所在逻辑行部分可见，补一行缩略高使框高覆盖到该行底部
+        final var viewportHeight = Math.max(pixelsPerLine,
+                Math.min(documentHeight, view.logicalLineToY(endLine) + pixelsPerLine) - viewportStart);
         final var drawHeight = Math.min(documentHeight, editor.getComponent().getHeight());
         return new MinimapScrollState(viewportStart, viewportHeight, documentHeight, drawHeight);
     }

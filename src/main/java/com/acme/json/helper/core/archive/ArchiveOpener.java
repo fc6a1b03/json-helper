@@ -23,7 +23,7 @@ import com.intellij.util.ui.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.JTree;
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

@@ -71,6 +71,7 @@ public class PluginSettings implements Configurable {
                 || component.getProjectSearch() != settings.projectSearchEnabled
                 || component.getHttpSearch() != settings.httpSearchEnabled
                 || component.getArchiveNode() != settings.archiveNodeEnabled
+                || component.getFileInfoNode() != settings.fileInfoNodeEnabled
                 || component.getRainbowBracketPair() != settings.rainbowBracketPairEnabled
                 || component.getRainbowVariable() != settings.rainbowVariableEnabled
                 || component.getColorHighlighter() != settings.colorHighlighterEnabled
@@ -83,6 +84,8 @@ public class PluginSettings implements Configurable {
         final PluginSettingsState settings = of();
         // 记录压缩包节点开关旧值（用于变更后刷新项目树）
         final boolean previousArchiveNodeEnabled = settings.archiveNodeEnabled;
+        // 记录文件注释与修改时间开关旧值（用于变更后刷新项目树）
+        final boolean previousFileInfoNodeEnabled = settings.fileInfoNodeEnabled;
         // 记录代码地图开关旧值（用于变更后同步编辑器挂载）
         final boolean previousMinimapEnabled = settings.minimapEnabled;
         // 将设置组件状态覆盖全局状态
@@ -92,6 +95,7 @@ public class PluginSettings implements Configurable {
         settings.projectSearchEnabled = component.getProjectSearch();
         settings.httpSearchEnabled = component.getHttpSearch();
         settings.archiveNodeEnabled = component.getArchiveNode();
+        settings.fileInfoNodeEnabled = component.getFileInfoNode();
         settings.rainbowBracketPairEnabled = component.getRainbowBracketPair();
         settings.rainbowVariableEnabled = component.getRainbowVariable();
         settings.colorHighlighterEnabled = component.getColorHighlighter();
@@ -100,8 +104,9 @@ public class PluginSettings implements Configurable {
         if (previousMinimapEnabled != settings.minimapEnabled) {
             MinimapEditorFactoryListener.syncAllEditors();
         }
-        // 压缩包节点开关变更后刷新全部打开项目的项目树（平台对 TreeStructureProvider 结果有节点缓存，需主动刷新）
-        if (previousArchiveNodeEnabled != settings.archiveNodeEnabled) {
+        // 压缩包节点/文件信息开关变更后刷新全部打开项目的项目树（平台对树节点与装饰结果有缓存，需主动刷新）
+        if (previousArchiveNodeEnabled != settings.archiveNodeEnabled
+                || previousFileInfoNodeEnabled != settings.fileInfoNodeEnabled) {
             for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
                 ProjectView.getInstance(openProject).refresh();
             }
@@ -117,6 +122,7 @@ public class PluginSettings implements Configurable {
         component.setProjectSearch(settings.projectSearchEnabled);
         component.setHttpSearch(settings.httpSearchEnabled);
         component.setArchiveNode(settings.archiveNodeEnabled);
+        component.setFileInfoNode(settings.fileInfoNodeEnabled);
         component.setRainbowBracketPair(settings.rainbowBracketPairEnabled);
         component.setRainbowVariable(settings.rainbowVariableEnabled);
         component.setColorHighlighter(settings.colorHighlighterEnabled);
@@ -143,6 +149,7 @@ public class PluginSettings implements Configurable {
         private final JBCheckBox httpSearch = new JBCheckBox(BUNDLE.getString("http.search.group.name"));
         private final JBCheckBox portSearch = new JBCheckBox(BUNDLE.getString("port.search.group.name"));
         private final JBCheckBox archiveNode = new JBCheckBox(BUNDLE.getString("plugin.setting.archive.node"));
+        private final JBCheckBox fileInfoNode = new JBCheckBox(BUNDLE.getString("plugin.setting.file.info.node"));
         private final JBCheckBox rainbowBracketPair = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.bracket.pair"));
         private final JBCheckBox rainbowVariable = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.variable"));
         private final JBCheckBox colorHighlighter = new JBCheckBox(BUNDLE.getString("plugin.setting.color.highlighter"));
@@ -152,7 +159,7 @@ public class PluginSettings implements Configurable {
             mainPanel = FormBuilder.createFormBuilder()
                     .addComponent(of(BUNDLE.getString("plugin.setting.title1"), copyJson, jsonHelper), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title2"), projectSearch, httpSearch, portSearch), 1)
-                    .addComponent(of(BUNDLE.getString("plugin.setting.title3"), archiveNode), 1)
+                    .addComponent(of(BUNDLE.getString("plugin.setting.title3"), archiveNode, fileInfoNode), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title4"), rainbowBracketPair, rainbowVariable, colorHighlighter, minimap), 1)
                     .addComponentFillVertically(new JPanel(), 0)
                     .getPanel();
@@ -234,6 +241,14 @@ public class PluginSettings implements Configurable {
 
         public void setArchiveNode(final boolean status) {
             archiveNode.setSelected(status);
+        }
+
+        public boolean getFileInfoNode() {
+            return fileInfoNode.isSelected();
+        }
+
+        public void setFileInfoNode(final boolean status) {
+            fileInfoNode.setSelected(status);
         }
 
         public boolean getRainbowBracketPair() {

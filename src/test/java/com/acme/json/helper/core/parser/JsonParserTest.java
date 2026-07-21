@@ -10,10 +10,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * JSON 与任何文件互转（JsonParser 注册表分发）单元测试

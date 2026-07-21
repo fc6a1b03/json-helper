@@ -7,35 +7,17 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
-import com.intellij.openapi.editor.markup.HighlighterLayer;
-import com.intellij.openapi.editor.markup.HighlighterTargetArea;
-import com.intellij.openapi.editor.markup.MarkupModel;
-import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiExpression;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiLocalVariable;
-import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.psi.PsiParameter;
-import com.intellij.psi.PsiReferenceExpression;
-import com.intellij.psi.PsiThisExpression;
-import com.intellij.psi.PsiVariable;
+import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.Alarm;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 彩虹变量高亮监听器（每个编辑器一个实例）。

@@ -1,6 +1,7 @@
 package com.acme.json.helper.core.archive;
 
 import cn.hutool.core.util.StrUtil;
+import com.acme.json.helper.core.fileinfo.FileCommentExtractor;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.JarFileSystem;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -10,16 +11,15 @@ import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 压缩包格式识别与条目读取
@@ -83,13 +83,54 @@ public enum ArchiveFormats {
     }
 
     /**
+     * 文本条目注释提取条数上限（防超大包逐条解压头部拖慢索引构建）
+     */
+    private static final int COMMENT_EXTRACT_LIMIT = 5_000;
+
+    /**
      * 原始条目
      *
-     * @param path      包内完整路径
-     * @param directory 是否目录
-     * @param size      解压后大小（字节）
+     * @param path         包内完整路径
+     * @param directory    是否目录
+     * @param size         解压后大小（字节）
+     * @param lastModified 条目最后修改时间（毫秒；无时间信息为 0）
+     * @param comment      头部注释摘要（构建索引时顺带提取；无注释/非文本/超限为 null）
      */
-    public record RawEntry(String path, boolean directory, long size) {
+    public record RawEntry(String path, boolean directory, long size, long lastModified, @Nullable String comment) {
+    }
+
+    /**
+     * 提取条目头注释（UTF-8 解码头部字节，注释符为 ASCII 兼容，解码异常不影响识别）
+     *
+     * @param head 条目头部字节
+     * @return 注释摘要；无注释返回 null
+     */
+    private static @Nullable String extractComment(final byte[] head) {
+        return FileCommentExtractor.extract(new String(head, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Date 转毫秒时间戳（null 与非法值归一为 0）
+     *
+     * @param date 条目时间
+     * @return 毫秒时间戳
+     */
+    private static long millisOf(final Date date) {
+        return Objects.nonNull(date) ? Math.max(date.getTime(), 0L) : 0L;
+    }
+
+    /**
+     * 判断是否应提取条目头注释（非目录、非空、文本白名单、未超提取上限）
+     *
+     * @param directory 是否目录
+     * @param size      条目解压后大小
+     * @param name      条目名
+     * @param extracted 已提取条数
+     * @return boolean
+     */
+    private static boolean shouldExtractComment(final boolean directory, final long size, final String name, final int extracted) {
+        return !directory && size > 0 && extracted < COMMENT_EXTRACT_LIMIT
+                && ArchiveContentIndex.ArchiveSearchHelper.isTextEntry(name);
     }
 
     /**
@@ -184,7 +225,7 @@ public enum ArchiveFormats {
                         if (entry.isDirectory() || entry.getSize() <= 0 || entry.getSize() > maxEntrySize || !isTextEntry.test(entry.getName())) {
                             continue;
                         }
-                        contentHandler.accept(entry.getName(), readSevenZEntryBytes(sevenZFile, entry));
+                        contentHandler.accept(entry.getName(), readSevenZBytes(sevenZFile, (int) entry.getSize()));
                         count[0]++;
                     }
                 }
@@ -260,10 +301,20 @@ public enum ArchiveFormats {
     private static List<RawEntry> readZipEntries(final File file, final ArchiveFormats ignored) throws IOException {
         try (final ZipFile zipFile = ZipFile.builder().setFile(file).get()) {
             final List<RawEntry> entries = new java.util.ArrayList<>();
+            int extracted = 0;
             final var enumeration = zipFile.getEntries();
             while (enumeration.hasMoreElements()) {
                 final var entry = enumeration.nextElement();
-                entries.add(new RawEntry(entry.getName(), entry.isDirectory(), entry.getSize()));
+                String comment = null;
+                // zip 为随机读结构：文本条目顺带解压头部提取注释（含提取条数护栏）
+                if (shouldExtractComment(entry.isDirectory(), entry.getSize(), entry.getName(), extracted)) {
+                    try (final InputStream input = zipFile.getInputStream(entry)) {
+                        comment = extractComment(input.readNBytes(FileCommentExtractor.HEAD_BYTES));
+                        extracted++;
+                    }
+                }
+                entries.add(new RawEntry(entry.getName(), entry.isDirectory(), entry.getSize(),
+                        Math.max(entry.getTime(), 0L), comment));
             }
             return entries;
         }
@@ -306,11 +357,38 @@ public enum ArchiveFormats {
     private static List<RawEntry> readSevenZEntries(final File file, final ArchiveFormats ignored) throws IOException {
         try (final SevenZFile sevenZFile = SevenZFile.builder().setFile(file).get()) {
             final List<RawEntry> entries = new java.util.ArrayList<>();
+            int extracted = 0;
             for (var entry = sevenZFile.getNextEntry(); Objects.nonNull(entry); entry = sevenZFile.getNextEntry()) {
-                entries.add(new RawEntry(entry.getName(), entry.isDirectory(), entry.getSize()));
+                String comment = null;
+                // 顺序流当前位置即条目头：读头后由 getNextEntry 跳过剩余，单次遍历共 O(N)
+                if (shouldExtractComment(entry.isDirectory(), entry.getSize(), entry.getName(), extracted)) {
+                    comment = extractComment(readSevenZBytes(sevenZFile, FileCommentExtractor.HEAD_BYTES));
+                    extracted++;
+                }
+                entries.add(new RawEntry(entry.getName(), entry.isDirectory(), entry.getSize(),
+                        millisOf(entry.getLastModifiedDate()), comment));
             }
             return entries;
         }
+    }
+
+    /**
+     * 读取 7z 当前条目字节（顺序流定位后最多读取 length 字节；实际不足时按实读长度截断返回）
+     *
+     * @param sevenZFile 7z 文件句柄
+     * @param length     期望读取字节数
+     * @return 实际读取到的字节
+     * @throws IOException 读取失败
+     */
+    private static byte[] readSevenZBytes(final SevenZFile sevenZFile, final int length) throws IOException {
+        final byte[] content = new byte[length];
+        int offset = 0;
+        for (int read = sevenZFile.read(content, offset, content.length - offset);
+             read > 0 && offset < content.length;
+             read = sevenZFile.read(content, offset, content.length - offset)) {
+            offset += read;
+        }
+        return offset == content.length ? content : Arrays.copyOf(content, offset);
     }
 
     /**
@@ -328,30 +406,11 @@ public enum ArchiveFormats {
         try (final SevenZFile sevenZFile = SevenZFile.builder().setFile(file).get()) {
             for (var entry = sevenZFile.getNextEntry(); Objects.nonNull(entry); entry = sevenZFile.getNextEntry()) {
                 if (entryPath.equals(entry.getName()) && !entry.isDirectory() && entry.getSize() <= maxSize) {
-                    return readSevenZEntryBytes(sevenZFile, entry);
+                    return readSevenZBytes(sevenZFile, (int) entry.getSize());
                 }
             }
             return null;
         }
-    }
-
-    /**
-     * 读取 7z 条目内容字节（顺序流定位后的整段读取）
-     *
-     * @param sevenZFile 7z 文件句柄
-     * @param entry      目标条目
-     * @return 条目内容
-     */
-    private static byte[] readSevenZEntryBytes(final SevenZFile sevenZFile,
-                                               final org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry entry) throws IOException {
-        final byte[] content = new byte[(int) entry.getSize()];
-        int offset = 0;
-        for (int read = sevenZFile.read(content, offset, content.length - offset);
-             read > 0 && offset < content.length;
-             read = sevenZFile.read(content, offset, content.length - offset)) {
-            offset += read;
-        }
-        return content;
     }
 
     /* ---------------- tar 系与单文件压缩（流式） ---------------- */
@@ -397,8 +456,16 @@ public enum ArchiveFormats {
     private static List<RawEntry> readTarEntries(final File file, final ArchiveFormats format) throws IOException {
         try (final TarArchiveInputStream stream = createStream(file, format)) {
             final List<RawEntry> entries = new java.util.ArrayList<>();
+            int extracted = 0;
             for (ArchiveEntry entry = stream.getNextEntry(); Objects.nonNull(entry); entry = stream.getNextEntry()) {
-                entries.add(new RawEntry(entry.getName(), entry.isDirectory(), entry.getSize()));
+                String comment = null;
+                // 流式当前位置即条目头：读头后由 getNextEntry 跳过剩余，单次遍历共 O(N)
+                if (shouldExtractComment(entry.isDirectory(), entry.getSize(), entry.getName(), extracted)) {
+                    comment = extractComment(stream.readNBytes(FileCommentExtractor.HEAD_BYTES));
+                    extracted++;
+                }
+                entries.add(new RawEntry(entry.getName(), entry.isDirectory(), entry.getSize(),
+                        millisOf(entry.getLastModifiedDate()), comment));
             }
             return entries;
         }
@@ -418,8 +485,11 @@ public enum ArchiveFormats {
         final String name = file.getName();
         final int dotIndex = name.lastIndexOf('.');
         final String entryName = dotIndex > 0 ? name.substring(0, dotIndex) : name;
-        try (final InputStream ignored = decompressStream(new BufferedInputStream(Files.newInputStream(file.toPath())), format)) {
-            return List.of(new RawEntry(entryName, false, file.length()));
+        try (final InputStream input = decompressStream(new BufferedInputStream(Files.newInputStream(file.toPath())), format)) {
+            final String comment = ArchiveContentIndex.ArchiveSearchHelper.isTextEntry(entryName)
+                    ? extractComment(input.readNBytes(FileCommentExtractor.HEAD_BYTES))
+                    : null;
+            return List.of(new RawEntry(entryName, false, file.length(), file.lastModified(), comment));
         }
     }
 

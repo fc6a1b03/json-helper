@@ -106,6 +106,8 @@
         <treeStructureProvider implementation="com.acme.json.helper.core.archive.ArchiveTreeProvider"/>
         <!-- 项目树压缩包图标 -->
         <iconProvider implementation="com.acme.json.helper.core.archive.ArchiveIconProvider"/>
+        <!-- 项目树文件注释与修改时间 -->
+        <projectViewNodeDecorator implementation="com.acme.json.helper.core.fileinfo.FileInfoNodeDecorator"/>
         <!-- 彩虹括号配对高亮：编辑器工厂监听器 -->
         <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowBracketPairEditorFactoryListener"/>
         <!-- 彩虹变量高亮：编辑器工厂监听器 -->

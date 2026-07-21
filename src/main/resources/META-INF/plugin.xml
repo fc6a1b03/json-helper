@@ -112,6 +112,8 @@
         <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowVariableEditorFactoryListener"/>
         <!-- 颜色字面量色块高亮：编辑器工厂监听器 -->
         <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.ColorHighlighterEditorFactoryListener"/>
+        <!-- 代码地图（缩略图）：编辑器工厂监听器 -->
+        <editorFactoryListener implementation="com.acme.json.helper.core.minimap.MinimapEditorFactoryListener"/>
         <!-- 彩虹括号配对高亮：默认颜色 -->
         <additionalTextAttributes scheme="Default" file="colorSchemes/RainbowBracketPairDefault.xml"/>
         <additionalTextAttributes scheme="Darcula" file="colorSchemes/RainbowBracketPairDefault.xml"/>

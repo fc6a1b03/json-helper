@@ -1,5 +1,6 @@
 package com.acme.json.helper.core.settings;
 
+import com.acme.json.helper.core.minimap.MinimapEditorFactoryListener;
 import com.intellij.ide.projectView.ProjectView;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
@@ -72,7 +73,8 @@ public class PluginSettings implements Configurable {
                 || component.getArchiveNode() != settings.archiveNodeEnabled
                 || component.getRainbowBracketPair() != settings.rainbowBracketPairEnabled
                 || component.getRainbowVariable() != settings.rainbowVariableEnabled
-                || component.getColorHighlighter() != settings.colorHighlighterEnabled;
+                || component.getColorHighlighter() != settings.colorHighlighterEnabled
+                || component.getMinimap() != settings.minimapEnabled;
     }
 
     @Override
@@ -81,6 +83,8 @@ public class PluginSettings implements Configurable {
         final PluginSettingsState settings = of();
         // 记录压缩包节点开关旧值（用于变更后刷新项目树）
         final boolean previousArchiveNodeEnabled = settings.archiveNodeEnabled;
+        // 记录代码地图开关旧值（用于变更后同步编辑器挂载）
+        final boolean previousMinimapEnabled = settings.minimapEnabled;
         // 将设置组件状态覆盖全局状态
         settings.copyJson = component.getCopyJson();
         settings.jsonHelper = component.getJsonHelper();
@@ -91,6 +95,11 @@ public class PluginSettings implements Configurable {
         settings.rainbowBracketPairEnabled = component.getRainbowBracketPair();
         settings.rainbowVariableEnabled = component.getRainbowVariable();
         settings.colorHighlighterEnabled = component.getColorHighlighter();
+        settings.minimapEnabled = component.getMinimap();
+        // 代码地图开关变更后同步全部已打开编辑器的挂载状态
+        if (previousMinimapEnabled != settings.minimapEnabled) {
+            MinimapEditorFactoryListener.syncAllEditors();
+        }
         // 压缩包节点开关变更后刷新全部打开项目的项目树（平台对 TreeStructureProvider 结果有节点缓存，需主动刷新）
         if (previousArchiveNodeEnabled != settings.archiveNodeEnabled) {
             for (final Project openProject : ProjectManager.getInstance().getOpenProjects()) {
@@ -111,6 +120,7 @@ public class PluginSettings implements Configurable {
         component.setRainbowBracketPair(settings.rainbowBracketPairEnabled);
         component.setRainbowVariable(settings.rainbowVariableEnabled);
         component.setColorHighlighter(settings.colorHighlighterEnabled);
+        component.setMinimap(settings.minimapEnabled);
     }
 
     @Override
@@ -136,13 +146,14 @@ public class PluginSettings implements Configurable {
         private final JBCheckBox rainbowBracketPair = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.bracket.pair"));
         private final JBCheckBox rainbowVariable = new JBCheckBox(BUNDLE.getString("plugin.setting.rainbow.variable"));
         private final JBCheckBox colorHighlighter = new JBCheckBox(BUNDLE.getString("plugin.setting.color.highlighter"));
+        private final JBCheckBox minimap = new JBCheckBox(BUNDLE.getString("plugin.setting.minimap"));
 
         public PluginSettingsComponent() {
             mainPanel = FormBuilder.createFormBuilder()
                     .addComponent(of(BUNDLE.getString("plugin.setting.title1"), copyJson, jsonHelper), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title2"), projectSearch, httpSearch, portSearch), 1)
                     .addComponent(of(BUNDLE.getString("plugin.setting.title3"), archiveNode), 1)
-                    .addComponent(of(BUNDLE.getString("plugin.setting.title4"), rainbowBracketPair, rainbowVariable, colorHighlighter), 1)
+                    .addComponent(of(BUNDLE.getString("plugin.setting.title4"), rainbowBracketPair, rainbowVariable, colorHighlighter, minimap), 1)
                     .addComponentFillVertically(new JPanel(), 0)
                     .getPanel();
         }
@@ -247,6 +258,14 @@ public class PluginSettings implements Configurable {
 
         public void setColorHighlighter(final boolean status) {
             colorHighlighter.setSelected(status);
+        }
+
+        public boolean getMinimap() {
+            return minimap.isSelected();
+        }
+
+        public void setMinimap(final boolean status) {
+            minimap.setSelected(status);
         }
     }
 }

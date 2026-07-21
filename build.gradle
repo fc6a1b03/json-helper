@@ -74,9 +74,11 @@ intellijPlatform {
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
             <ul>
-                <li>修复颜色字面量高亮监听器在项目关闭时因 DocumentListener 双重移除导致的 "Can't remove document listener" 异常。</li>
-                <li>移除 addDocumentListener 的 parent disposable，生命周期统一由 EditorFactoryListener.editorReleased 显式管理。</li>
-                <li>增加 disposed 标志防止 dispose 被重复调用。</li>
+                <li>新增代码地图（minimap）：编辑器右侧显示代码缩略图，自研油墨权重纹理渲染（字符骨架清晰可辨）、行数据缓存局部失效、增量编辑不重扫全文。</li>
+                <li>渲染全量移出 EDT（非阻塞 ReadAction + smart mode），150ms 防抖，大文件自动跳过，不影响编辑器流畅度。</li>
+                <li>支持点击/拖动/Shift 扩选导航、滚轮滚动、左缘拖拽调宽（40~200 持久化）、折叠区域补偿。</li>
+                <li>右键菜单：显示开关、错误线条整行高亮、隐藏原始滚动条（宽度归零法，滚轮不受影响）。</li>
+                <li>覆盖普通编辑器、git diff 视图与 Json Helper 面板；BICUBIC 插值 + 2:1 整数采样宽度，HiDPI 高清显示。</li>
             </ul>
         """.stripIndent()
     }

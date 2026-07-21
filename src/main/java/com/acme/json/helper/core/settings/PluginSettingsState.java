@@ -38,6 +38,14 @@ public class PluginSettingsState implements PersistentStateComponent<PluginSetti
     public boolean colorHighlighterEnabled = Boolean.TRUE;
     /** 彩虹变量高亮开关（默认开启） */
     public boolean rainbowVariableEnabled = Boolean.TRUE;
+    /** 代码地图开关（默认开启） */
+    public boolean minimapEnabled = Boolean.TRUE;
+    /** 代码地图宽度（像素，默认 55，正好 2:1 整数缩放采样最干净；可拖拽左缘在 40~200 间调节） */
+    public int minimapWidth = 55;
+    /** 代码地图错误线条整行高亮开关（默认开启） */
+    public boolean minimapErrorStripeEnabled = Boolean.TRUE;
+    /** 代码地图启用时隐藏编辑器原始滚动条（默认隐藏；关闭后恢复 AS_NEEDED） */
+    public boolean minimapHideOriginalScrollBar = Boolean.TRUE;
 
     @NotNull
     public static PluginSettingsState getInstance() {

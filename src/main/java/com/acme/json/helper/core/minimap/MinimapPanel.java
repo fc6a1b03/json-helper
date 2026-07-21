@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.ScrollType;
+import com.intellij.openapi.editor.LogicalPosition;
 import com.intellij.openapi.editor.event.VisibleAreaListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -85,13 +85,23 @@ public final class MinimapPanel extends JPanel implements Disposable {
      */
     private double effectiveScale = 1.0;
     /**
-     * 拖动起点：鼠标按下时的面板 y 坐标（-1 表示未在拖动）
+     * 是否处于导航拖拽中（左键按下进入，松开结束）
      */
-    private int dragStartY = -1;
+    private boolean dragging;
     /**
-     * 拖动起点：编辑器垂直滚动像素偏移基准
+     * 拖拽抓取点：鼠标按下时相对视口框顶部的面板 y 偏移（拖动全程保持该偏移，
+     * 视口框 1:1 跟随鼠标——与原生滚动条滑块手感一致）
      */
-    private int dragStartScrollOffset;
+    private int dragGrabOffsetY;
+    /**
+     * 拖拽时锁定的视口映射系数与行程（按下时快照）：拖拽全程灵敏度恒定，
+     * 避免软换行区视口框高度随位置变化导致鼠标与视口框相对位置漂移
+     */
+    private double dragFactor = 1.0;
+    /**
+     * 拖拽时锁定的视口起点缩略 y 上限（文档缩略高 - 视口缩略高，按下时快照）
+     */
+    private int dragMaxViewportStart;
     /**
      * 左缘调宽拖动起点 x 坐标（-1 表示未在调宽）
      */
@@ -156,10 +166,9 @@ public final class MinimapPanel extends JPanel implements Disposable {
         if (width <= 0 || drawHeight <= 0) {
             return;
         }
-        // 平移采样：缩略图整体超出面板时，让视口在绘制窗口内尽量居中，并钳制到 [0, 文档缩略高度 - 绘制高度]
-        sourceStartY = state.documentHeight() <= drawHeight ? 0
-                : Math.max(0, Math.min(state.viewportStart() - (drawHeight - state.viewportHeight()) / 2,
-                        state.documentHeight() - drawHeight));
+        // 比例映射：视口在文档中的滚动比例 × 可平移区间 = 采样起点（拖动时视口框随滚动连续移动，跟手；
+        // 居中式钳制会让视口框在大部分行程固定不动，产生"鼠标在前滑块在后"的脱节感）
+        sourceStartY = sourceStartYOf(state, drawHeight);
         effectiveScale = 1.0;
         if (Objects.nonNull(image)) {
             // 源矩形取图像全宽（110 列），目标按面板宽缩放——宽度调节零渲染成本（Java2D 采样缩放）；
@@ -167,8 +176,8 @@ public final class MinimapPanel extends JPanel implements Disposable {
             final var sourceEndY = Math.min(sourceStartY + drawHeight, Math.min(state.documentHeight(), image.getHeight()));
             if (sourceEndY > sourceStartY && graphics instanceof Graphics2D graphics2D) {
                 final var defaultComposite = graphics2D.getComposite();
-                // BICUBIC 插值：轻度缩小时加权保留全部列（NEAREST 抽样会随机丢弃 1/3 列导致字符断裂）
-                graphics2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                // NEAREST 插值：2:1 整数缩放比下像素级无损，且滚动重绘开销远低于 BICUBIC（滚动跟手）
+                graphics2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                 graphics2D.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, IMAGE_ALPHA));
                 graphics2D.drawImage(image, 0, 0, width, sourceEndY - sourceStartY,
                         0, sourceStartY, image.getWidth(), sourceEndY, null);
@@ -184,6 +193,17 @@ public final class MinimapPanel extends JPanel implements Disposable {
             graphics.setColor(VIEWPORT_FILL);
             graphics.fillRoundRect(0, viewportY, width, (int) (state.viewportHeight() * effectiveScale), 5, 5);
         }
+    }
+
+    /**
+     * 视口比例映射的采样起点：视口滚动比例 × 可平移区间（绘制与拖拽抓取共用同一公式，保证正反换算互逆）。
+     */
+    private static int sourceStartYOf(@NotNull final MinimapScrollState state, final int drawHeight) {
+        return state.documentHeight() <= drawHeight ? 0
+                : state.viewportStart() <= 0 ? 0
+                : (int) Math.min(state.documentHeight() - drawHeight,
+                        state.viewportStart() / (double) Math.max(1, state.documentHeight() - state.viewportHeight())
+                                * (state.documentHeight() - drawHeight));
     }
 
     /**
@@ -318,10 +338,21 @@ public final class MinimapPanel extends JPanel implements Disposable {
             } else {
                 editor.getCaretModel().moveToOffset(offset);
             }
-            editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
-            // 记录拖动基准：以跳转后的新滚动位置为原点累计后续拖动 delta
-            dragStartY = e.getY();
-            dragStartScrollOffset = editor.getScrollingModel().getVisibleArea().y;
+            // 即时滚动居中：scrollVertically 直设滚动偏移（无平滑滚动动画），
+            // 避免 scrollToCaret 动画期间 visibleArea 滞后、且动画与后续拖拽争抢滚动位置
+            final var visibleHeight = editor.getScrollingModel().getVisibleArea().height;
+            editor.getScrollingModel().scrollVertically(editor.offsetToXY(offset).y - visibleHeight / 2);
+            // 记录拖拽基准：注意跳转后尚未触发重绘，sourceStartY 字段仍是旧采样偏移，
+            // 必须用绘制同款公式从新状态现算对齐，否则抓取偏移混入新旧采样差，
+            // 拖拽全程视口框与鼠标恒差一段距离（"总是差一点跟不上"）
+            dragging = true;
+            final var state = MinimapScrollState.of(editor, view);
+            final var drawHeight = Math.min(state.drawHeight(), getHeight());
+            dragGrabOffsetY = e.getY() - (int) ((state.viewportStart() - sourceStartYOf(state, drawHeight)) * effectiveScale);
+            // 锁定本次拖拽的映射系数与行程：灵敏度全程恒定（软换行区视口框高度随位置变，逐帧重算会漂移）
+            dragFactor = state.documentHeight() <= drawHeight ? 1.0
+                    : (state.documentHeight() - state.viewportHeight()) / (double) Math.max(1, drawHeight - state.viewportHeight());
+            dragMaxViewportStart = Math.max(0, state.documentHeight() - state.viewportHeight());
         }
 
         @Override
@@ -334,13 +365,16 @@ public final class MinimapPanel extends JPanel implements Disposable {
                 revalidate();
                 return;
             }
-            if (dragStartY < 0 || !SwingUtilities.isLeftMouseButton(e)) {
+            if (!dragging || !SwingUtilities.isLeftMouseButton(e) || dragMaxViewportStart <= 0) {
                 return;
             }
-            // 换算链：面板缩略坐标 delta ÷ 拉伸系数 ÷ 每行缩略像素 × 编辑器行高 → 文档像素 delta，基于拖动起点偏移滚动
-            final var deltaY = e.getY() - dragStartY;
-            editor.getScrollingModel().scrollVertically(
-                    dragStartScrollOffset + (int) (deltaY / effectiveScale * editor.getLineHeight() / view.pixelsPerLine()));
+            // 视口框跟随鼠标模型（与原生滚动条滑块一致）：目标视口框顶 = 鼠标 y - 抓取偏移；
+            // 面板 y → 视口起点缩略 y 乘按下时锁定的放大系数（长文档时视口起点行程大于视口框面板行程）
+            final var targetViewportStart = Math.max(0, Math.min(dragMaxViewportStart,
+                    (int) ((e.getY() - dragGrabOffsetY) / effectiveScale * dragFactor)));
+            // 视口起点缩略 y → 逻辑行 → 视觉像素 y（logicalPositionToXY 内含软换行/折叠换算），与视口框正向映射互逆
+            final var targetLine = view.yToLogicalLine(targetViewportStart);
+            editor.getScrollingModel().scrollVertically(editor.logicalPositionToXY(new LogicalPosition(targetLine, 0)).y);
         }
 
         @Override
@@ -351,7 +385,7 @@ public final class MinimapPanel extends JPanel implements Disposable {
                 resizeStartX = -1;
                 setCursor(Cursor.getDefaultCursor());
             }
-            dragStartY = -1;
+            dragging = false;
         }
 
         @Override

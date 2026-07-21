@@ -334,6 +334,10 @@ public final class MinimapRenderer implements MinimapView, DocumentListener, Dis
     @NotNull
     private RenderResult computeAllRows(@NotNull final List<int[]> folds) {
         final var lineCount = document.getLineCount();
+        // 空文档（新建空文件/编辑器初始化瞬态）直接返回空结果，避免 getLineEndOffset(-1) 越界
+        if (lineCount <= 0) {
+            return new RenderResult(List.of(), new int[0], 0);
+        }
         final var rows = new ArrayList<int[]>(lineCount);
         scanRows(document.getImmutableCharSequence(), 0, lineCount - 1, rows);
         // 像素缓冲在后台铺好：EDT 只需一次 setRGB 整图写入，避免逐点绘制开销
@@ -419,6 +423,11 @@ public final class MinimapRenderer implements MinimapView, DocumentListener, Dis
      */
     private void applyFull(@NotNull final RenderResult result, @NotNull final List<int[]> folds, final long stamp) {
         if (disposed || editor.isDisposed()) {
+            return;
+        }
+        // 空结果（空文档）：走清空路径，避免创建零高图片
+        if (result.height() <= 0) {
+            applyEmpty();
             return;
         }
         // 计算期间文档又发生变化：结果已过期，丢弃并重新全量

@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.swing.SwingUtilities;
 
 /**
  * 编辑器工厂监听器：编辑器创建时在右侧挂载代码缩略图面板，释放时移除并 dispose。
@@ -140,6 +141,13 @@ public final class MinimapEditorFactoryListener implements EditorFactoryListener
         panelRef.set(panel);
         editor.getComponent().add(panel, BorderLayout.LINE_END);
         applyScrollBarVisibility(editor, PluginSettingsState.getInstance().minimapHideOriginalScrollBar);
+        // EditorTextField（Json Helper 面板）、diff 视图等在 editorCreated 之后才完成自身滚动条配置
+        //（策略与尺寸初始化会覆盖宽度归零），EDT 队尾补应用一次，保证默认隐藏不依赖创建时机
+        SwingUtilities.invokeLater(() -> {
+            if (!editor.isDisposed() && PANELS.containsKey(editor)) {
+                applyScrollBarVisibility(editor, PluginSettingsState.getInstance().minimapHideOriginalScrollBar);
+            }
+        });
         return panel;
     }
 }

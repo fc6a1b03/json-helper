@@ -34,6 +34,7 @@
     <depends>com.intellij.gradle</depends>
     <depends>com.intellij.properties</depends>
     <depends>com.intellij.modules.json</depends>
+    <depends>com.intellij.modules.vcs</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
     <resource-bundle>messages.JsonHelperBundle</resource-bundle>

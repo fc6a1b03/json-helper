@@ -73,6 +73,14 @@ intellijPlatform {
         version = project.version.toString()
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
+            <b>0.18.7</b>
+            <ul>
+                <li>修复代码地图异味/警告条纹不显示：很多检查只配波浪线颜色不配 error-stripe 色，现颜色回退链补全（error-stripe 色 → 文本属性 → 波浪线效果色），高亮源合并文档 MarkupModel，条纹强制全色整行高亮。</li>
+            </ul>
+            <b>0.18.6</b>
+            <ul>
+                <li>代码地图新增 Git 行状态条纹：新增/修改/删除以左缘竖条呈现，颜色跟随 Color Scheme &gt; VCS，编辑与回滚实时同步，与异味横条共存互不遮挡。</li>
+            </ul>
             <b>0.18.5</b>
             <ul>
                 <li>新增项目树文件信息：文件名右侧灰色显示头部注释摘要与修改时间，本地文件与 zip/7z/tar 压缩包内条目全覆盖。</li>

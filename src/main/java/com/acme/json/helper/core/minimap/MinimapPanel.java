@@ -7,10 +7,13 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
+import com.intellij.openapi.editor.colors.EditorColors;
 import com.intellij.openapi.editor.event.VisibleAreaListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.vcs.ex.Range;
+import com.intellij.openapi.vcs.impl.LineStatusTrackerManager;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,13 +23,14 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
 /**
  * 代码缩略图显示面板（每编辑器一个，挂载于编辑器组件右侧）。
  * <p>以编辑器背景色显式铺底（滚动容器默认底色发白，不能依赖透明透出），
- * 仅绘制缩略图、错误条纹与视口框；左缘拖拽可在 40~200 像素间调节宽度并持久化；右键菜单提供功能开关。</p>
+ * 仅绘制缩略图、错误条纹、Git 行状态条纹与视口框；左缘拖拽可在 40~200 像素间调节宽度并持久化；右键菜单提供功能开关。</p>
  *
  * @author 拒绝者
  * @date 2026-07-21
@@ -42,9 +46,9 @@ public final class MinimapPanel extends JPanel implements Disposable {
      */
     private static final JBColor VIEWPORT_FILL = new JBColor(new Color(0x14000000, true), new Color(0x14FFFFFF, true));
     /**
-     * 错误条纹半透明叠加系数（右移 24 位 alpha 后按此系数衰减，避免整行横条盖过代码纹理）
+     * Git 行状态条纹宽度（像素，贴 minimap 左缘的竖条，对应编辑器行号槽左侧的 VCS 标记）
      */
-    private static final float ERROR_STRIPE_ALPHA_SCALE = 0.5f;
+    private static final int VCS_STRIPE_WIDTH = 3;
     /**
      * 缩略图整体绘制透明度（纹理全浓度，2px 行高小点需要足量透明保证清晰可读）
      */
@@ -186,6 +190,7 @@ public final class MinimapPanel extends JPanel implements Disposable {
         }
         if (PluginSettingsState.getInstance().minimapErrorStripeEnabled) {
             paintErrorStripes(graphics, width);
+            paintVcsStripes(graphics);
         }
         // 视口框：仅 8% 透明圆角填充（无边框线，几乎透明但可辨识当前可视区域）
         if (state.viewportHeight() > 0) {
@@ -207,14 +212,32 @@ public final class MinimapPanel extends JPanel implements Disposable {
     }
 
     /**
-     * 绘制错误/警告线条的整行条纹（半透明横条，颜色取平台 error-stripe 标记色）。
-     * <p>遍历编辑器 MarkupModel 的 highlighter，仅处理带 error-stripe 颜色的项；
-     * 数量与编辑器诊断条同级（判断为字段直读，滚动重绘频率下开销可忽略）。</p>
+     * 绘制错误/警告/异味行的整行高亮条纹（全色横条，黄/红一眼可辨）。
+     * <p>高亮来源：编辑器 MarkupModel 与文档 MarkupModel 双通道合并（部分检查高亮只落在文档侧）；
+     * 颜色回退链：显式 error-stripe 色 → 文本属性 errorStripeColor → 波浪线效果色
+     * （很多异味检查只配黄/红波浪线，不配 error-stripe 色，不配回退会漏显）。</p>
      */
     private void paintErrorStripes(@NotNull final Graphics graphics, final int width) {
         final var document = editor.getDocument();
-        for (final var highlighter : editor.getMarkupModel().getAllHighlighters()) {
-            final var stripeColor = highlighter.getErrorStripeMarkColor(editor.getColorsScheme());
+        final var project = editor.getProject();
+        final var highlighters = new java.util.ArrayList<>(List.of(editor.getMarkupModel().getAllHighlighters()));
+        if (Objects.nonNull(project)) {
+            final var documentMarkup = com.intellij.openapi.editor.impl.DocumentMarkupModel.forDocument(document, project, false);
+            if (Objects.nonNull(documentMarkup)) {
+                highlighters.addAll(List.of(documentMarkup.getAllHighlighters()));
+            }
+        }
+        final var scheme = editor.getColorsScheme();
+        for (final var highlighter : highlighters) {
+            var stripeColor = highlighter.getErrorStripeMarkColor(scheme);
+            if (Objects.isNull(stripeColor)) {
+                final var attributes = highlighter.getTextAttributes(scheme);
+                if (Objects.nonNull(attributes)) {
+                    stripeColor = Objects.nonNull(attributes.getErrorStripeColor())
+                            ? attributes.getErrorStripeColor()
+                            : attributes.getEffectColor();
+                }
+            }
             if (Objects.isNull(stripeColor)) {
                 continue;
             }
@@ -222,17 +245,52 @@ public final class MinimapPanel extends JPanel implements Disposable {
             final var endLine = document.getLineNumber(Math.min(highlighter.getEndOffset(), document.getTextLength()));
             final var y = (int) ((view.logicalLineToY(startLine) - sourceStartY) * effectiveScale);
             final var yEnd = (int) ((view.logicalLineToY(endLine) + view.pixelsPerLine() - sourceStartY) * effectiveScale);
-            graphics.setColor(withAlphaScale(stripeColor));
+            graphics.setColor(toOpaque(stripeColor));
             graphics.fillRect(0, Math.max(y, 0), width, Math.min(yEnd, getHeight()) - Math.max(y, 0));
         }
     }
 
     /**
-     * 颜色按系数衰减透明度（条纹叠在代码纹理上不刺眼）。
+     * 条纹强制不透明：2px 行高的横条必须全色才能在代码纹理上可辨；
+     * error-stripe 标记色的 alpha 可能为 0 或半透明（尤其弱警告），直接绘制会看不见
      */
-    private static Color withAlphaScale(@NotNull final Color color) {
-        return new Color(color.getRed(), color.getGreen(), color.getBlue(),
-                Math.max(1, (int) (color.getAlpha() * ERROR_STRIPE_ALPHA_SCALE)));
+    private static Color toOpaque(@NotNull final Color color) {
+        return new Color(color.getRGB());
+    }
+
+    /**
+     * 绘制 Git 行状态条纹（新增/修改/删除）：贴 minimap 左缘的竖条，对应编辑器行号槽左侧的 VCS 标记。
+     * <p>行状态经 {@link LineStatusTrackerManager} 实时读取，编辑/回滚后随 minimap 重绘同步；
+     * 颜色取 Color Scheme &gt; VCS 的 Added/Modified/Deleted Lines；文件未纳入版本管理时静默跳过。</p>
+     */
+    private void paintVcsStripes(@NotNull final Graphics graphics) {
+        final var project = editor.getProject();
+        if (Objects.isNull(project)) {
+            return;
+        }
+        final var tracker = LineStatusTrackerManager.Companion.getInstance(project).getLineStatusTracker(editor.getDocument());
+        if (Objects.isNull(tracker) || !tracker.isValid()) {
+            return;
+        }
+        final var scheme = editor.getColorsScheme();
+        for (final var range : tracker.getRanges()) {
+            final var color = switch (range.getType()) {
+                case Range.INSERTED -> scheme.getColor(EditorColors.ADDED_LINES_COLOR);
+                case Range.MODIFIED -> scheme.getColor(EditorColors.MODIFIED_LINES_COLOR);
+                case Range.DELETED -> scheme.getColor(EditorColors.DELETED_LINES_COLOR);
+                default -> null;
+            };
+            if (Objects.isNull(color)) {
+                continue;
+            }
+            // Range 行区间为 [line1, line2) 开区间；删除标记无行（line1==line2），画在所在行位置
+            final var y = (int) ((view.logicalLineToY(range.getLine1()) - sourceStartY) * effectiveScale);
+            final var yEnd = range.hasLines()
+                    ? (int) ((view.logicalLineToY(range.getLine2() - 1) + view.pixelsPerLine() - sourceStartY) * effectiveScale)
+                    : y + Math.max(1, (int) (view.pixelsPerLine() * effectiveScale));
+            graphics.setColor(color);
+            graphics.fillRect(0, Math.max(y, 0), VCS_STRIPE_WIDTH, Math.min(yEnd, getHeight()) - Math.max(y, 0));
+        }
     }
 
     /**

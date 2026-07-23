@@ -73,6 +73,10 @@ intellijPlatform {
         version = project.version.toString()
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
+            <b>0.18.9</b>
+            <ul>
+                <li>修复主菜单展开抛 PluginException：项目搜索/HTTP 搜索两个动作未设菜单文本（2026.2 起空菜单文本强制检查），已按平台规范补全中英文本。</li>
+            </ul>
             <b>0.18.8</b>
             <ul>
                 <li>修复项目搜索打开项目时 UI 冻结死锁：itemSelected 回调在写意图读锁上下文执行，同步 openOrImport 与新项目打开所需写锁互等，改为投递 EDT 队列尾部脱离锁上下文后打开。</li>

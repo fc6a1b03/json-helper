@@ -4,7 +4,7 @@
 
 ## 项目概览
 
-**Json Helper** 是一个面向 IntelliJ IDEA 的 JSON 效率插件，提供 JSON 数据编辑、查询、生成与多格式互转能力。
+**Json Helper** 是一个面向 IntelliJ IDEA 的 JSON 效率插件，提供 JSON 数据编辑、查询、生成与多格式互转能力，并集成了项目树压缩包浏览、代码地图、彩虹高亮等编辑器增强功能。
 
 **项目元数据：**
 
@@ -14,7 +14,7 @@
 | Artifact ID | `json-helper`                                   |
 | 插件 ID     | `com.acme.json.helper`                          |
 | 作者        | 拒绝者                                          |
-| 当前版本    | `0.15.0`（定义在 `settings.gradle` 的版本表中） |
+| 当前版本    | `0.18.8`（定义在 `settings.gradle` 的版本表中） |
 | 许可证      | MIT                                             |
 | GitHub      | https://github.com/fc6a1b03/json-helper         |
 
@@ -26,7 +26,11 @@
 - JsonPath / JMESPath 查询与树形浏览
 - URL、JWT、本地文件路径、Web 路径自动解析为 JSON
 - JSON 与 XML / YAML / TOML / Properties / CSV / XLSX / Base64 / URL Params 互转
-- Search Everywhere 集成：项目搜索、HTTP 请求文件搜索、端口搜索
+- Search Everywhere 集成：项目搜索、HTTP 请求文件搜索、端口搜索、压缩包内容搜索
+- 项目树中将压缩包（zip / 7z / jar / war / ear / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz / gz / bz2 /
+  xz）作为目录展开浏览
+- 项目树文件信息：文件名右侧显示头部注释摘要与修改时间
+- 编辑器增强：彩虹括号配对高亮、彩虹变量高亮、颜色字面量 Gutter 色块、代码地图（minimap）
 - 代码截图复制
 
 ## 技术栈
@@ -41,16 +45,17 @@
 
 版本统一在 `settings.gradle` 的 `gradle.ext.versions` 表中维护：
 
-| 依赖                 | 版本   | 用途                     |
-|----------------------|--------|--------------------------|
-| IntelliJ Platform    | 2026.2 | IDE 集成                 |
-| Hutool               | 5.8.44 | 工具库（core + http）    |
-| Jackson              | 3.1.0  | JSON/数据格式处理（BOM） |
-| Fastjson2            | 2.0.61 | JSON 解析与校验          |
-| Auth0 JWT            | 4.5.1  | JWT Token 解析           |
-| Apache POI           | 5.5.1  | Excel 文件支持           |
-| JUnit                | 6.1.2  | 单元测试（BOM，test 域） |
-| Apache Commons Lang3 | 3.20.0 | 通用工具（强制统一版本） |
+| 依赖                    | 版本   | 用途                     |
+|-------------------------|--------|--------------------------|
+| IntelliJ Platform       | 2026.2 | IDE 集成                 |
+| Hutool                  | 5.8.47 | 工具库（core + http）    |
+| Jackson                 | 3.2.1  | JSON/数据格式处理（BOM） |
+| Fastjson2               | 2.0.62 | JSON 解析与校验          |
+| Auth0 JWT               | 4.5.2  | JWT Token 解析           |
+| Apache POI              | 5.5.1  | Excel 文件支持           |
+| Apache Commons Compress | 1.28.0 | 压缩包格式支持           |
+| JUnit                   | 6.1.2  | 单元测试（BOM，test 域） |
+| Apache Commons Lang3    | 3.20.0 | 通用工具（强制统一版本） |
 
 ### 捆绑插件依赖（`build.gradle` 与 `plugin.xml` 中声明）
 
@@ -59,6 +64,7 @@
 - `com.intellij.gradle` - Gradle 支持
 - `com.intellij.properties` - Properties 文件支持
 - `com.intellij.modules.json` - JSON 模块
+- `com.intellij.modules.vcs` - VCS 模块（Git 行状态）
 - `org.jetbrains.plugins.yaml` - YAML 支持
 
 ## 项目结构
@@ -68,7 +74,7 @@ src/main/
 ├── java/com/acme/json/helper/
 │   ├── common/                    # 通用工具类和枚举
 │   │   ├── enums/
-│   │   │   ├── AnyFile.java       # 支持的文件类型枚举 (JSON, XML, YAML, TOML, etc.)
+│   │   │   ├── AnyFile.java       # 支持的文件类型枚举 (JSON, XML, YAML, TOML, CLASS, RECORD, CSV, XLSX 等)
 │   │   │   └── SupportedLanguages.java  # 支持的语言枚举
 │   │   ├── ActionEventCheck.java  # 动作事件检查（sealed interface Check）
 │   │   ├── Clipboard.java         # 剪贴板操作
@@ -76,10 +82,24 @@ src/main/
 │   │   ├── TemporalTypeHandler.java     # 时间类型处理
 │   │   └── UastSupported.java     # UAST (Universal AST) 支持
 │   ├── core/                      # 核心功能模块
+│   │   ├── archive/               # 压缩包格式识别、索引、树节点、搜索、打开器、图标
+│   │   │   ├── ArchiveFormats.java      # 压缩包格式枚举与条目读取
+│   │   │   ├── ArchiveIndex.java        # 压缩包索引
+│   │   │   ├── ArchiveContentIndex.java # 压缩包内容索引（供搜索）
+│   │   │   ├── ArchiveTreeProvider.java # 项目树压缩包节点提供
+│   │   │   ├── ArchiveIconProvider.java # 压缩包图标提供
+│   │   │   ├── ArchiveOpener.java       # 压缩包条目打开器
+│   │   │   ├── ArchiveSearch.java       # 压缩包内容搜索
+│   │   │   └── ArchiveEntryNode.java    # 压缩包条目树节点
 │   │   ├── editor/                # 编辑器集成
 │   │   │   ├── FileDropHandler.java         # 文件拖放处理
 │   │   │   ├── JsonEditorPushProvider.java  # 编辑器推送提供者
 │   │   │   └── record/EditorState.java      # 编辑器状态记录 (Base64 编码/解码)
+│   │   ├── fileinfo/              # 项目树文件信息
+│   │   │   ├── FileCommentExtractor.java    # 文件头部注释提取
+│   │   │   ├── FileInfoNodeDecorator.java   # 项目树节点装饰
+│   │   │   ├── FileInfoCacheService.java    # 文件信息缓存服务
+│   │   │   └── FileInfoDisplay.java         # 文件信息展示
 │   │   ├── json/                  # JSON 处理
 │   │   │   ├── JsonOperation.java       # JSON 操作接口 (sealed interface)
 │   │   │   ├── JsonCompressor.java      # JSON 压缩
@@ -87,6 +107,11 @@ src/main/
 │   │   │   ├── JsonUnEscaper.java       # JSON 反转义
 │   │   │   ├── JsonFormatter.java       # JSON 格式化
 │   │   │   └── JsonSearchEngine.java    # JSON 搜索引擎 (JsonPath/JMESPath)
+│   │   ├── minimap/               # 代码地图（编辑器缩略图）
+│   │   │   ├── MinimapEditorFactoryListener.java  # 编辑器挂载监听器
+│   │   │   ├── MinimapPanel.java / MinimapView.java / MinimapRenderer.java
+│   │   │   ├── MinimapGeometry.java / MinimapScrollState.java
+│   │   │   └── CharacterWeights.java              # 字符油墨权重
 │   │   ├── notice/
 │   │   │   └── Notifier.java      # 线程安全通知系统
 │   │   ├── parser/                # 解析逻辑
@@ -104,17 +129,28 @@ src/main/
 │   │   │       ├── PropertiesConverter.java / Base64Converter.java / UrlParamsConverter.java
 │   │   │       ├── ClassConverter.java / RecordConverter.java
 │   │   │       └── JavaStructure.java / TableStructure.java  # 结构模型
+│   │   ├── rainbow/               # 彩虹高亮
+│   │   │   ├── RainbowBracketPairEditorFactoryListener.java # 括号配对高亮监听器
+│   │   │   ├── RainbowBracketPairHighlighter.java           # 括号高亮器
+│   │   │   ├── RainbowBracketPairColors.java                # 括号颜色
+│   │   │   ├── RainbowBracketPairColorSettingsPage.java     # 括号颜色设置页
+│   │   │   ├── RainbowVariableEditorFactoryListener.java    # 变量高亮监听器
+│   │   │   ├── RainbowVariableHighlighter.java              # 变量高亮器
+│   │   │   ├── ColorHighlighterEditorFactoryListener.java   # 颜色字面量色块监听器
+│   │   │   └── ColorLiteralParser.java / ColorHighlightListener.java
 │   │   ├── screenshot/
 │   │   │   └── CodeScreenshotSupplier.java  # 代码截图
 │   │   ├── search/                # 搜索功能
 │   │   │   ├── cache/SearchCache.java     # 搜索缓存
+│   │   │   ├── ProjectSearch.java         # 项目搜索
 │   │   │   ├── HttpRequestSearch.java     # HTTP 请求文件搜索
 │   │   │   ├── PortSearch.java            # 端口搜索
-│   │   │   ├── ProjectSearch.java         # 项目搜索
+│   │   │   ├── ArchiveSearch.java         # 压缩包内容搜索
 │   │   │   └── item/                      # 搜索项类型
 │   │   │       ├── HttpRequestItem.java
 │   │   │       ├── PortSearchItem.java
-│   │   │       └── ProjectNavigationItem.java
+│   │   │       ├── ProjectNavigationItem.java
+│   │   │       └── ArchiveEntryItem.java
 │   │   └── settings/              # 插件设置
 │   │       ├── PluginSettings.java            # 设置页面 (applicationConfigurable)
 │   │       ├── PluginSettingsState.java       # 持久化状态 (applicationService)
@@ -128,19 +164,22 @@ src/main/
 │       ├── dialog/        # ConvertAnyDialog / CreateClassDialog
 │       ├── editor/        # Editor.java (sealed interface) / CustomizeEditorFactory.java
 │       ├── panel/         # MainPanel（主面板）/ JsonTreePanel（JSON 树形面板）
-│       └── search/        # ProjectSearchFactory / HttpRequestSearchFactory / PortSearchFactory
+│       └── search/        # ProjectSearchFactory / HttpRequestSearchFactory / PortSearchFactory / ArchiveSearchFactory
 └── resources/
     ├── META-INF/
     │   ├── plugin.xml             # 插件配置（actions/extensions/依赖声明）
     │   └── pluginIcon.svg         # 插件图标
     ├── icons/
     │   └── pluginIcon.svg
+    ├── colorSchemes/
+    │   └── RainbowBracketPairDefault.xml  # 彩虹括号默认颜色方案
     └── messages/                  # 国际化资源
         ├── JsonHelperBundle.properties       # 英文（默认）
         └── JsonHelperBundle_zh_CN.properties # 中文
 ```
 
-**注意**：`src/test` 为 JUnit 6 单元测试目录（覆盖纯逻辑单元：JSON 操作、格式转换器、检测引擎、编解码），`./gradlew test` 运行。
+**注意**：`src/test` 为 JUnit 6 单元测试目录（覆盖纯逻辑单元：JSON 操作、格式转换器、检测引擎、编解码、压缩包索引、代码地图几何、文件注释提取、编辑器状态），
+`./gradlew test` 运行。
 
 ## 构建命令
 
@@ -156,6 +195,9 @@ src/main/
 
 # 编译
 ./gradlew compileJava
+
+# 运行单元测试
+./gradlew test
 
 # 运行带插件的沙箱 IDE（Darcula 主题，开发者模式）
 ./gradlew runIde
@@ -187,9 +229,10 @@ build/distributions/json-helper-x.x.x.zip
 
 ### Gradle 优化配置（`gradle.properties`）
 
-仅保留非默认值且可移植的项：`caching`、`parallel`、`useCacheRedirector=false`；JVM `-Xms1g -Xmx5g`（不得再配
-`-Djava.security.manager=allow`，JDK 24+ 会直接拒绝启动）。`daemon`、`vfs.watch`、`logging.level` 等官方默认值不再显式声明。
-本机相关配置（`org.gradle.java.home`、`installations.paths`、代理）一律放用户级 `GRADLE_USER_HOME/gradle.properties`，不入库。
+仅保留非默认值且可移植的项：`caching`、`parallel`、`useCacheRedirector=false`；JVM
+`-Xms1g -Xmx5g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError`（不得再配 `-Djava.security.manager=allow`，JDK 24+
+会直接拒绝启动）。 本机相关配置（`org.gradle.java.home`、`installations.paths`、代理）一律放用户级
+`GRADLE_USER_HOME/gradle.properties`，不入库。
 
 ## 代码风格规范
 
@@ -224,7 +267,7 @@ build/distributions/json-helper-x.x.x.zip
 
 5. **使用 `Boolean.TRUE` / `Boolean.FALSE`** 替代原始布尔字面量。
 
-6. **Record 作为 DTO**，如 `EditorState(Integer editorId, String content)`。
+6. **Record 作为 DTO**，如 `EditorState(Integer editorId, String content)`、`ArchiveFormats.RawEntry`。
 
 7. **Javadoc 格式**（带作者与日期）：
    ```java
@@ -239,7 +282,8 @@ build/distributions/json-helper-x.x.x.zip
 
 1. **避免内存泄漏**：try-with-resources 释放流/连接；不在静态集合中持有大对象。
 2. **大数据量处理**：流式/增量解析，避免整文件载入内存（超过 1MB 的 JSON 尤其注意）。
-3. **缓存策略**：复用 `SearchCache` 等现有机制；由 project service 托管生命周期；设置合理过期时间与大小限制。
+3. **缓存策略**：复用 `SearchCache`、`FileInfoCacheService`、`ArchiveCacheService` 等现有机制；由 project/application
+   service 托管生命周期；设置合理过期时间与大小限制。
 4. **异步执行**：耗时操作用 `Task.Backgroundable` 放后台线程并显示进度，不阻塞 UI 线程。
 5. **对象复用**：优先 `EnumMap` 而非线性查找（见 `JsonParser`）；循环内不创建临时对象；字符串拼接用 `StringBuilder`。
 6. **延迟加载**：重型组件懒加载，大量数据分页展示。
@@ -251,7 +295,8 @@ build/distributions/json-helper-x.x.x.zip
 2. **Tool Windows**：实现 `ToolWindowFactory`（见 `MainToolWindowFactory`）。
 3. **Settings**：`ApplicationConfigurable` + `ApplicationService`（见 `PluginSettings` / `PluginSettingsState`）。
 4. **Notifications**：统一走 `Notifier` 工具类（线程安全，自动切换 EDT，静默处理异常）。
-5. **线程安全**：UI 更新用 `ApplicationManager.getApplication().invokeLater()` 切到 EDT；PSI 读取使用官方读锁 API。
+5. **线程安全**：UI 更新用 `ApplicationManager.getApplication().invokeLater()` 切到 EDT；PSI 读取使用官方读锁
+   API；避免在锁上下文内执行可能触发写锁的操作（如 `ProjectUtil.openOrImport`）。
 
 ## 国际化 (i18n)
 
@@ -272,13 +317,18 @@ String text = BUNDLE.getString("key.name");
 
 ## 测试策略
 
-纯逻辑单元（JSON 操作、格式转换器、检测引擎、编解码）由 `src/test` 下的 **JUnit 6** 测试覆盖，`./gradlew test` 运行；依赖 IDE 平台运行环境的部分（PSI、编辑器、Search Everywhere）不做单元测试，验证方式为手动测试：
+纯逻辑单元（JSON 操作、格式转换器、检测引擎、编解码、压缩包索引、代码地图几何、文件注释提取、编辑器状态）由 `src/test` 下的
+**JUnit 6** 测试覆盖，`./gradlew test` 运行；依赖 IDE 平台运行环境的部分（PSI、编辑器、Search
+Everywhere、项目树节点、代码地图渲染）不做单元测试，验证方式为手动测试：
 
 1. `./gradlew runIde` 启动带插件的沙箱 IDE
 2. 测试编辑器右键菜单中的所有动作（复制 JSON、推送面板、代码截图等）
-3. 验证 "Json Helper" 工具窗口功能（编辑、格式化、查询、树形浏览）
+3. 验证 "Json Helper" 工具窗口功能（编辑、格式化、查询、树形浏览、格式转换）
 4. 检查各种格式转换（XML/YAML/TOML/CSV/XLSX 等）
-5. 提交前至少跑通 `./gradlew clean buildPlugin verifyPluginProjectConfiguration verifyPluginStructure`
+5. 验证项目树中压缩包节点展开、文件注释与修改时间显示
+6. 验证代码地图、彩虹括号、彩虹变量、颜色字面量色块等功能
+7. 验证 Search Everywhere 中的项目搜索、HTTP 搜索、端口搜索、压缩包内容搜索
+8. 提交前至少跑通 `./gradlew clean buildPlugin verifyPluginProjectConfiguration verifyPluginStructure`
 
 ## 部署 / CI-CD
 
@@ -286,8 +336,8 @@ GitHub Actions 工作流 `.github/workflows/build_jar.yml`：
 
 - **触发方式**: 手动 (`workflow_dispatch`)
 - **运行环境**: `ubuntu-latest`，Java 25，Gradle 9.6.1
-- **流程**: 从 `settings.gradle` 提取版本号 → 缓存 IntelliJ Platform 构件 → `buildPlugin` +
-  `verifyPluginProjectConfiguration` + `verifyPluginStructure` → 上传 ZIP 工件 → 创建 GitHub Release
+- **流程**: 从 `settings.gradle` 提取版本号 → 缓存 IntelliJ Platform 构件 → `test` + `buildPlugin` +
+  `verifyPluginStructure` → 上传 ZIP 工件 → 创建 GitHub Release
 
 发布新版本时：修改 `settings.gradle` 中 `gradle.ext.versions.ver`，并同步更新 `build.gradle` 中的 `changeNotes`。
 
@@ -299,9 +349,14 @@ GitHub Actions 工作流 `.github/workflows/build_jar.yml`：
     - `JsonHelperAction` - 推送 JSON 到工具窗口（`EditorPopupMenu` + `ConsoleEditorPopupMenu`）
     - `CreateClassFromJsonAction` - 从 JSON 创建类（`NewGroup` + `ProjectViewPopupMenu`）
     - `ProjectSearchAction` / `HttpRequestSearch` - 搜索动作（`GoToTargetEx`）
-- **Tool Window**: id 为 "Json Helper"，锚定右侧 (`anchor="right"`, `secondary="true"`)
+- **Tool Window**: id 为 "Json Helper"，锚定右侧 (`anchor="right"`, `secondary="true"`, `canCloseContents="true"`)
 - **Settings**: Tools 菜单下的 `applicationConfigurable`
-- **Search Everywhere Contributors**: `ProjectSearchFactory`、`HttpRequestSearchFactory`、`PortSearchFactory`
+- **Search Everywhere Contributors**: `ProjectSearchFactory`、`HttpRequestSearchFactory`、`PortSearchFactory`、
+  `ArchiveSearchFactory`
+- **项目树扩展**：`ArchiveTreeProvider`（压缩包节点）、`ArchiveIconProvider`（压缩包图标）、`FileInfoNodeDecorator`（文件信息装饰）
+- **编辑器工厂监听器**：`RainbowBracketPairEditorFactoryListener`、`RainbowVariableEditorFactoryListener`、
+  `ColorHighlighterEditorFactoryListener`、`MinimapEditorFactoryListener`
+- **颜色方案**：`RainbowBracketPairDefault.xml`，并注册 `RainbowBracketPairColorSettingsPage`
 - **通知组**: `JSONGenerator.NotificationGroup`（BALLOON，走 i18n bundle）
 
 ## 架构模式
@@ -314,7 +369,7 @@ GitHub Actions 工作流 `.github/workflows/build_jar.yml`：
 private static Map<AnyFile, DataFormatConverter> createConverters() {
     final EnumMap<AnyFile, DataFormatConverter> converters = new EnumMap<>(AnyFile.class);
     register(converters, AnyFile.XML, new XmlConverter());
-    // ... 共 11 个转换器
+    // ... 共 10 个转换器
     return Map.copyOf(converters);
 }
 ```
@@ -338,6 +393,22 @@ public sealed interface Check permits Check.Failed, Check.Success {
 ### 编辑器状态管理
 
 `EditorState` record 支持 List 级别的 Base64 编码/解码，用于编辑器内容持久化。
+
+### 压缩包处理
+
+`ArchiveFormats` 枚举集中维护所有支持的压缩格式及其条目读取策略：
+
+- zip 系（zip / jar / war / ear）：随机读取，构建索引时顺带解压头部提取注释
+- 7z：顺序流，单次遍历提取条目与注释
+- tar 系（tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz）：流式单次遍历
+- 单文件压缩（gz / bz2 / xz）：去后缀后作为单个条目处理
+
+条目打开通过 `ArchiveOpener` 统一路由到 `JarFileSystem` 或临时解压；内容搜索通过 `ArchiveContentIndex` 建立文本条目内容索引。
+
+### 代码地图
+
+`MinimapEditorFactoryListener` 在编辑器创建时于右侧挂载 `MinimapPanel`，释放时移除并 dispose；面板使用自研字符权重纹理渲染，非
+EDT 线程读取文档 + 150ms 防抖，大文件自动跳过，支持点击/拖动/Shift 扩选导航、滚轮滚动、左缘拖拽调宽（40~200 像素持久化）。
 
 ## 常见任务指南
 
@@ -368,12 +439,21 @@ public sealed interface Check permits Check.Failed, Check.Success {
 2. 创建搜索类继承 `SearchEverywhereContributor`
 3. 在 `plugin.xml` 注册 `<searchEverywhereContributor>` 扩展
 
+### 添加新的编辑器增强功能
+
+1. 创建 `EditorFactoryListener` 实现类，按需监听编辑器创建/释放事件
+2. 通过 `ProjectDisposableService` 管理生命周期，避免泄漏
+3. 在 `PluginSettingsState` 中添加开关字段，在 `PluginSettings` 中添加 UI 组件
+4. 在 `plugin.xml` 中注册 `<editorFactoryListener>` 扩展
+5. 同步更新 i18n 资源
+
 ## 安全注意事项
 
 1. **本地数据处理**: 所有 JSON、Java 代码处理均在本地完成，无外部数据传输
 2. **HTTP 请求搜索**: 仅扫描本地项目文件，不发起真实请求
 3. **剪贴板操作**: 需用户显式触发
 4. **文件操作**: 处理前校验 JSON 格式
+5. **压缩包解压**: 对单文件压缩设置压缩率兜底防护，防止解压炸弹；大文件/条目大小限制在打开器与搜索索引中均有护栏
 
 ## 相关文档
 

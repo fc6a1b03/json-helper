@@ -73,6 +73,10 @@ intellijPlatform {
         version = project.version.toString()
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
+            <b>0.18.8</b>
+            <ul>
+                <li>修复项目搜索打开项目时 UI 冻结死锁：itemSelected 回调在写意图读锁上下文执行，同步 openOrImport 与新项目打开所需写锁互等，改为投递 EDT 队列尾部脱离锁上下文后打开。</li>
+            </ul>
             <b>0.18.7</b>
             <ul>
                 <li>修复代码地图异味/警告条纹不显示：很多检查只配波浪线颜色不配 error-stripe 色，现颜色回退链补全（error-stripe 色 → 文本属性 → 波浪线效果色），高亮源合并文档 MarkupModel，条纹强制全色整行高亮。</li>

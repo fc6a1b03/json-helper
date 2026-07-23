@@ -12,6 +12,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
 import com.intellij.ide.impl.ProjectUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -208,7 +209,11 @@ public record ProjectSearch(Project project) implements WeightedSearchEverywhere
         if (item instanceof ProjectNavigationItem.GitRepository git) {
             this.cloneIfNotExist(git.repositoryUrl());
         } else {
-            ProjectUtil.openOrImport(item.projectPath(), null, Boolean.FALSE);
+            // 本回调在 Search Everywhere 的写意图读锁上下文（Dispatchers.EDT + write-intent read）中执行：
+            // 同步 openOrImport 会就地起模态进度，新项目打开需写锁，与持有的写意图读互等死锁（UI 冻结）。
+            // 投递到 EDT 队列尾部、脱离锁上下文后再打开
+            ApplicationManager.getApplication().invokeLater(
+                    () -> ProjectUtil.openOrImport(item.projectPath(), null, Boolean.FALSE));
         }
         return Boolean.TRUE;
     }

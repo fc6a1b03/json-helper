@@ -1,30 +1,17 @@
-<idea-plugin package="com.acme.json.helper" url="https://github.com/fc6a1b03/json-helper">
-    <id>com.acme.json.helper</id>
-    <name>Json Helper</name>
-    <vendor email="asd1161575755@outlook.com" url="https://github.com/fc6a1b03/json-helper">拒绝者</vendor>
+<idea-plugin package="com.acme.prism" url="https://github.com/fc6a1b03/prism">
+    <id>com.acme.prism</id>
+    <name>Prism</name>
+    <vendor email="asd1161575755@outlook.com" url="https://github.com/fc6a1b03/prism">拒绝者</vendor>
 
-    <!-- 插件描述：带预览图的富文本，patchPluginXml 不会覆盖（build.gradle 未设置 description） -->
+    <!-- 插件描述：patchPluginXml 不会覆盖（build.gradle 未设置 description） -->
     <description><![CDATA[
-        Json Helper is an IntelliJ IDEA plugin for editing, repairing, querying, and converting JSON,
-        with Java class generation, JsonPath querying, tree navigation, and multi-format export.
+        Prism is an IntelliJ IDEA plugin that pairs JSON tooling (edit, repair, query, convert,
+        Java class generation, JsonPath, multi-format export) with editor enhancements:
+        code minimap with git and inspection stripes, rainbow highlights, project tree insights,
+        archive browsing, code screenshots, and project/HTTP/port search.
         <div style="max-width: 600px; margin: 0 auto; padding: 10px;">
-            <a href="https://github.com/fc6a1b03/json-helper" style="color: #2B65EC; text-decoration: none; font-weight: 500;">Github</a>
-            <p style="color: #666; line-height: 1.5; margin: 8px 0 12px;">这个工具支持用户自由编辑 JSON 数据、从 JSON 数据生成 Java 类以及从 Java 类复制 JSON 数据，还支持通过 JsonPath 进行高效查询和处理</p>
-        </div>
-        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
-            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview1.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview1" border="0" />
-        </div>
-        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
-            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview2.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview2" border="0" />
-        </div>
-        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
-            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview4.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
-        </div>
-        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
-            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview5.png" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
-        </div>
-        <div style="margin:0;padding:0;height: 600px;box-sizing:border-box;">
-            <img src="https://raw.githubusercontent.com/fc6a1b03/json-helper/refs/heads/master/doc/preview3.gif" style="margin:0;padding:0;height: 600px" height="600" alt="preview3" border="0" />
+            <a href="https://github.com/fc6a1b03/prism" style="color: #2B65EC; text-decoration: none; font-weight: 500;">Github</a>
+            <p style="color: #666; line-height: 1.5; margin: 8px 0 12px;">Prism 集 JSON 工具与编辑器增强于一身：自由编辑/修复/查询/转换 JSON、Java 类互转、多格式导出；并提供代码地图（Git 与异味标记）、彩虹括号与变量高亮、颜色字面量、项目树文件注释与压缩包浏览、代码截图、项目/HTTP/端口搜索等能力</p>
         </div>
     ]]></description>
 
@@ -37,90 +24,90 @@
     <depends>com.intellij.modules.vcs</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
-    <resource-bundle>messages.JsonHelperBundle</resource-bundle>
+    <resource-bundle>messages.PrismBundle</resource-bundle>
 
     <actions>
         <!-- 代码截图 -->
         <action id="CodeScreenshot"
                 icon="AllIcons.General.Copy"
-                class="com.acme.json.helper.ui.action.screenshot.CodeScreenshot">
+                class="com.acme.prism.ui.action.screenshot.CodeScreenshot">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl S"/>
         </action>
         <!-- 复制JSON -->
         <action id="CopyJsonAction"
                 icon="AllIcons.General.Copy"
-                class="com.acme.json.helper.ui.action.json.CopyJsonAction">
+                class="com.acme.prism.ui.action.json.CopyJsonAction">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
         <!-- 复制JSON并推到面板 -->
         <action id="JsonHelperAction"
                 icon="AllIcons.Duplicates.SendToTheRight"
-                class="com.acme.json.helper.ui.action.json.JsonHelperAction">
+                class="com.acme.prism.ui.action.json.JsonHelperAction">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="ConsoleEditorPopupMenu" anchor="first"/>
         </action>
         <!-- JSON创建类 -->
         <action id="CreateClassFromJsonAction"
                 icon="AllIcons.FileTypes.JsonSchema"
-                class="com.acme.json.helper.ui.action.json.CreateClassFromJsonAction">
+                class="com.acme.prism.ui.action.json.CreateClassFromJsonAction">
             <add-to-group group-id="NewGroup" anchor="first"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
         </action>
         <!-- 注册项目搜索 -->
-        <action id="ProjectSearchAction" class="com.acme.json.helper.ui.action.search.ProjectSearchAction">
+        <action id="ProjectSearchAction" class="com.acme.prism.ui.action.search.ProjectSearchAction">
             <add-to-group group-id="GoToTargetEx"/>
         </action>
         <!-- 注册HTTP搜索 -->
-        <action id="HttpRequestSearch" class="com.acme.json.helper.ui.action.search.HttpRequestSearchAction">
+        <action id="HttpRequestSearch" class="com.acme.prism.ui.action.search.HttpRequestSearchAction">
             <add-to-group group-id="GoToTargetEx"/>
         </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- 注册窗口 -->
-        <toolWindow id="Json Helper"
+        <toolWindow id="Prism"
                     anchor="right"
                     secondary="true"
                     canCloseContents="true"
                     icon="/icons/pluginIcon.svg"
-                    factoryClass="com.acme.json.helper.ui.MainToolWindowFactory"/>
+                    factoryClass="com.acme.prism.ui.MainToolWindowFactory"/>
         <!-- 注册插件配置 -->
         <applicationConfigurable parentId="tools"
                                  key="plugin.setting.json.helper"
-                                 id="com.acme.json.helper.core.settings.PluginSettings"
-                                 instance="com.acme.json.helper.core.settings.PluginSettings"/>
+                                 id="com.acme.prism.core.settings.PluginSettings"
+                                 instance="com.acme.prism.core.settings.PluginSettings"/>
         <!-- 设置状态 -->
-        <applicationService serviceImplementation="com.acme.json.helper.core.settings.PluginSettingsState"/>
+        <applicationService serviceImplementation="com.acme.prism.core.settings.PluginSettingsState"/>
         <!-- 注册通知 -->
-        <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON" bundle="messages.JsonHelperBundle"
+        <notificationGroup id="JSONGenerator.NotificationGroup" displayType="BALLOON" bundle="messages.PrismBundle"
                            key="notification.group.JSONGenerator.NotificationGroup"/>
         <!-- 项目搜索器 -->
-        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ProjectSearchFactory"/>
+        <searchEverywhereContributor implementation="com.acme.prism.ui.search.ProjectSearchFactory"/>
         <!-- HTTP搜索器 -->
-        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.HttpRequestSearchFactory"/>
+        <searchEverywhereContributor implementation="com.acme.prism.ui.search.HttpRequestSearchFactory"/>
         <!-- 端口搜索器 -->
-        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.PortSearchFactory"/>
+        <searchEverywhereContributor implementation="com.acme.prism.ui.search.PortSearchFactory"/>
         <!-- 压缩包内容搜索器 -->
-        <searchEverywhereContributor implementation="com.acme.json.helper.ui.search.ArchiveSearchFactory"/>
+        <searchEverywhereContributor implementation="com.acme.prism.ui.search.ArchiveSearchFactory"/>
         <!-- 项目树压缩包节点 -->
-        <treeStructureProvider implementation="com.acme.json.helper.core.archive.ArchiveTreeProvider"/>
+        <treeStructureProvider implementation="com.acme.prism.core.archive.ArchiveTreeProvider"/>
         <!-- 项目树压缩包图标 -->
-        <iconProvider implementation="com.acme.json.helper.core.archive.ArchiveIconProvider"/>
+        <iconProvider implementation="com.acme.prism.core.archive.ArchiveIconProvider"/>
         <!-- 项目树文件注释与修改时间 -->
-        <projectViewNodeDecorator implementation="com.acme.json.helper.core.fileinfo.FileInfoNodeDecorator"/>
+        <projectViewNodeDecorator implementation="com.acme.prism.core.fileinfo.FileInfoNodeDecorator"/>
         <!-- 彩虹括号配对高亮：编辑器工厂监听器 -->
-        <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowBracketPairEditorFactoryListener"/>
+        <editorFactoryListener implementation="com.acme.prism.core.rainbow.RainbowBracketPairEditorFactoryListener"/>
         <!-- 彩虹变量高亮：编辑器工厂监听器 -->
-        <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.RainbowVariableEditorFactoryListener"/>
+        <editorFactoryListener implementation="com.acme.prism.core.rainbow.RainbowVariableEditorFactoryListener"/>
         <!-- 颜色字面量色块高亮：编辑器工厂监听器 -->
-        <editorFactoryListener implementation="com.acme.json.helper.core.rainbow.ColorHighlighterEditorFactoryListener"/>
+        <editorFactoryListener implementation="com.acme.prism.core.rainbow.ColorHighlighterEditorFactoryListener"/>
         <!-- 代码地图（缩略图）：编辑器工厂监听器 -->
-        <editorFactoryListener implementation="com.acme.json.helper.core.minimap.MinimapEditorFactoryListener"/>
+        <editorFactoryListener implementation="com.acme.prism.core.minimap.MinimapEditorFactoryListener"/>
         <!-- 彩虹括号配对高亮：默认颜色 -->
         <additionalTextAttributes scheme="Default" file="colorSchemes/RainbowBracketPairDefault.xml"/>
         <additionalTextAttributes scheme="Darcula" file="colorSchemes/RainbowBracketPairDefault.xml"/>
         <!-- 彩虹括号配对高亮：颜色设置页 -->
-        <colorSettingsPage implementation="com.acme.json.helper.core.rainbow.RainbowBracketPairColorSettingsPage"/>
+        <colorSettingsPage implementation="com.acme.prism.core.rainbow.RainbowBracketPairColorSettingsPage"/>
     </extensions>
 </idea-plugin>

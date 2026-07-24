@@ -73,6 +73,10 @@ intellijPlatform {
         version = project.version.toString()
         // sinceBuild 自 IGP 2.14 起默认取目标平台 major build（2026.2 → 262），无需显式声明
         changeNotes = """
+            <b>0.19.0</b>
+            <ul>
+                <li>插件更名：Json Helper → <b>Prism</b>。功能早已超出 JSON（代码地图、彩虹高亮、项目树信息、截图、搜索等），新名取"棱镜分光"之意。插件 id 同步变更（com.acme.prism），安装前请先卸载旧版 Json Helper；用户配置全部保留。</li>
+            </ul>
             <b>0.18.9</b>
             <ul>
                 <li>修复主菜单展开抛 PluginException：项目搜索/HTTP 搜索两个动作未设菜单文本（2026.2 起空菜单文本强制检查），已按平台规范补全中英文本。</li>

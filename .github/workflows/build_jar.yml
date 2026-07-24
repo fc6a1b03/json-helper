@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: build-json-helper-${{ github.ref }}
+  group: build-prism-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -83,7 +83,7 @@ jobs:
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v7
         with:
-          name: json-helper-${{ steps.extract_version.outputs.version }}
+          name: prism-${{ steps.extract_version.outputs.version }}
           path: build/distributions/*.zip
           if-no-files-found: error
 
@@ -93,7 +93,7 @@ jobs:
           files: build/distributions/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.extract_version.outputs.version }}
-          release_name: Json Helper v${{ steps.extract_version.outputs.version }}
+          release_name: Prism v${{ steps.extract_version.outputs.version }}
           body: |
             ## Release Overview
             - IntelliJ IDEA target: ${{ steps.extract_meta.outputs.idea_version }}
@@ -101,7 +101,7 @@ jobs:
             - Gradle baseline: ${{ steps.extract_meta.outputs.gradle_version }}
 
             ## Included Artifact
-            - `json-helper-${{ steps.extract_version.outputs.version }}.zip`
+            - `prism-${{ steps.extract_version.outputs.version }}.zip`
 
             ## Installation
             1. Download the ZIP asset from this release.

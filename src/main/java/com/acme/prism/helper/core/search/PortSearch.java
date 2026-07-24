@@ -1,0 +1,520 @@
+package com.acme.prism.core.search;
+
+import cn.hutool.core.util.StrUtil;
+import com.acme.prism.core.notice.Notifier;
+import com.acme.prism.core.search.cache.SearchCache;
+import com.acme.prism.core.search.item.PortSearchItem;
+import com.acme.prism.core.settings.PluginSettings;
+import com.intellij.icons.AllIcons;
+import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManager;
+import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.SystemInfo;
+import com.intellij.psi.codeStyle.NameUtil;
+import com.intellij.ui.ColoredListCellRenderer;
+import com.intellij.ui.JBColor;
+import com.intellij.ui.SimpleTextAttributes;
+import com.intellij.util.Processor;
+import com.intellij.util.concurrency.AppExecutorUtil;
+import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+/**
+ * 端口搜索实现<br/>
+ * 用于搜索本地运行的端口进程，两阶段点击确认后杀死进程（防误触）
+ *
+ * @param project 项目信息
+ * @author 拒绝者
+ * @date 2026-04-01
+ */
+public record PortSearch(Project project) implements WeightedSearchEverywhereContributor<PortSearchItem> {
+    /**
+     * 搜索提供者 ID（与 PortSearchFactory / 搜索动作的引用保持一致）
+     */
+    public static final String PROVIDER_ID = "PortSearch";
+    /**
+     * 日志
+     */
+    private static final Logger LOG = Logger.getInstance(PortSearch.class);
+    /**
+     * 加载语言资源文件
+     */
+    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("messages.PrismBundle");
+    /**
+     * 纯数字模式
+     */
+    private static final Pattern DIGIT_PATTERN = Pattern.compile("\\d+");
+    /**
+     * 应用名称展示宽度（字符数）
+     */
+    private static final int APP_NAME_WIDTH = 20;
+    /**
+     * 端口号列宽（字符数）
+     */
+    private static final int PORT_COLUMN_WIDTH = 8;
+    /**
+     * 路径展示最大长度
+     */
+    private static final int PATH_MAX_LENGTH = 50;
+    /**
+     * 右对齐基准宽度（像素）
+     */
+    private static final int RIGHT_PADDING_BASE = 400;
+    /**
+     * 最小右间距（像素）
+     */
+    private static final int MIN_PADDING = 20;
+    /**
+     * 空模式默认权重
+     */
+    private static final int EMPTY_PATTERN_WEIGHT = 100;
+    /**
+     * 杀进程命令超时（毫秒），防止系统命令挂起导致后台线程永久阻塞
+     */
+    private static final long PROCESS_KILL_TIMEOUT_MS = 3000L;
+    /**
+     * 确认态有效时长（毫秒），超时后需重新进入确认态（防残留误导）
+     */
+    private static final long CONFIRM_TIMEOUT_MS = 5000L;
+    /**
+     * 待确认的进程 PID（-1 表示无确认态；首次点击进入确认态，确认态内二次点击才执行结束。
+     * 按进程而非端口：同进程的所有端口项一同进入确认态，与"按 PID 结束整个进程"语义一致）
+     */
+    private static volatile long pendingConfirmPid = -1L;
+    /**
+     * 确认态进入时间（毫秒时间戳）
+     */
+    private static volatile long pendingConfirmAt;
+    /**
+     * 结束后延迟刷新时长（毫秒；进程退出与端口释放存在延迟，立即刷新仍会列出失效项）
+     */
+    private static final long KILLED_REFRESH_DELAY_MS = 1000L;
+    /**
+     * 端口号精确匹配权重
+     */
+    private static final int EXACT_MATCH_WEIGHT = 1000;
+    /**
+     * 端口号前缀匹配基础权重
+     */
+    private static final int PREFIX_MATCH_WEIGHT = 500;
+    /**
+     * 端口号包含匹配基础权重
+     */
+    private static final int CONTAINS_MATCH_WEIGHT = 200;
+    /**
+     * 排序权重
+     */
+    private static final int SORT_WEIGHT = 700;
+    /**
+     * 省略号
+     */
+    private static final String ELLIPSIS = "...";
+    /**
+     * 知名端口服务映射表（IANA 与各软件官方默认端口），用于在列表中描述端口服务并支持按服务名搜索
+     */
+    private static final Map<Integer, String> WELL_KNOWN_SERVICES = Map.<Integer, String>ofEntries(
+            Map.entry(21, "FTP"),
+            Map.entry(22, "SSH"),
+            Map.entry(23, "Telnet"),
+            Map.entry(25, "SMTP"),
+            Map.entry(53, "DNS"),
+            Map.entry(80, "HTTP"),
+            Map.entry(110, "POP3"),
+            Map.entry(143, "IMAP"),
+            Map.entry(443, "HTTPS"),
+            Map.entry(465, "SMTPS"),
+            Map.entry(587, "SMTP-Submission"),
+            Map.entry(993, "IMAPS"),
+            Map.entry(995, "POP3S"),
+            Map.entry(1080, "SOCKS"),
+            Map.entry(1433, "MSSQL"),
+            Map.entry(1521, "Oracle"),
+            Map.entry(2181, "Zookeeper"),
+            Map.entry(2375, "Docker"),
+            Map.entry(2376, "Docker-TLS"),
+            Map.entry(2379, "etcd"),
+            Map.entry(2380, "etcd-Peer"),
+            Map.entry(3000, "Node-Dev"),
+            Map.entry(3306, "MySQL"),
+            Map.entry(3389, "RDP"),
+            Map.entry(4200, "Angular-Dev"),
+            Map.entry(5000, "Flask-Dev"),
+            Map.entry(5173, "Vite-Dev"),
+            Map.entry(5432, "PostgreSQL"),
+            Map.entry(5601, "Kibana"),
+            Map.entry(5672, "RabbitMQ"),
+            Map.entry(5900, "VNC"),
+            Map.entry(6379, "Redis"),
+            Map.entry(6443, "Kubernetes-API"),
+            Map.entry(8000, "HTTP-Alt"),
+            Map.entry(8009, "AJP13"),
+            Map.entry(8080, "HTTP-Proxy"),
+            Map.entry(8086, "InfluxDB"),
+            Map.entry(8200, "Vault"),
+            Map.entry(8300, "Consul"),
+            Map.entry(8443, "HTTPS-Alt"),
+            Map.entry(8500, "Consul"),
+            Map.entry(8848, "Nacos"),
+            Map.entry(8888, "Jupyter"),
+            Map.entry(9000, "SonarQube"),
+            Map.entry(9042, "Cassandra"),
+            Map.entry(9090, "Prometheus"),
+            Map.entry(9092, "Kafka"),
+            Map.entry(9200, "Elasticsearch"),
+            Map.entry(9300, "ES-Transport"),
+            Map.entry(9411, "Zipkin"),
+            Map.entry(10000, "HiveServer2"),
+            Map.entry(10250, "Kubelet"),
+            Map.entry(11211, "Memcached"),
+            Map.entry(15672, "RabbitMQ-Mgmt"),
+            Map.entry(16379, "Redis-Sentinel"),
+            Map.entry(26379, "Redis-Sentinel"),
+            Map.entry(27017, "MongoDB"),
+            Map.entry(61616, "ActiveMQ")
+    );
+
+    private SearchCache cache() {
+        return SearchCache.getInstance(Objects.requireNonNull(this.project));
+    }
+
+    @Override
+    public @NotNull String getSearchProviderId() {
+        return PROVIDER_ID;
+    }
+
+    @Override
+    public @NotNull String getGroupName() {
+        return BUNDLE.getString("port.search.group.name");
+    }
+
+    @Override
+    public int getSortWeight() {
+        return SORT_WEIGHT;
+    }
+
+    @Override
+    public boolean isEmptyPatternSupported() {
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public boolean isShownInSeparateTab() {
+        // 设置面板关闭本搜索时不显示独立页签（Search Everywhere 每次打开时重新查询）
+        return PluginSettings.of().portSearchEnabled;
+    }
+
+    @Override
+    public boolean showInFindResults() {
+        return Boolean.FALSE;
+    }
+
+    /**
+     * 处理选中的端口进程项（两阶段点击确认，防误触）
+     * <p>
+     * 首次点击：该项进入确认态，行内显示红色"再次点击确认结束"提示，搜索面板保持打开；
+     * 确认态内二次点击同一项：执行结束并刷新面板剔除失效项；
+     * 点击其他项或超时自动退出确认态
+     *
+     * @param item       要处理的端口进程项
+     * @param modifiers  键盘修饰符
+     * @param searchText 搜索文本
+     * @return 始终返回 false（保持搜索窗口打开）
+     */
+    @Override
+    public boolean processSelectedItem(@NotNull final PortSearchItem item, final int modifiers, @NotNull final String searchText) {
+        if (isPendingConfirm(item)) {
+            // 确认态内二次点击：执行结束并清除确认态，立即刷新恢复普通渲染
+            pendingConfirmPid = -1L;
+            killProcess(item.pid(), item.appName());
+            this.refreshSearchEverywhere();
+            return Boolean.FALSE;
+        }
+        // 首次点击：进入确认态并刷新列表（该项行内显示红色确认提示）
+        pendingConfirmPid = item.pid();
+        pendingConfirmAt = System.currentTimeMillis();
+        this.refreshSearchEverywhere();
+        return Boolean.FALSE;
+    }
+
+    /**
+     * 判断该项是否处于有效的结束确认态（确认态超时自动失效）
+     *
+     * @param item 端口进程项
+     * @return boolean
+     */
+    private static boolean isPendingConfirm(final PortSearchItem item) {
+        return pendingConfirmPid == item.pid() && System.currentTimeMillis() - pendingConfirmAt <= CONFIRM_TIMEOUT_MS;
+    }
+
+    /**
+     * 刷新 Search Everywhere 搜索面板
+     * <p>
+     * setSearchText 仅修改 VM 状态不触发查询链；与平台 findElementsForPattern 一致，
+     * 直接操作搜索框文档产生真实 DocumentEvent，驱动重新查询（进程结束后剔除已失效项）
+     */
+    private void refreshSearchEverywhere() {
+        final var popupInstance = SearchEverywhereManager.getInstance(this.project).getCurrentlyShownPopupInstance();
+        if (Objects.isNull(popupInstance)) {
+            return;
+        }
+        try {
+            final var document = popupInstance.getSearchFieldDocument();
+            final int length = document.getLength();
+            document.insertString(length, " ", null);
+            document.remove(length, 1);
+        } catch (final BadLocationException ignored) {
+            // 文档长度在两次操作间被并发修改时放弃本次刷新
+        }
+    }
+
+    /**
+     * 杀死指定进程
+     *
+     * @param pid     进程ID
+     * @param appName 应用名称
+     */
+    private void killProcess(final long pid, final String appName) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                final ProcessBuilder builder;
+                if (SystemInfo.isWindows) {
+                    builder = new ProcessBuilder("taskkill", "/F", "/PID", String.valueOf(pid));
+                } else {
+                    builder = new ProcessBuilder("kill", "-9", String.valueOf(pid));
+                }
+                builder.redirectErrorStream(Boolean.TRUE);
+                final Process process = builder.start();
+                final boolean finished = process.waitFor(PROCESS_KILL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                if (!finished) {
+                    // 超时强制终止，避免后台线程永久阻塞
+                    process.descendants().forEach(ProcessHandle::destroyForcibly);
+                    process.destroyForcibly();
+                }
+                final int exitCode = finished ? process.exitValue() : -1;
+                if (exitCode == 0) {
+                    // 成功：进程退出与端口释放存在延迟，延迟后统一回调（先刷新列表，再弹终止通知）
+                    AppExecutorUtil.getAppScheduledExecutorService().schedule(
+                            () -> ApplicationManager.getApplication().invokeLater(() -> {
+                                this.cache().invalidatePortCache();
+                                this.refreshSearchEverywhere();
+                                Notifier.notifyInfo(
+                                        BUNDLE.getString("port.search.process.killed").formatted(appName, pid), this.project
+                                );
+                            }), KILLED_REFRESH_DELAY_MS, TimeUnit.MILLISECONDS);
+                } else {
+                    ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyError(
+                            BUNDLE.getString("port.search.process.kill.failed").formatted(appName, pid), this.project
+                    ));
+                }
+            } catch (final Exception e) {
+                LOG.warn("Failed to kill process", e);
+                ApplicationManager.getApplication().invokeLater(() -> Notifier.notifyError(
+                        BUNDLE.getString("port.search.process.kill.error").formatted(e.getMessage()), this.project
+                ));
+            }
+        });
+    }
+
+    /**
+     * 获取端口进程项的列表单元格渲染器
+     * <p>
+     * 使用 ColoredListCellRenderer 实现正确的样式渲染
+     * 显示格式：图标 + 应用名（对齐）+ 端口（蓝色）+ 路径（灰色，右对齐）
+     *
+     * @return 端口进程项的列表单元格渲染器
+     */
+    @Override
+    public @NotNull ListCellRenderer<? super PortSearchItem> getElementsRenderer() {
+        return new ColoredListCellRenderer<>() {
+            @Override
+            protected void customizeCellRenderer(@NotNull final JList<? extends PortSearchItem> list,
+                                                 final PortSearchItem value,
+                                                 final int index,
+                                                 final boolean selected,
+                                                 final boolean hasFocus) {
+                if (Objects.isNull(value)) {
+                    return;
+                }
+
+                // 确认态：整行渲染为红色确认提示（再次点击才真正结束进程）
+                if (isPendingConfirm(value)) {
+                    this.setIcon(AllIcons.General.Warning);
+                    this.append(BUNDLE.getString("port.search.kill.confirm.again")
+                                    .formatted(value.appName(), value.pid(), value.port()),
+                            new SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, JBColor.RED));
+                    return;
+                }
+
+                // 使用加载阶段提取的应用系统图标（SearchCache 已缓存）
+                this.setIcon(value.icon());
+
+                // 应用名称（固定宽度对齐）
+                final String appName = value.appName();
+                final String displayName = appName.length() > APP_NAME_WIDTH
+                        ? appName.substring(0, APP_NAME_WIDTH - ELLIPSIS.length()) + ELLIPSIS
+                        : appName;
+                this.append(padEnd(displayName), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
+
+                // 端口号（固定宽度，右对齐，蓝色）
+                this.append(padStart(":" + value.port()), new SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_BOLD,
+                        selected ? JBColor.CYAN : JBColor.BLUE
+                ));
+
+                // 知名服务描述（命中映射表时展示，便于一眼识别端口用途）
+                final String serviceName = WELL_KNOWN_SERVICES.get(value.port());
+                if (Objects.nonNull(serviceName)) {
+                    this.append(" " + serviceName, new SimpleTextAttributes(
+                            SimpleTextAttributes.STYLE_BOLD,
+                            JBColor.GREEN
+                    ));
+                }
+
+                // 应用路径（灰色，右对齐）
+                final String appPath = value.appPath();
+                final String pathText;
+                if (StrUtil.isNotEmpty(appPath)) {
+                    pathText = shortenPath(appPath);
+                } else {
+                    pathText = BUNDLE.getString("port.search.pid.fallback").formatted(value.pid());
+                }
+                this.appendTextPadding(Math.max(MIN_PADDING, list.getWidth() - RIGHT_PADDING_BASE));
+                this.append(pathText, new SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_PLAIN,
+                        selected ? JBColor.LIGHT_GRAY : JBColor.GRAY
+                ));
+            }
+        };
+    }
+
+    /**
+     * 将应用名补齐到固定宽度（避免 String.format 的 Locale 开销）
+     *
+     * @param text 原始文本
+     * @return 补齐后的文本
+     */
+    private static String padEnd(final String text) {
+        return text.length() >= APP_NAME_WIDTH ? text : text + " ".repeat(APP_NAME_WIDTH - text.length());
+    }
+
+    /**
+     * 将端口号补齐到固定宽度（避免 String.format 的 Locale 开销）
+     *
+     * @param text 原始文本
+     * @return 补齐后的文本
+     */
+    private static String padStart(final String text) {
+        return text.length() >= PORT_COLUMN_WIDTH ? text : " ".repeat(PORT_COLUMN_WIDTH - text.length()) + text;
+    }
+
+    /**
+     * 缩短路径显示
+     *
+     * @param path 原始路径
+     * @return 缩短后的路径
+     */
+    private static String shortenPath(final String path) {
+        if (StrUtil.isEmpty(path) || path.length() <= PortSearch.PATH_MAX_LENGTH) {
+            return path;
+        }
+        // 显示路径开头和结尾，中间用省略号
+        final int half = (PortSearch.PATH_MAX_LENGTH - ELLIPSIS.length()) / 2;
+        return path.substring(0, half) + ELLIPSIS + path.substring(path.length() - half);
+    }
+
+    /**
+     * 根据指定模式获取加权的端口进程元素
+     * <p>
+     * 支持通过数字模糊搜索端口
+     *
+     * @param pattern   用于匹配的模式字符串
+     * @param indicator 进度指示器
+     * @param consumer  用于处理匹配结果的处理器
+     */
+    @Override
+    public void fetchWeightedElements(
+            @NotNull final String pattern, @NotNull final ProgressIndicator indicator, @NotNull final Processor<? super FoundItemDescriptor<PortSearchItem>> consumer
+    ) {
+        // 设置面板关闭本搜索时不产出结果
+        if (!PluginSettings.of().portSearchEnabled) return;
+        final String lowerPattern = pattern.toLowerCase(Locale.ROOT);
+        final boolean isEmptyPattern = StrUtil.isEmpty(pattern);
+        final boolean isDigitPattern = DIGIT_PATTERN.matcher(pattern).matches();
+        // 根据是否有搜索词选择数据源：
+        // - 空搜索：只显示 IDEA 子进程
+        // - 有搜索词：搜索整个系统端口
+        final List<PortSearchItem> items = isEmptyPattern ? this.cache().getIdeaChildPorts() : this.cache().getPorts();
+        if (items.isEmpty()) return;
+        // 过滤结果
+        final List<PortSearchItem> filteredItems = new ArrayList<>();
+        for (final PortSearchItem item : items) {
+            if (indicator.isCanceled()) return;
+            if (Objects.isNull(item)) continue;
+            if (isEmptyPattern) {
+                // 空模式时显示所有 IDEA 子进程
+                filteredItems.add(item);
+            } else if (isDigitPattern) {
+                // 数字模式：匹配端口号
+                if (String.valueOf(item.port()).contains(pattern)) {
+                    filteredItems.add(item);
+                }
+            } else {
+                // 文本模式：匹配应用名称或知名服务名（如输入 mysql 可命中 3306）
+                final String serviceName = WELL_KNOWN_SERVICES.getOrDefault(item.port(), "").toLowerCase(Locale.ROOT);
+                if (item.appName().toLowerCase(Locale.ROOT).contains(lowerPattern) || serviceName.contains(lowerPattern)) {
+                    filteredItems.add(item);
+                }
+            }
+        }
+        // 计算权重并排序
+        final List<FoundItemDescriptor<PortSearchItem>> descriptors = new ArrayList<>(filteredItems.size());
+        if (isEmptyPattern) {
+            // 空模式：按端口号排序
+            filteredItems.sort(Comparator.comparingInt(PortSearchItem::port));
+            for (final PortSearchItem item : filteredItems) {
+                descriptors.add(new FoundItemDescriptor<>(item, EMPTY_PATTERN_WEIGHT));
+            }
+        } else {
+            // 使用匹配器计算权重
+            final var matcher = NameUtil.buildMatcher("*%s*".formatted(pattern)).build();
+            for (final PortSearchItem item : filteredItems) {
+                int weight = 0;
+                if (isDigitPattern) {
+                    // 数字匹配：端口号越接近权重越高
+                    final String portStr = String.valueOf(item.port());
+                    if (portStr.equals(pattern)) {
+                        weight = EXACT_MATCH_WEIGHT;
+                    } else if (portStr.startsWith(pattern)) {
+                        weight = PREFIX_MATCH_WEIGHT + pattern.length() * 10;
+                    } else if (portStr.contains(pattern)) {
+                        weight = CONTAINS_MATCH_WEIGHT + pattern.length() * 5;
+                    }
+                } else {
+                    // 文本匹配：应用名称与知名服务名取最高匹配度
+                    final String serviceName = WELL_KNOWN_SERVICES.getOrDefault(item.port(), "");
+                    weight = Math.max(
+                            matcher.matchingDegree(item.appName()),
+                            serviceName.isEmpty() ? 0 : matcher.matchingDegree(serviceName)
+                    );
+                }
+                if (weight > 0) {
+                    descriptors.add(new FoundItemDescriptor<>(item, weight));
+                }
+            }
+            descriptors.sort((left, right) -> Integer.compare(right.getWeight(), left.getWeight()));
+        }
+        for (final FoundItemDescriptor<PortSearchItem> descriptor : descriptors) {
+            if (indicator.isCanceled()) return;
+            consumer.process(descriptor);
+        }
+    }
+}
